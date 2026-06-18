@@ -283,6 +283,11 @@ button {
   color: var(--green-dark);
 }
 
+.inline-status.loading_more {
+  background: #eff6ff;
+  color: var(--blue);
+}
+
 .product-list,
 .basket-list,
 .rank-list {
@@ -393,6 +398,27 @@ button {
   color: var(--green-dark);
   font-size: 13px;
   font-weight: 900;
+}
+
+.load-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.load-more:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .icon-button,

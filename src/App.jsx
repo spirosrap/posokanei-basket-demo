@@ -20,8 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { initialBasket, products as demoProducts, retailers } from "./demoData";
-import { fetchHealth, searchProducts } from "./posokaneiApi";
+import { initialBasket, products as demoProducts, retailers as demoRetailers } from "./demoData";
+import { fetchCategories, fetchHealth, fetchProducts, fetchRetailers } from "./posokaneiApi";
 import {
   basketItemCount,
   calculateRankings,
@@ -43,10 +43,19 @@ const savedBasket = () => {
 function App() {
   const [basket, setBasket] = useState(savedBasket);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("Όλα");
+  const [categoryId, setCategoryId] = useState("all");
   const [dataMode, setDataMode] = useState("demo");
   const [health, setHealth] = useState({ state: "offline", label: "API demo mode" });
   const [liveProducts, setLiveProducts] = useState([]);
+  const [liveRetailers, setLiveRetailers] = useState([]);
+  const [liveCategories, setLiveCategories] = useState([]);
+  const [liveMeta, setLiveMeta] = useState({
+    total: demoProducts.length,
+    page: 1,
+    totalPages: 1,
+    hasNext: false,
+    activeProducts: 0,
+  });
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [maxChains, setMaxChains] = useState(1);
@@ -56,16 +65,31 @@ function App() {
   }, [basket]);
 
   useEffect(() => {
+    setCategoryId("all");
+  }, [dataMode]);
+
+  useEffect(() => {
     if (dataMode !== "live") {
       setHealth({ state: "offline", label: "API demo mode" });
       return undefined;
     }
 
     let cancelled = false;
-    setHealth({ state: "checking", label: "Έλεγχος" });
-    fetchHealth()
-      .then(() => {
-        if (!cancelled) setHealth({ state: "online", label: "API reachable" });
+    setHealth({ state: "checking", label: "Έλεγχος live API" });
+    Promise.all([fetchHealth(), fetchRetailers(), fetchCategories()])
+      .then(([stats, fetchedRetailers, fetchedCategories]) => {
+        if (cancelled) return;
+        setLiveRetailers(fetchedRetailers);
+        setLiveCategories(fetchedCategories);
+        setLiveMeta((current) => ({
+          ...current,
+          activeProducts: stats.activeProducts,
+          total: current.total || stats.activeProducts,
+        }));
+        setHealth({
+          state: "online",
+          label: `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
+        });
       })
       .catch(() => {
         if (!cancelled) setHealth({ state: "offline", label: "API demo mode" });
@@ -76,15 +100,22 @@ function App() {
   }, [dataMode]);
 
   useEffect(() => {
-    if (dataMode !== "live" || query.trim().length < 2) return;
+    if (dataMode !== "live") return undefined;
     let cancelled = false;
     setLiveState("loading");
     const timer = window.setTimeout(() => {
-      searchProducts(query.trim())
-        .then((items) => {
+      fetchProducts({ query, categoryId, page: 1 })
+        .then((result) => {
           if (cancelled) return;
-          setLiveProducts(items);
-          setLiveState(items.length ? "ready" : "empty");
+          setLiveProducts(result.products);
+          setLiveMeta((current) => ({
+            ...current,
+            total: result.total,
+            page: result.page,
+            totalPages: result.totalPages,
+            hasNext: result.hasNext,
+          }));
+          setLiveState(result.products.length ? "ready" : "empty");
         })
         .catch(() => {
           if (cancelled) return;
@@ -96,7 +127,7 @@ function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [dataMode, query]);
+  }, [categoryId, dataMode, query]);
 
   const allProducts = useMemo(() => {
     const byId = new Map(demoProducts.map((product) => [product.id, product]));
@@ -105,30 +136,45 @@ function App() {
   }, [liveProducts]);
 
   const displayProducts = useMemo(() => {
-    const source =
-      dataMode === "live" && liveProducts.length && query.trim().length >= 2
-        ? liveProducts
-        : demoProducts;
+    const source = dataMode === "live" ? liveProducts : demoProducts;
     const normalizedQuery = query.trim().toLowerCase();
     return source.filter((product) => {
-      const matchesCategory = category === "Όλα" || product.category === category;
+      const matchesCategory =
+        dataMode === "live" ||
+        categoryId === "all" ||
+        product.category === categoryId;
       const matchesQuery =
+        dataMode === "live" ||
         !normalizedQuery ||
         `${product.name} ${product.brand} ${product.category}`
           .toLowerCase()
           .includes(normalizedQuery);
       return matchesCategory && matchesQuery;
     });
-  }, [category, dataMode, liveProducts, query]);
+  }, [categoryId, dataMode, liveProducts, query]);
 
   const categories = useMemo(() => {
-    const values = new Set(["Όλα", ...demoProducts.map((product) => product.category)]);
-    return [...values];
-  }, []);
+    if (dataMode === "live") {
+      return [
+        { id: "all", name: "Όλα", count: liveMeta.activeProducts || liveMeta.total },
+        ...liveCategories.slice(0, 80),
+      ];
+    }
+    const values = new Set(demoProducts.map((product) => product.category));
+    return [
+      { id: "all", name: "Όλα", count: demoProducts.length },
+      ...[...values].map((name) => ({ id: name, name, count: 0 })),
+    ];
+  }, [dataMode, liveCategories, liveMeta.activeProducts, liveMeta.total]);
+
+  const activeRetailers = useMemo(
+    () => (dataMode === "live" && liveRetailers.length ? liveRetailers : demoRetailers),
+    [dataMode, liveRetailers],
+  );
 
   const rankings = useMemo(
-    () => calculateRankings(basket, allProducts, retailers),
-    [allProducts, basket],
+    () => calculateRankings(basket, allProducts, activeRetailers),
+    [activeRetailers, allProducts, basket],
   );
 
   const bestCompleteRanking = useMemo(
@@ -137,8 +183,8 @@ function App() {
   );
 
   const visitPlan = useMemo(
-    () => calculateVisitPlan(basket, allProducts, retailers, maxChains),
-    [allProducts, basket, maxChains],
+    () => calculateVisitPlan(basket, allProducts, activeRetailers, maxChains),
+    [activeRetailers, allProducts, basket, maxChains],
   );
 
   const productMap = useMemo(
@@ -184,6 +230,29 @@ function App() {
     await navigator.clipboard?.writeText(lines.join("\n"));
   };
 
+  const loadMoreLiveProducts = () => {
+    if (dataMode !== "live" || !liveMeta.hasNext || liveState === "loading_more") return;
+    const nextPage = liveMeta.page + 1;
+    setLiveState("loading_more");
+    fetchProducts({ query, categoryId, page: nextPage })
+      .then((result) => {
+        setLiveProducts((current) => {
+          const byId = new Map(current.map((product) => [product.id, product]));
+          result.products.forEach((product) => byId.set(product.id, product));
+          return [...byId.values()];
+        });
+        setLiveMeta((current) => ({
+          ...current,
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          hasNext: result.hasNext,
+        }));
+        setLiveState("ready");
+      })
+      .catch(() => setLiveState("error"));
+  };
+
   return (
     <div className="app-shell">
       <Header
@@ -197,15 +266,17 @@ function App() {
         <SearchPanel
           query={query}
           setQuery={setQuery}
-          category={category}
-          setCategory={setCategory}
+          categoryId={categoryId}
+          setCategoryId={setCategoryId}
           categories={categories}
           products={displayProducts}
           dataMode={dataMode}
           liveState={liveState}
+          liveMeta={liveMeta}
           selectedProduct={selectedProduct}
           onSelect={setSelectedProduct}
           onAdd={addToBasket}
+          onLoadMore={loadMoreLiveProducts}
         />
 
         <BasketPanel
@@ -235,7 +306,7 @@ function App() {
       {selectedProduct ? (
         <ProductDrawer
           product={selectedProduct}
-          retailers={retailers}
+          retailers={activeRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
         />
@@ -294,23 +365,32 @@ function Header({ dataMode, setDataMode, health, basketCount }) {
 function SearchPanel({
   query,
   setQuery,
-  category,
-  setCategory,
+  categoryId,
+  setCategoryId,
   categories,
   products,
   dataMode,
   liveState,
+  liveMeta,
   selectedProduct,
   onSelect,
   onAdd,
+  onLoadMore,
 }) {
+  const resultAction =
+    dataMode === "live"
+      ? `${products.length.toLocaleString("el-GR")}/${liveMeta.total.toLocaleString("el-GR")}`
+      : `${products.length} αποτελέσματα`;
+  const canLoadMore = dataMode === "live" && liveMeta.hasNext;
+  const isLoadingMore = liveState === "loading_more";
+
   return (
     <section className="panel search-panel" aria-labelledby="search-title">
       <PanelTitle
         id="search-title"
         icon={<PackageSearch size={18} />}
         title="Προϊόντα"
-        action={`${products.length} αποτελέσματα`}
+        action={resultAction}
       />
 
       <label className="search-box">
@@ -326,17 +406,18 @@ function SearchPanel({
       <div className="chips" aria-label="Κατηγορίες">
         {categories.map((item) => (
           <button
-            key={item}
+            key={item.id}
             type="button"
-            className={item === category ? "chip active" : "chip"}
-            onClick={() => setCategory(item)}
+            className={item.id === categoryId ? "chip active" : "chip"}
+            onClick={() => setCategoryId(item.id)}
+            title={item.count ? `${item.count.toLocaleString("el-GR")} προϊόντα` : item.name}
           >
-            {item}
+            {item.name}
           </button>
         ))}
       </div>
 
-      <LiveNotice mode={dataMode} state={liveState} />
+      <LiveNotice mode={dataMode} state={liveState} total={liveMeta.total} visible={products.length} />
 
       <div className="product-list">
         {products.map((product) => (
@@ -349,16 +430,29 @@ function SearchPanel({
           />
         ))}
       </div>
+
+      {canLoadMore ? (
+        <button
+          type="button"
+          className="load-more"
+          onClick={onLoadMore}
+          disabled={isLoadingMore}
+        >
+          <RefreshCw size={16} />
+          {isLoadingMore ? "Φόρτωση..." : "Φόρτωση περισσότερων προϊόντων"}
+        </button>
+      ) : null}
     </section>
   );
 }
 
-function LiveNotice({ mode, state }) {
+function LiveNotice({ mode, state, total, visible }) {
   if (mode !== "live") return null;
   const labels = {
-    idle: "Live αναζήτηση έτοιμη",
-    loading: "Φόρτωση live αποτελεσμάτων",
-    ready: "Live αποτελέσματα",
+    idle: "Live κατάλογος PosoKanei",
+    loading: "Φόρτωση live προϊόντων",
+    loading_more: "Φόρτωση επιπλέον προϊόντων",
+    ready: `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
     empty: "Δεν βρέθηκαν live αποτελέσματα",
     error: "Live API μη διαθέσιμο",
   };

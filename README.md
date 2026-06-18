@@ -21,17 +21,19 @@ This is an unofficial demo. It is not affiliated with PosoKanei or any supermark
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, and per-chain prices.
-- Switch between demo data and a live PosoKanei API adapter.
+- Switch between demo data and the live PosoKanei catalog.
+- Load official product photos from the PosoKanei image endpoints.
+- Browse/search the official catalog with pagination instead of a fixed sample list.
 
 ## Demo Target
 
-The app is built to run as a static subpath deployment:
+The app is built to run as a subpath deployment:
 
 ```text
 https://agenticspiros.com/demo/posokanei-basket/
 ```
 
-The current build uses relative assets (`base: "./"` in `vite.config.js`), so it can be hosted under a folder without a Node server.
+The React build uses relative assets (`base: "./"` in `vite.config.js`). Live mode also ships a small PHP proxy under `public/api/posokanei.php`, so production hosting must be able to execute PHP for the same-origin catalog calls.
 
 ## Screenshots
 
@@ -94,7 +96,9 @@ Browser QA covered:
 - Product add flow.
 - Quantity update flow.
 - Product detail drawer open/close.
-- Live mode fallback when the upstream API is unavailable.
+- Live mode loading the official catalog.
+- Live search for `γάλα`, including product photos.
+- Adding an official live product to the basket and recalculating the plan.
 
 ## PosoKanei API Discovery
 
@@ -110,16 +114,18 @@ The official PosoKanei web app is a Flutter application. Its compiled bundle ref
 
 During development on 2026-06-18:
 
-- `https://api.posokanei.gov.gr/` returned `{"status":"ok"}`.
-- `GET /meta/retailers?countries=GR` eventually returned retailer metadata, including Greek retailer IDs such as `sklavenitis`, `ab_vasilopoulos`, `lidl`, `mymarket`, `masoutis`, and `kritikos`.
-- Product and search routes intermittently returned `502`, `503`, or timed out.
+- `GET /meta/stats` returned `8,774` total products and `8,770` active products.
+- `GET /products?page=1&page_size=2&countries=GR` returned official product records with `image_url`, `price_stats`, `retailer_prices`, and category metadata.
+- `POST /products/search` with `{ "title": "γάλα", "countries": ["GR"] }` returned `271` milk-related products.
+- Product images are served from URLs like `https://api.posokanei.gov.gr/images/product/<id>?v=<version>`.
 
-Because those product endpoints were not reliable from this environment, the app ships with:
+The official API does not allow `https://agenticspiros.com` as a browser CORS origin, so direct `fetch()` calls from a static frontend are blocked. The demo handles this with:
 
 - A demo dataset in `src/demoData.js`.
-- A live search adapter in `src/posokaneiApi.js`.
+- A same-origin PHP proxy in `public/api/posokanei.php`.
+- A live catalog adapter in `src/posokaneiApi.js`.
 - A visible API/demo status in the UI.
-- Graceful fallback when the live API fails.
+- Graceful fallback/status when the live proxy or upstream API fails.
 
 ## Data Model
 
@@ -134,6 +140,7 @@ Products are normalized into this shape:
   category: "Γαλακτοκομικά",
   unit: "τεμ.",
   unitQuantity: "1 L",
+  imageUrl: "https://api.posokanei.gov.gr/images/product/...",
   prices: {
     sklavenitis: 1.74,
     ab_vasilopoulos: 1.82,
@@ -154,12 +161,14 @@ Short version:
 ```bash
 npm run build
 curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei-basket/index.html
+curl --ftp-create-dirs -T dist/api/posokanei.php ftp://agenticspiros.com/demo/posokanei-basket/api/posokanei.php
 ```
 
 ## Limitations
 
-- The included product prices are demo values, not a promise of current supermarket prices.
+- Demo mode uses sample values; Live mode reads current PosoKanei catalog responses through the same-origin proxy.
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
+- The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.
 - It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.

@@ -53,13 +53,24 @@ into:
 httpdocs/spiros/demo/posokanei-basket/
 ```
 
-The build uses relative assets via `vite.config.js` (`base: "./"`), so no
-server rewrite is required for the main demo path. The generated `.htaccess`
-disables PageSpeed and sets `index.html` as the directory index.
+The build uses relative assets via `vite.config.js` (`base: "./"`). The generated
+`.htaccess` disables PageSpeed and sets `index.html` as the directory index.
+
+Live catalog mode also deploys:
+
+```text
+dist/api/posokanei.php
+```
+
+That PHP file is a same-origin proxy for the public PosoKanei catalog endpoints.
+It exists because `https://api.posokanei.gov.gr` currently rejects browser CORS
+requests from `agenticspiros.com`, while server-side requests from Plesk work.
 
 Verification:
 
 ```bash
 curl -L https://agenticspiros.com/demo/posokanei-basket/
 curl -L https://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
+curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats'
+curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'
 ```
