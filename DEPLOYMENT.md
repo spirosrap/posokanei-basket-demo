@@ -9,7 +9,7 @@ https://agenticspiros.com/demo/posokanei-basket/
 Static artifact:
 
 ```text
-/Users/spiros/Downloads/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
+/Users/spiros/Projects/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
 ```
 
 Live status:
@@ -44,7 +44,7 @@ curl --ftp-create-dirs -T dist/assets/<asset-file> \
 If using Plesk File Manager instead, upload and extract:
 
 ```text
-/Users/spiros/Downloads/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
+/Users/spiros/Projects/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
 ```
 
 into:
