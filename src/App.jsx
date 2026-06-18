@@ -31,17 +31,32 @@ import {
   getProductPrice,
 } from "./pricing";
 
+const BASKET_KEY = "posokanei-basket";
+const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
+
 const savedBasket = () => {
   try {
-    const parsed = JSON.parse(localStorage.getItem("posokanei-basket") || "null");
-    return Array.isArray(parsed) && parsed.length ? parsed : initialBasket;
+    const stored = localStorage.getItem(BASKET_KEY);
+    if (stored === null) return initialBasket;
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : initialBasket;
   } catch {
     return initialBasket;
   }
 };
 
+const savedLiveBasketProducts = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LIVE_BASKET_PRODUCTS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
+  } catch {
+    return [];
+  }
+};
+
 function App() {
   const [basket, setBasket] = useState(savedBasket);
+  const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [dataMode, setDataMode] = useState("demo");
@@ -61,8 +76,12 @@ function App() {
   const [maxChains, setMaxChains] = useState(1);
 
   useEffect(() => {
-    localStorage.setItem("posokanei-basket", JSON.stringify(basket));
+    localStorage.setItem(BASKET_KEY, JSON.stringify(basket));
   }, [basket]);
+
+  useEffect(() => {
+    localStorage.setItem(LIVE_BASKET_PRODUCTS_KEY, JSON.stringify(liveBasketProducts));
+  }, [liveBasketProducts]);
 
   useEffect(() => {
     setCategoryId("all");
@@ -131,9 +150,10 @@ function App() {
 
   const allProducts = useMemo(() => {
     const byId = new Map(demoProducts.map((product) => [product.id, product]));
+    liveBasketProducts.forEach((product) => byId.set(product.id, product));
     liveProducts.forEach((product) => byId.set(product.id, product));
     return [...byId.values()];
-  }, [liveProducts]);
+  }, [liveBasketProducts, liveProducts]);
 
   const displayProducts = useMemo(() => {
     const source = dataMode === "live" ? liveProducts : demoProducts;
@@ -193,6 +213,7 @@ function App() {
   );
 
   const addToBasket = (product) => {
+    rememberLiveProduct(product, setLiveBasketProducts);
     setBasket((current) => {
       const found = current.find((entry) => entry.productId === product.id);
       if (found) {
@@ -1021,3 +1042,12 @@ function roundQuantity(value) {
 }
 
 export default App;
+
+function rememberLiveProduct(product, setLiveBasketProducts) {
+  if (product?.source !== "live") return;
+  setLiveBasketProducts((current) => {
+    const byId = new Map(current.map((item) => [item.id, item]));
+    byId.set(product.id, product);
+    return [...byId.values()].slice(-200);
+  });
+}
