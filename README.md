@@ -1,16 +1,16 @@
-# Καλάθι Τιμών
+# Καλάθι Τιμών Supermarket
 
-A static React demo for building a supermarket basket and ranking Greek supermarket chains by the total cost of buying the whole list in one place.
+A React app for building a supermarket basket from the live PosoKanei catalog and ranking Greek supermarket chains by the total cost of the selected groceries.
 
-The prototype was inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. This repo explores a basket-first workflow: choose the exact products you want, adjust quantities, then see which supermarket chain can cover the full list for the lowest overall total.
+The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. The workflow is basket-first: choose the exact products you want, adjust quantities, decide whether you can make `1`, `2`, `3`, or `4` supermarket stops, then see the cheapest complete plan.
 
-This is an unofficial demo. It is not affiliated with PosoKanei or any supermarket chain.
+This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
 ![Desktop screenshot](screenshots/desktop.png)
 
 ## What It Does
 
-- Search or filter products by category.
+- Search or filter live products by category or barcode.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
 - Rank supermarket chains by total basket price.
@@ -21,11 +21,12 @@ This is an unofficial demo. It is not affiliated with PosoKanei or any supermark
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, and per-chain prices.
-- Switch between demo data and the live PosoKanei catalog.
 - Load official product photos from the PosoKanei image endpoints.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
+- Show the last product/price update check in the UI.
+- Provide a scheduler-friendly update check script and PHP endpoint.
 
-## Demo Target
+## Live Target
 
 The app is built to run as a subpath deployment:
 
@@ -33,7 +34,7 @@ The app is built to run as a subpath deployment:
 https://agenticspiros.com/demo/posokanei-basket/
 ```
 
-The React build uses relative assets (`base: "./"` in `vite.config.js`). Live mode also ships a small PHP proxy under `public/api/posokanei.php`, so production hosting must be able to execute PHP for the same-origin catalog calls.
+The React build uses relative assets (`base: "./"` in `vite.config.js`). The live catalog uses small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog and update-status calls.
 
 ## Screenshots
 
@@ -96,9 +97,10 @@ Browser QA covered:
 - Product add flow.
 - Quantity update flow.
 - Product detail drawer open/close.
-- Live mode loading the official catalog.
+- Loading the official catalog.
 - Live search for `γάλα`, including product photos.
 - Adding an official live product to the basket and recalculating the plan.
+- Update-status endpoint and scheduled-check script.
 
 ## PosoKanei API Discovery
 
@@ -119,12 +121,12 @@ During development on 2026-06-18:
 - `POST /products/search` with `{ "title": "γάλα", "countries": ["GR"] }` returned `271` milk-related products.
 - Product images are served from URLs like `https://api.posokanei.gov.gr/images/product/<id>?v=<version>`.
 
-The official API does not allow `https://agenticspiros.com` as a browser CORS origin, so direct `fetch()` calls from a static frontend are blocked. The demo handles this with:
+The official API does not allow `https://agenticspiros.com` as a browser CORS origin, so direct `fetch()` calls from a static frontend are blocked. The app handles this with:
 
-- A demo dataset in `src/demoData.js`.
 - A same-origin PHP proxy in `public/api/posokanei.php`.
+- A cached update-status endpoint in `public/api/update-status.php`.
 - A live catalog adapter in `src/posokaneiApi.js`.
-- A visible API/demo status in the UI.
+- A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
 ## Data Model
@@ -151,6 +153,26 @@ Products are normalized into this shape:
 
 Basket rankings are computed locally in `src/pricing.js`.
 
+## Product/Price Update Checks
+
+The app includes a lightweight update checker:
+
+- `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
+- `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
+- The UI reads `api/update-status.php` and shows the last check time near the top of the app.
+
+For a cron job:
+
+```bash
+*/30 * * * * cd /path/to/posokanei-basket-demo && npm run check:updates
+```
+
+For Plesk Scheduled Tasks, a simple curl check is enough:
+
+```bash
+curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1' >/dev/null
+```
+
 ## Deployment
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the Plesk/HostEurope upload path and
@@ -162,11 +184,11 @@ Short version:
 npm run build
 curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei-basket/index.html
 curl --ftp-create-dirs -T dist/api/posokanei.php ftp://agenticspiros.com/demo/posokanei-basket/api/posokanei.php
+curl --ftp-create-dirs -T dist/api/update-status.php ftp://agenticspiros.com/demo/posokanei-basket/api/update-status.php
 ```
 
 ## Limitations
 
-- Demo mode uses sample values; Live mode reads current PosoKanei catalog responses through the same-origin proxy.
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.

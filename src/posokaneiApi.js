@@ -2,6 +2,9 @@ const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
   : "./api/posokanei.php";
+const UPDATE_STATUS_URL = import.meta.env.DEV
+  ? "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php"
+  : "./api/update-status.php";
 
 const PAGE_SIZE = 30;
 const RETAILER_COLORS = [
@@ -47,6 +50,25 @@ async function fetchJson(resource, params = {}, timeout = 12000) {
 
     if (!response.ok) {
       throw new Error(`PosoKanei proxy ${response.status}`);
+    }
+
+    return response.json();
+  } finally {
+    timer.clear();
+  }
+}
+
+async function fetchDirectJson(url, timeout = 12000) {
+  const timer = withTimeout(timeout);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: timer.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed ${response.status}`);
     }
 
     return response.json();
@@ -213,6 +235,18 @@ export async function fetchHealth() {
     retailerCount: Number(stats.retailer_count ?? 0) || 0,
     productsOnDiscount: Number(stats.products_on_discount ?? 0) || 0,
     timestamp: stats.timestamp || "",
+  };
+}
+
+export async function fetchUpdateStatus() {
+  const raw = await fetchDirectJson(UPDATE_STATUS_URL, 9000);
+  return {
+    checkedAt: raw.checked_at || raw.checkedAt || "",
+    changedSinceLastCheck: Boolean(raw.changed_since_last_check ?? raw.changedSinceLastCheck),
+    activeProducts: Number(raw.stats?.active_products ?? raw.activeProducts ?? 0) || 0,
+    sampledProducts: Number(raw.sampled_products ?? raw.sampledProducts ?? 0) || 0,
+    fingerprint: raw.fingerprint || "",
+    status: raw.status || "ok",
   };
 }
 

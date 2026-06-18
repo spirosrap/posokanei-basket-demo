@@ -20,8 +20,13 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { initialBasket, products as demoProducts, retailers as demoRetailers } from "./demoData";
-import { fetchCategories, fetchHealth, fetchProducts, fetchRetailers } from "./posokaneiApi";
+import {
+  fetchCategories,
+  fetchHealth,
+  fetchProducts,
+  fetchRetailers,
+  fetchUpdateStatus,
+} from "./posokaneiApi";
 import {
   calculateRankings,
   calculateVisitPlan,
@@ -36,11 +41,11 @@ const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 const savedBasket = () => {
   try {
     const stored = localStorage.getItem(BASKET_KEY);
-    if (stored === null) return initialBasket;
+    if (stored === null) return [];
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : initialBasket;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return initialBasket;
+    return [];
   }
 };
 
@@ -58,13 +63,13 @@ function App() {
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
-  const [dataMode, setDataMode] = useState("demo");
-  const [health, setHealth] = useState({ state: "offline", label: "API demo mode" });
+  const [health, setHealth] = useState({ state: "checking", label: "Σύνδεση με κατάλογο" });
+  const [updateStatus, setUpdateStatus] = useState(null);
   const [liveProducts, setLiveProducts] = useState([]);
   const [liveRetailers, setLiveRetailers] = useState([]);
   const [liveCategories, setLiveCategories] = useState([]);
   const [liveMeta, setLiveMeta] = useState({
-    total: demoProducts.length,
+    total: 0,
     page: 1,
     totalPages: 1,
     hasNext: false,
@@ -83,19 +88,15 @@ function App() {
   }, [liveBasketProducts]);
 
   useEffect(() => {
-    setCategoryId("all");
-  }, [dataMode]);
-
-  useEffect(() => {
-    if (dataMode !== "live") {
-      setHealth({ state: "offline", label: "API demo mode" });
-      return undefined;
-    }
-
     let cancelled = false;
     setHealth({ state: "checking", label: "Έλεγχος live API" });
-    Promise.all([fetchHealth(), fetchRetailers(), fetchCategories()])
-      .then(([stats, fetchedRetailers, fetchedCategories]) => {
+    Promise.all([
+      fetchHealth(),
+      fetchRetailers(),
+      fetchCategories(),
+      fetchUpdateStatus().catch(() => null),
+    ])
+      .then(([stats, fetchedRetailers, fetchedCategories, fetchedUpdateStatus]) => {
         if (cancelled) return;
         setLiveRetailers(fetchedRetailers);
         setLiveCategories(fetchedCategories);
@@ -108,17 +109,17 @@ function App() {
           state: "online",
           label: `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
         });
+        setUpdateStatus(fetchedUpdateStatus);
       })
       .catch(() => {
-        if (!cancelled) setHealth({ state: "offline", label: "API demo mode" });
+        if (!cancelled) setHealth({ state: "offline", label: "Ο κατάλογος δεν απαντά" });
       });
     return () => {
       cancelled = true;
     };
-  }, [dataMode]);
+  }, []);
 
   useEffect(() => {
-    if (dataMode !== "live") return undefined;
     let cancelled = false;
     setLiveState("loading");
     const timer = window.setTimeout(() => {
@@ -145,51 +146,39 @@ function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [categoryId, dataMode, query]);
+  }, [categoryId, query]);
 
   const allProducts = useMemo(() => {
-    const byId = new Map(demoProducts.map((product) => [product.id, product]));
+    const byId = new Map();
     liveBasketProducts.forEach((product) => byId.set(product.id, product));
     liveProducts.forEach((product) => byId.set(product.id, product));
     return [...byId.values()];
   }, [liveBasketProducts, liveProducts]);
 
   const displayProducts = useMemo(() => {
-    const source = dataMode === "live" ? liveProducts : demoProducts;
-    const normalizedQuery = query.trim().toLowerCase();
-    return source.filter((product) => {
-      const matchesCategory =
-        dataMode === "live" ||
-        categoryId === "all" ||
-        product.category === categoryId;
-      const matchesQuery =
-        dataMode === "live" ||
-        !normalizedQuery ||
-        `${product.name} ${product.brand} ${product.category}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-      return matchesCategory && matchesQuery;
-    });
-  }, [categoryId, dataMode, liveProducts, query]);
+    return liveProducts;
+  }, [liveProducts]);
 
   const categories = useMemo(() => {
-    if (dataMode === "live") {
-      return [
-        { id: "all", name: "Όλα", count: liveMeta.activeProducts || liveMeta.total },
-        ...liveCategories.slice(0, 80),
-      ];
-    }
-    const values = new Set(demoProducts.map((product) => product.category));
     return [
-      { id: "all", name: "Όλα", count: demoProducts.length },
-      ...[...values].map((name) => ({ id: name, name, count: 0 })),
+      { id: "all", name: "Όλα", count: liveMeta.activeProducts || liveMeta.total },
+      ...liveCategories.slice(0, 80),
     ];
-  }, [dataMode, liveCategories, liveMeta.activeProducts, liveMeta.total]);
+  }, [liveCategories, liveMeta.activeProducts, liveMeta.total]);
 
-  const activeRetailers = useMemo(
-    () => (dataMode === "live" && liveRetailers.length ? liveRetailers : demoRetailers),
-    [dataMode, liveRetailers],
+  const activeRetailers = liveRetailers;
+
+  const productMap = useMemo(
+    () => new Map(allProducts.map((product) => [product.id, product])),
+    [allProducts],
   );
+
+  useEffect(() => {
+    setBasket((current) => {
+      const next = current.filter((entry) => productMap.has(entry.productId));
+      return next.length === current.length ? current : next;
+    });
+  }, [productMap]);
 
   const rankings = useMemo(
     () => calculateRankings(basket, allProducts, activeRetailers),
@@ -204,11 +193,6 @@ function App() {
   const visitPlan = useMemo(
     () => calculateVisitPlan(basket, allProducts, activeRetailers, maxChains),
     [activeRetailers, allProducts, basket, maxChains],
-  );
-
-  const productMap = useMemo(
-    () => new Map(allProducts.map((product) => [product.id, product])),
-    [allProducts],
   );
 
   const addToBasket = (product) => {
@@ -240,8 +224,6 @@ function App() {
 
   const clearBasket = () => setBasket([]);
 
-  const restoreBasket = () => setBasket(initialBasket);
-
   const copyBasket = async () => {
     const lines = basket.map((entry) => {
       const product = productMap.get(entry.productId);
@@ -251,7 +233,7 @@ function App() {
   };
 
   const loadMoreLiveProducts = () => {
-    if (dataMode !== "live" || !liveMeta.hasNext || liveState === "loading_more") return;
+    if (!liveMeta.hasNext || liveState === "loading_more") return;
     const nextPage = liveMeta.page + 1;
     setLiveState("loading_more");
     fetchProducts({ query, categoryId, page: nextPage })
@@ -276,11 +258,11 @@ function App() {
   return (
     <div className="app-shell">
       <Header
-        dataMode={dataMode}
-        setDataMode={setDataMode}
         health={health}
         basketCount={basket.length}
       />
+
+      <AppIntro health={health} updateStatus={updateStatus} />
 
       <main className="workspace" aria-label="Εφαρμογή σύγκρισης καλαθιού">
         <SearchPanel
@@ -290,7 +272,6 @@ function App() {
           setCategoryId={setCategoryId}
           categories={categories}
           products={displayProducts}
-          dataMode={dataMode}
           liveState={liveState}
           liveMeta={liveMeta}
           selectedProduct={selectedProduct}
@@ -308,7 +289,6 @@ function App() {
           maxChains={maxChains}
           onQuantity={updateQuantity}
           onClear={clearBasket}
-          onRestore={restoreBasket}
           onCopy={copyBasket}
           onSelect={setSelectedProduct}
         />
@@ -335,7 +315,7 @@ function App() {
   );
 }
 
-function Header({ dataMode, setDataMode, health, basketCount }) {
+function Header({ health, basketCount }) {
   const isOnline = health.state === "online";
   return (
     <header className="topbar">
@@ -344,8 +324,8 @@ function Header({ dataMode, setDataMode, health, basketCount }) {
           <ShoppingBasket size={21} aria-hidden="true" />
         </span>
         <span>
-          <strong>Καλάθι Τιμών</strong>
-          <small>agenticspiros / demo</small>
+          <strong>Καλάθι Τιμών Supermarket</strong>
+          <small>Φθηνότερο πλάνο για τα ψώνια σου</small>
         </span>
       </a>
 
@@ -357,28 +337,30 @@ function Header({ dataMode, setDataMode, health, basketCount }) {
           {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
           <span>{health.label}</span>
         </div>
-        <div className="segmented" aria-label="Πηγή δεδομένων">
-          <button
-            type="button"
-            className={dataMode === "demo" ? "active" : ""}
-            onClick={() => setDataMode("demo")}
-          >
-            Demo
-          </button>
-          <button
-            type="button"
-            className={dataMode === "live" ? "active" : ""}
-            onClick={() => setDataMode("live")}
-          >
-            Live
-          </button>
-        </div>
-        <div className="basket-pill" title="Σύνολο τεμαχίων">
+        <div className="basket-pill" title="Προϊόντα στο καλάθι">
           <ShoppingBasket size={16} />
           <span>{basketCount.toLocaleString("el-GR")}</span>
         </div>
       </div>
     </header>
+  );
+}
+
+function AppIntro({ health, updateStatus }) {
+  return (
+    <section className="app-intro" aria-label="Σκοπός εφαρμογής">
+      <div>
+        <h1>Βρες πού σε συμφέρει να αγοράσεις το καλάθι σου</h1>
+        <p>
+          Πρόσθεσε τα προϊόντα σου, διάλεξε αν θέλεις 1, 2, 3 ή 4 στάσεις, και
+          βλέπεις το φθηνότερο πλάνο ανά αλυσίδα supermarket.
+        </p>
+      </div>
+      <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
+        <span>{health.state === "online" ? "Live τιμές προϊόντων" : "Αναμονή live τιμών"}</span>
+        <span>{formatUpdateStatus(updateStatus)}</span>
+      </div>
+    </section>
   );
 }
 
@@ -389,7 +371,6 @@ function SearchPanel({
   setCategoryId,
   categories,
   products,
-  dataMode,
   liveState,
   liveMeta,
   selectedProduct,
@@ -397,11 +378,8 @@ function SearchPanel({
   onAdd,
   onLoadMore,
 }) {
-  const resultAction =
-    dataMode === "live"
-      ? `${products.length.toLocaleString("el-GR")}/${liveMeta.total.toLocaleString("el-GR")}`
-      : `${products.length} αποτελέσματα`;
-  const canLoadMore = dataMode === "live" && liveMeta.hasNext;
+  const resultAction = `${products.length.toLocaleString("el-GR")}/${liveMeta.total.toLocaleString("el-GR")}`;
+  const canLoadMore = liveMeta.hasNext;
   const isLoadingMore = liveState === "loading_more";
 
   return (
@@ -418,7 +396,7 @@ function SearchPanel({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Αναζήτηση προϊόντος ή barcode"
+          placeholder="Αναζήτηση προϊόντος ή barcode από τον live κατάλογο"
         />
         <Barcode size={17} aria-hidden="true" />
       </label>
@@ -437,7 +415,7 @@ function SearchPanel({
         ))}
       </div>
 
-      <LiveNotice mode={dataMode} state={liveState} total={liveMeta.total} visible={products.length} />
+      <LiveNotice state={liveState} total={liveMeta.total} visible={products.length} />
 
       <div className="product-list">
         {products.map((product) => (
@@ -466,15 +444,14 @@ function SearchPanel({
   );
 }
 
-function LiveNotice({ mode, state, total, visible }) {
-  if (mode !== "live") return null;
+function LiveNotice({ state, total, visible }) {
   const labels = {
-    idle: "Live κατάλογος PosoKanei",
-    loading: "Φόρτωση live προϊόντων",
+    idle: "Live κατάλογος προϊόντων",
+    loading: "Φόρτωση προϊόντων και τιμών",
     loading_more: "Φόρτωση επιπλέον προϊόντων",
     ready: `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
     empty: "Δεν βρέθηκαν live αποτελέσματα",
-    error: "Live API μη διαθέσιμο",
+    error: "Ο live κατάλογος δεν είναι διαθέσιμος",
   };
   return (
     <div className={`inline-status ${state}`}>
@@ -522,7 +499,6 @@ function BasketPanel({
   maxChains,
   onQuantity,
   onClear,
-  onRestore,
   onCopy,
   onSelect,
 }) {
@@ -544,10 +520,6 @@ function BasketPanel({
       />
 
       <div className="basket-toolbar">
-        <button type="button" className="text-button" onClick={onRestore}>
-          <RefreshCw size={16} />
-          Πρότυπο
-        </button>
         <button type="button" className="text-button" onClick={onCopy}>
           <ClipboardList size={16} />
           Αντιγραφή
@@ -758,8 +730,9 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
           <Store size={17} />
         </span>
         <div>
-          <small>Πρακτική πρόταση</small>
-          <strong>Φτιάξε τη λίστα σου και θα σου δείξω την καλύτερη αλυσίδα.</strong>
+          <small>Πρώτα φτιάξε τη λίστα σου</small>
+          <strong>Διάλεξε προϊόντα και πόσες στάσεις θέλεις να κάνεις.</strong>
+          <span>Το πλάνο θα ταξινομήσει τις αλυσίδες από τη φθηνότερη επιλογή.</span>
         </div>
       </div>
     );
@@ -1023,7 +996,7 @@ function EmptyBasket() {
     <div className="empty-state">
       <CircleDollarSign size={32} />
       <strong>Άδειο καλάθι</strong>
-      <small>Προσθέστε προϊόντα από την αναζήτηση.</small>
+      <small>Πρόσθεσε προϊόντα από τον live κατάλογο για να δεις το φθηνότερο πλάνο.</small>
     </div>
   );
 }
@@ -1042,6 +1015,19 @@ function formatProductCount(count) {
 
 function formatStopLimit(count) {
   return count === 1 ? "έως 1 στάση" : `έως ${count} στάσεις`;
+}
+
+function formatUpdateStatus(updateStatus) {
+  if (!updateStatus?.checkedAt) return "Έλεγχος ενημερώσεων: κατά τη χρήση";
+  const checkedAt = new Date(updateStatus.checkedAt);
+  if (Number.isNaN(checkedAt.getTime())) return "Έλεγχος ενημερώσεων: ενεργός";
+  const formatted = new Intl.DateTimeFormat("el-GR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(checkedAt);
+  return updateStatus.changedSinceLastCheck
+    ? `Νέες αλλαγές τιμών: ${formatted}`
+    : `Τελευταίος έλεγχος τιμών: ${formatted}`;
 }
 
 function buildPlanAssignmentMap(plan) {

@@ -101,8 +101,7 @@ button {
 }
 
 .source-status,
-.basket-pill,
-.segmented {
+.basket-pill {
   display: inline-flex;
   align-items: center;
   height: 38px;
@@ -133,25 +132,56 @@ button {
   color: var(--text);
 }
 
-.segmented {
-  padding: 3px;
-  gap: 2px;
+.app-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1480px;
+  margin: 0 auto 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.05);
+  padding: 14px 16px;
 }
 
-.segmented button {
-  height: 30px;
-  min-width: 58px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
+.app-intro h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.app-intro p {
+  max-width: 760px;
+  margin: 5px 0 0;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
-.segmented button.active {
-  background: var(--blue);
-  color: #ffffff;
+.intro-facts {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.intro-facts span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--green-dark);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.intro-facts span + span {
+  color: var(--muted);
 }
 
 .workspace {
@@ -986,6 +1016,19 @@ button {
   }
 }
 
+@media (max-width: 900px) {
+  .app-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .intro-facts {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 10px;
@@ -1004,6 +1047,22 @@ button {
   .workspace,
   .rank-list {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-intro {
+    padding: 12px;
+  }
+
+  .app-intro h1 {
+    font-size: 18px;
+  }
+
+  .app-intro p {
+    font-size: 12px;
+  }
+
+  .intro-facts span {
+    white-space: normal;
   }
 
   .panel {

@@ -1,7 +1,7 @@
 {
   "name": "posokanei-basket-demo",
   "version": "0.1.0",
-  "description": "Static React demo for comparing a Greek supermarket basket across chains using PosoKanei-style data.",
+  "description": "React app for comparing a Greek supermarket basket across chains using live PosoKanei catalog data.",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -23,7 +23,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:updates": "node scripts/check-posokanei-updates.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",
