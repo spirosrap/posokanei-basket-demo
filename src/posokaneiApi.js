@@ -99,11 +99,11 @@ export async function fetchHealth() {
   const timer = withTimeout(5000);
   try {
     const response = await fetch(`${API_BASE}/`, {
-      headers: { Accept: "application/json" },
+      cache: "no-store",
+      mode: "no-cors",
       signal: timer.signal,
     });
-    if (!response.ok) throw new Error(`API ${response.status}`);
-    return response.json();
+    return { type: response.type };
   } finally {
     timer.clear();
   }

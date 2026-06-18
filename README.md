@@ -16,6 +16,8 @@ This is an unofficial demo. It is not affiliated with PosoKanei or any supermark
 - Rank supermarket chains by total basket price.
 - Show coverage and missing-item counts per chain.
 - Highlight the cheapest complete one-stop basket.
+- Optimize the basket for up to `1`, `2`, `3`, or `4` supermarket stops.
+- Show which products to buy from each chain in a multi-stop plan.
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, and per-chain prices.
@@ -158,7 +160,8 @@ curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei
 
 - The included product prices are demo values, not a promise of current supermarket prices.
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- The app compares one-store baskets only, because the goal is to recommend where to go for the whole list.
+- The app can compare one-store baskets and multi-stop plans up to four chains.
+- Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.
 - It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 

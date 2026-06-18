@@ -500,6 +500,46 @@ button {
   font-size: 14px;
 }
 
+.chain-limit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 8px;
+}
+
+.chain-limit > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.chain-limit-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 38px);
+  gap: 4px;
+}
+
+.chain-limit-buttons button {
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.chain-limit-buttons button.active {
+  border-color: transparent;
+  background: var(--blue);
+  color: #ffffff;
+}
+
 .rank-card {
   padding: 12px;
 }
@@ -567,6 +607,24 @@ button {
   width: 54px;
   height: 54px;
   font-size: 15px;
+}
+
+.retailer-logo.mini {
+  width: 30px;
+  height: 30px;
+  border: 2px solid #ffffff;
+  font-size: 10px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.retailer-stack {
+  display: flex;
+  align-items: center;
+  min-width: 74px;
+}
+
+.retailer-stack .retailer-logo + .retailer-logo {
+  margin-left: -9px;
 }
 
 .rank-top strong {
@@ -682,6 +740,12 @@ button {
   line-height: 1;
 }
 
+.recommendation-total span {
+  margin-top: 5px;
+  color: var(--green-dark);
+  font-weight: 850;
+}
+
 .rank-badge {
   display: grid;
   width: 34px;
@@ -690,6 +754,74 @@ button {
   border-radius: 7px;
   background: rgba(15, 118, 110, 0.12);
   color: var(--green-dark);
+}
+
+.route-group {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.route-list {
+  display: grid;
+  gap: 8px;
+}
+
+.route-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 10px;
+}
+
+.route-store-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-store-top strong,
+.route-store-top small {
+  display: block;
+}
+
+.route-store-top strong {
+  font-size: 14px;
+}
+
+.route-store-top small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.route-items {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.route-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 6px;
+  background: var(--surface-strong);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.route-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-item strong {
+  font-size: 12px;
 }
 
 .empty-state {
@@ -871,6 +1003,15 @@ button {
 
   .best-strip {
     grid-template-columns: 1fr;
+  }
+
+  .chain-limit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .chain-limit-buttons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .recommendation-card {
