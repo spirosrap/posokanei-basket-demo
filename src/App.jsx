@@ -1,7 +1,6 @@
 import {
   AlertCircle,
   ArrowDownUp,
-  BadgeEuro,
   Barcode,
   Check,
   ChevronRight,
@@ -26,7 +25,6 @@ import { fetchHealth, searchProducts } from "./posokaneiApi";
 import {
   basketItemCount,
   calculateRankings,
-  calculateSplitBest,
   formatEuro,
   getBestProductPrice,
   getProductPrice,
@@ -125,9 +123,9 @@ function App() {
     [allProducts, basket],
   );
 
-  const splitBest = useMemo(
-    () => calculateSplitBest(basket, allProducts, retailers),
-    [allProducts, basket],
+  const bestCompleteRanking = useMemo(
+    () => rankings.find((row) => row.isComplete) ?? null,
+    [rankings],
   );
 
   const productMap = useMemo(
@@ -201,6 +199,7 @@ function App() {
           basket={basket}
           productMap={productMap}
           rankings={rankings}
+          bestCompleteRanking={bestCompleteRanking}
           onQuantity={updateQuantity}
           onClear={clearBasket}
           onRestore={restoreBasket}
@@ -210,7 +209,7 @@ function App() {
 
         <RankingsPanel
           rankings={rankings}
-          splitBest={splitBest}
+          bestCompleteRanking={bestCompleteRanking}
           basketSize={basket.length}
         />
       </main>
@@ -386,13 +385,15 @@ function BasketPanel({
   basket,
   productMap,
   rankings,
+  bestCompleteRanking,
   onQuantity,
   onClear,
   onRestore,
   onCopy,
   onSelect,
 }) {
-  const best = rankings[0];
+  const best = bestCompleteRanking;
+  const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   return (
     <section className="panel basket-panel" aria-labelledby="basket-title">
       <PanelTitle
@@ -439,17 +440,15 @@ function BasketPanel({
 
       <div className="best-strip">
         <div>
-          <small>Πρώτη επιλογή</small>
-          <strong>{best?.retailer.name ?? "Καμία"}</strong>
+          <small>Πού να πας</small>
+          <strong>{best?.retailer.name ?? "Δεν υπάρχει πλήρες καλάθι"}</strong>
         </div>
         <div>
-          <small>Κάλυψη</small>
-          <strong>
-            {best ? `${best.availableCount}/${basket.length}` : "0/0"}
-          </strong>
+          <small>Πλήρεις αλυσίδες</small>
+          <strong>{basket.length ? availableStoreCount : 0}</strong>
         </div>
         <div>
-          <small>Διαφορά</small>
+          <small>Κέρδος έως</small>
           <strong>{best?.savings ? formatEuro(best.savings) : formatEuro(0)}</strong>
         </div>
       </div>
@@ -501,57 +500,129 @@ function BasketItem({ product, quantity, bestRetailer, onQuantity, onSelect }) {
   );
 }
 
-function RankingsPanel({ rankings, splitBest, basketSize }) {
-  const complete = rankings.filter((row) => row.isComplete);
-  const maxTotal = Math.max(...complete.map((row) => row.total), 0);
+function RankingsPanel({ rankings, bestCompleteRanking, basketSize }) {
+  const completeRankings = rankings.filter((row) => row.isComplete);
+  const partialRankings = rankings.filter((row) => !row.isComplete);
+  const maxTotal = Math.max(...completeRankings.map((row) => row.total), 0);
   return (
     <section className="panel rankings-panel" aria-labelledby="ranking-title">
       <PanelTitle
         id="ranking-title"
-        icon={<ArrowDownUp size={18} />}
-        title="Αλυσίδες"
-        action="φθηνότερα πρώτα"
+        icon={<Store size={18} />}
+        title="Πού να πας"
+        action={basketSize ? `${completeRankings.length} πλήρεις` : "διάλεξε προϊόντα"}
       />
 
-      <div className="rank-list">
-        {rankings.map((row, index) => (
-          <RetailerRank
-            key={row.retailer.id}
-            row={row}
-            maxTotal={maxTotal}
-            highlighted={index === 0 && row.isComplete}
-            basketSize={basketSize}
-          />
-        ))}
-      </div>
+      <RecommendationCard row={bestCompleteRanking} basketSize={basketSize} />
 
-      <div className="split-card">
-        <div className="split-heading">
-          <span className="rank-badge">
-            <BadgeEuro size={16} />
-          </span>
-          <div>
-            <strong>Split καλάθι</strong>
-            <small>χαμηλότερη τιμή ανά προϊόν</small>
+      {completeRankings.length ? (
+        <div className="rank-group">
+          <div className="rank-group-title">
+            <ArrowDownUp size={15} />
+            <span>Πλήρες καλάθι, από φθηνότερο σε ακριβότερο</span>
+          </div>
+          <div className="rank-list">
+            {completeRankings.map((row, index) => (
+              <RetailerRank
+                key={row.retailer.id}
+                row={row}
+                maxTotal={maxTotal}
+                highlighted={index === 0}
+                basketSize={basketSize}
+              />
+            ))}
           </div>
         </div>
-        <strong className="split-total">{formatEuro(splitBest.total)}</strong>
-        <div className="split-lines">
-          {splitBest.items.slice(0, 5).map((item) => (
-            <span key={item.product.id}>
-              {item.product.name.split(" ").slice(0, 2).join(" ")} · {item.retailer?.shortName}
-            </span>
-          ))}
+      ) : null}
+
+      {partialRankings.length ? (
+        <div className="rank-group">
+          <div className="rank-group-title muted">
+            <Info size={15} />
+            <span>Αλυσίδες που δεν έχουν όλη τη λίστα</span>
+          </div>
+          <div className="rank-list partial">
+            {partialRankings.map((row) => (
+              <RetailerRank
+                key={row.retailer.id}
+                row={row}
+                maxTotal={maxTotal}
+                highlighted={false}
+                basketSize={basketSize}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function RecommendationCard({ row, basketSize }) {
+  if (!basketSize) {
+    return (
+      <div className="recommendation-card empty">
+        <span className="rank-badge">
+          <Store size={17} />
+        </span>
+        <div>
+          <small>Πρακτική πρόταση</small>
+          <strong>Φτιάξε τη λίστα σου και θα σου δείξω την καλύτερη αλυσίδα.</strong>
         </div>
       </div>
-    </section>
+    );
+  }
+
+  if (!row) {
+    return (
+      <div className="recommendation-card warning">
+        <span className="rank-badge">
+          <AlertCircle size={17} />
+        </span>
+        <div>
+          <small>Δεν βρέθηκε πλήρες καλάθι</small>
+          <strong>Καμία αλυσίδα δεν έχει όλα τα προϊόντα της λίστας.</strong>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="recommendation-card">
+      <div className="recommendation-main">
+        <span className="retailer-logo large" style={{ "--retailer": row.retailer.color }}>
+          {row.retailer.shortName}
+        </span>
+        <div>
+          <small>Καλύτερη επιλογή για μία στάση</small>
+          <strong>{row.retailer.name}</strong>
+          <span>{formatCoverageSentence(basketSize)}</span>
+        </div>
+      </div>
+      <div className="recommendation-total">
+        <small>Σύνολο</small>
+        <strong>{formatEuro(row.total)}</strong>
+      </div>
+    </div>
   );
 }
 
 function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
   const percentage = maxTotal ? Math.max(10, (row.total / maxTotal) * 100) : 0;
+  const missingNames = row.items
+    .filter((item) => item.price == null)
+    .map((item) => item.product?.name)
+    .filter(Boolean);
+  const cardClass = [
+    "rank-card",
+    highlighted ? "recommended" : "",
+    row.isComplete ? "" : "incomplete",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <article className={highlighted ? "rank-card recommended" : "rank-card"}>
+    <article className={cardClass}>
       <div className="rank-top">
         <span className="retailer-logo" style={{ "--retailer": row.retailer.color }}>
           {row.retailer.shortName}
@@ -566,22 +637,28 @@ function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
         {highlighted ? (
           <span className="recommended-mark">
             <Check size={14} />
-            Best
+            Πήγαινε εδώ
           </span>
         ) : null}
       </div>
       <div className="rank-money">
-        <strong>{formatEuro(row.total)}</strong>
+        <strong>{row.isComplete ? formatEuro(row.total) : "Δεν καλύπτει όλη τη λίστα"}</strong>
         <small>
           {row.savings != null && row.savings > 0
-            ? `κερδίζεις ${formatEuro(row.savings)}`
+            ? `λιγότερα κατά ${formatEuro(row.savings)} από την ακριβότερη πλήρη αλυσίδα`
             : row.isComplete
-              ? "πλήρες καλάθι"
-              : "μερική κάλυψη"}
+              ? "πλήρες καλάθι για μία στάση"
+              : `μερικό σύνολο ${formatEuro(row.total)}`}
         </small>
       </div>
+      {missingNames.length ? (
+        <div className="missing-note">
+          Λείπει: {missingNames.slice(0, 2).join(", ")}
+          {missingNames.length > 2 ? ` +${missingNames.length - 2}` : ""}
+        </div>
+      ) : null}
       <div className="coverage-track" aria-hidden="true">
-        <span style={{ width: `${percentage}%` }} />
+        <span style={{ width: `${row.isComplete ? percentage : 100}%` }} />
       </div>
     </article>
   );
@@ -681,6 +758,10 @@ function EmptyBasket() {
 
 function quantityStep(product) {
   return product?.unit === "kg" ? 0.5 : 1;
+}
+
+function formatCoverageSentence(count) {
+  return count === 1 ? "Έχει το προϊόν της λίστας." : `Έχει και τα ${count} προϊόντα της λίστας.`;
 }
 
 function roundQuantity(value) {

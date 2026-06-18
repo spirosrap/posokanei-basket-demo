@@ -63,31 +63,6 @@ export function calculateRankings(basket, products, retailers) {
   }));
 }
 
-export function calculateSplitBest(basket, products, retailers) {
-  const productMap = new Map(products.map((product) => [product.id, product]));
-  const retailerMap = new Map(retailers.map((retailer) => [retailer.id, retailer]));
-  const items = basket
-    .map((entry) => {
-      const product = productMap.get(entry.productId);
-      const best = product ? getBestProductPrice(product) : null;
-      return best
-        ? {
-            product,
-            quantity: entry.quantity,
-            retailer: retailerMap.get(best.retailerId),
-            price: best.price,
-            lineTotal: best.price * entry.quantity,
-          }
-        : null;
-    })
-    .filter(Boolean);
-
-  return {
-    items,
-    total: items.reduce((sum, item) => sum + item.lineTotal, 0),
-  };
-}
-
 export function basketItemCount(basket) {
   return basket.reduce((sum, entry) => sum + entry.quantity, 0);
 }

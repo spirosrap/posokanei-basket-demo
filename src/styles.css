@@ -14,6 +14,7 @@
   --green: #0f9f6e;
   --green-dark: #0f766e;
   --amber: #c77903;
+  --amber-soft: #fff7ed;
   --red: #dc2626;
   --shadow: 0 18px 50px rgba(31, 41, 55, 0.12);
   --radius: 8px;
@@ -344,7 +345,6 @@ button {
 .line-total small,
 .rank-top small,
 .rank-money small,
-.split-heading small,
 .drawer-title small,
 .drawer-title p,
 .drawer-stats small,
@@ -510,6 +510,40 @@ button {
   box-shadow: inset 3px 0 0 var(--green);
 }
 
+.rank-card.incomplete {
+  background: #f8fafc;
+}
+
+.rank-card.incomplete .coverage-track span {
+  background: #cbd5e1;
+}
+
+.rank-card.incomplete .rank-money strong {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.rank-group {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rank-group-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.rank-group-title.muted {
+  color: var(--muted);
+}
+
 .rank-top {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;
@@ -527,6 +561,12 @@ button {
   color: #ffffff;
   font-size: 13px;
   font-weight: 950;
+}
+
+.retailer-logo.large {
+  width: 54px;
+  height: 54px;
+  font-size: 15px;
 }
 
 .rank-top strong {
@@ -560,6 +600,17 @@ button {
   line-height: 1;
 }
 
+.missing-note {
+  margin-top: 9px;
+  border-radius: 7px;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .coverage-track {
   height: 7px;
   margin-top: 12px;
@@ -575,24 +626,60 @@ button {
   background: linear-gradient(90deg, var(--green), var(--blue));
 }
 
-.split-card {
-  margin-top: 12px;
+.recommendation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #172033;
-  color: #ffffff;
+  background: #ecfdf5;
+  color: var(--text);
   padding: 14px;
 }
 
-.split-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.recommendation-card.empty {
+  justify-content: flex-start;
+  background: #f8fafc;
 }
 
-.split-heading small,
-.split-lines span {
-  color: rgba(255, 255, 255, 0.7);
+.recommendation-card.warning {
+  justify-content: flex-start;
+  background: var(--amber-soft);
+}
+
+.recommendation-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.recommendation-card small,
+.recommendation-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.recommendation-card strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.recommendation-total {
+  flex: 0 0 auto;
+  min-width: 112px;
+  text-align: right;
+}
+
+.recommendation-total strong {
+  color: var(--green-dark);
+  font-size: 28px;
+  line-height: 1;
 }
 
 .rank-badge {
@@ -601,27 +688,8 @@ button {
   height: 34px;
   place-items: center;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.split-total {
-  display: block;
-  margin-top: 12px;
-  font-size: 28px;
-}
-
-.split-lines {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.split-lines span {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 5px 8px;
-  font-size: 11px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--green-dark);
 }
 
 .empty-state {
@@ -803,6 +871,16 @@ button {
 
   .best-strip {
     grid-template-columns: 1fr;
+  }
+
+  .recommendation-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recommendation-total {
+    width: 100%;
+    text-align: left;
   }
 
   .drawer-panel {

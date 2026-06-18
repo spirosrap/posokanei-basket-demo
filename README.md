@@ -1,8 +1,8 @@
 # Καλάθι Τιμών
 
-A static React demo for building a supermarket basket and ranking Greek supermarket chains from cheapest to most expensive.
+A static React demo for building a supermarket basket and ranking Greek supermarket chains by the total cost of buying the whole list in one place.
 
-The prototype was inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. This repo explores a basket-first workflow: choose the exact products you want, adjust quantities, then compare the total basket cost across chains.
+The prototype was inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. This repo explores a basket-first workflow: choose the exact products you want, adjust quantities, then see which supermarket chain can cover the full list for the lowest overall total.
 
 This is an unofficial demo. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -15,9 +15,9 @@ This is an unofficial demo. It is not affiliated with PosoKanei or any supermark
 - Adjust quantities with steppers, including `kg` products.
 - Rank supermarket chains by total basket price.
 - Show coverage and missing-item counts per chain.
-- Highlight the cheapest complete basket.
+- Highlight the cheapest complete one-stop basket.
 - Show savings compared with the most expensive complete basket.
-- Calculate a "split basket" total using the cheapest retailer per item.
+- Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, and per-chain prices.
 - Switch between demo data and a live PosoKanei API adapter.
 
@@ -158,7 +158,7 @@ curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei
 
 - The included product prices are demo values, not a promise of current supermarket prices.
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- The app currently compares one-store baskets only, plus a separate split-basket estimate.
+- The app compares one-store baskets only, because the goal is to recommend where to go for the whole list.
 - It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 
