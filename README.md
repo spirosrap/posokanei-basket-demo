@@ -144,13 +144,14 @@ Basket rankings are computed locally in `src/pricing.js`.
 
 ## Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the intended Plesk/HostEurope upload path and static artifact notes.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the Plesk/HostEurope upload path and
+static artifact notes.
 
 Short version:
 
 ```bash
 npm run build
-rsync -av --delete dist/ <user>@83.169.39.81:/var/www/vhosts/securitytech.gr/httpdocs/spiros/demo/posokanei-basket/
+curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei-basket/index.html
 ```
 
 ## Limitations
