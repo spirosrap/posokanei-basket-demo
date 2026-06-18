@@ -23,7 +23,6 @@ import { useEffect, useMemo, useState } from "react";
 import { initialBasket, products as demoProducts, retailers as demoRetailers } from "./demoData";
 import { fetchCategories, fetchHealth, fetchProducts, fetchRetailers } from "./posokaneiApi";
 import {
-  basketItemCount,
   calculateRankings,
   calculateVisitPlan,
   formatEuro,
@@ -280,7 +279,7 @@ function App() {
         dataMode={dataMode}
         setDataMode={setDataMode}
         health={health}
-        basketCount={basketItemCount(basket)}
+        basketCount={basket.length}
       />
 
       <main className="workspace" aria-label="Εφαρμογή σύγκρισης καλαθιού">
@@ -527,19 +526,21 @@ function BasketPanel({
   onCopy,
   onSelect,
 }) {
-  const best = visitPlan?.isComplete ? visitPlan : null;
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
-  const planNames = best?.groups.map((group) => group.retailer.name).join(" + ");
+  const planNames = visitPlan?.groups.map((group) => group.retailer.name).join(" + ");
+  const hasPartialPlan = basket.length > 0 && visitPlan?.groups.length > 0;
   const oneStopSavings =
-    bestCompleteRanking && best ? Math.max(0, bestCompleteRanking.total - best.total) : 0;
+    bestCompleteRanking && visitPlan?.isComplete
+      ? Math.max(0, bestCompleteRanking.total - visitPlan.total)
+      : 0;
   return (
     <section className="panel basket-panel" aria-labelledby="basket-title">
       <PanelTitle
         id="basket-title"
         icon={<ClipboardList size={18} />}
         title="Καλάθι"
-        action={best ? formatEuro(best.total) : formatEuro(0)}
+        action={basket.length ? formatEuro(visitPlan?.total ?? 0) : formatEuro(0)}
       />
 
       <div className="basket-toolbar">
@@ -580,15 +581,25 @@ function BasketPanel({
       <div className="best-strip">
         <div>
           <small>Πλάνο</small>
-          <strong>{planNames ?? "Δεν υπάρχει πλήρες καλάθι"}</strong>
+          <strong>
+            {visitPlan?.isComplete
+              ? planNames
+              : hasPartialPlan
+                ? `Μερικό: ${planNames}`
+                : "Δεν υπάρχει διαθέσιμο προϊόν"}
+          </strong>
         </div>
         <div>
           <small>Στάσεις</small>
-          <strong>{best ? `${best.chainCount}/${maxChains}` : availableStoreCount}</strong>
+          <strong>
+            {visitPlan?.groups.length
+              ? `${visitPlan.chainCount}/${maxChains}`
+              : availableStoreCount}
+          </strong>
         </div>
         <div>
-          <small>Κέρδος vs 1 στάση</small>
-          <strong>{formatEuro(oneStopSavings)}</strong>
+          <small>{visitPlan?.isComplete ? "Κέρδος vs 1 στάση" : "Μερικό σύνολο"}</small>
+          <strong>{formatEuro(visitPlan?.isComplete ? oneStopSavings : visitPlan?.total ?? 0)}</strong>
         </div>
       </div>
     </section>
@@ -763,6 +774,12 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
         <div>
           <small>Δεν βρέθηκε πλήρες καλάθι</small>
           <strong>Δεν καλύπτεται όλη η λίστα με {formatStopLimit(maxChains)}.</strong>
+          {plan?.availableCount ? (
+            <span>
+              Καλύπτονται {plan.availableCount}/{basketSize} προϊόντα · μερικό σύνολο{" "}
+              {formatEuro(plan.total)}
+            </span>
+          ) : null}
         </div>
       </div>
     );
