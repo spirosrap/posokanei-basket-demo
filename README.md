@@ -6,7 +6,25 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 
 This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
-![Desktop screenshot](screenshots/desktop.png)
+Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
+
+![Desktop screenshot showing a two-stop supermarket basket plan](screenshots/desktop.png)
+
+## Ελληνικά
+
+Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
+
+Η βασική ιδέα είναι απλή:
+
+- Διαλέγεις προϊόντα από τον live κατάλογο του PosoKanei.
+- Προσθέτεις τις ποσότητες που θέλεις στο καλάθι.
+- Επιλέγεις πόσες στάσεις είσαι διατεθειμένος να κάνεις: `1`, `2`, `3` ή `4` αλυσίδες.
+- Η εφαρμογή βρίσκει το φθηνότερο πλήρες πλάνο για τη λίστα σου.
+- Αν επιλέξεις περισσότερες από μία στάσεις, σου δείχνει τι αγοράζεις από κάθε αλυσίδα.
+
+Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
+
+Η εφαρμογή διαβάζει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Υπάρχει επίσης endpoint και script για περιοδικό έλεγχο ενημερώσεων τιμών/προϊόντων.
 
 ## What It Does
 
@@ -38,9 +56,9 @@ The React build uses relative assets (`base: "./"` in `vite.config.js`). The liv
 
 ## Screenshots
 
-Desktop:
+Desktop, with a two-stop optimized basket:
 
-![Desktop app](screenshots/desktop.png)
+![Desktop app with a two-stop plan](screenshots/desktop.png)
 
 Mobile:
 
@@ -116,7 +134,7 @@ The official PosoKanei web app is a Flutter application. Its compiled bundle ref
 
 During development on 2026-06-18:
 
-- `GET /meta/stats` returned `8,774` total products and `8,770` active products.
+- `GET /meta/stats` returned live catalog counts around `8.8k` total products and `8.7k` active products.
 - `GET /products?page=1&page_size=2&countries=GR` returned official product records with `image_url`, `price_stats`, `retailer_prices`, and category metadata.
 - `POST /products/search` with `{ "title": "γάλα", "countries": ["GR"] }` returned `271` milk-related products.
 - Product images are served from URLs like `https://api.posokanei.gov.gr/images/product/<id>?v=<version>`.
