@@ -1,10 +1,14 @@
 export function formatEuro(value) {
   if (!Number.isFinite(value)) return "-";
-  return new Intl.NumberFormat("el-GR", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-  }).format(value);
+  try {
+    return new Intl.NumberFormat("el-GR", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${value.toFixed(2).replace(".", ",")} €`;
+  }
 }
 
 export function getProductPrice(product, retailerId) {

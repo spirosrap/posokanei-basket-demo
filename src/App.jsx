@@ -70,6 +70,14 @@ const mergeDefaultProducts = (products) => {
   return [...byId.values()];
 };
 
+const saveLocalJson = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Safari private/strict storage modes can throw on writes. Keep the app usable.
+  }
+};
+
 const savedBasket = () => {
   try {
     const stored = localStorage.getItem(BASKET_KEY);
@@ -116,11 +124,11 @@ function App() {
   const refreshedDemoProducts = useRef(false);
 
   useEffect(() => {
-    localStorage.setItem(BASKET_KEY, JSON.stringify(basket));
+    saveLocalJson(BASKET_KEY, basket);
   }, [basket]);
 
   useEffect(() => {
-    localStorage.setItem(LIVE_BASKET_PRODUCTS_KEY, JSON.stringify(liveBasketProducts));
+    saveLocalJson(LIVE_BASKET_PRODUCTS_KEY, liveBasketProducts);
   }, [liveBasketProducts]);
 
   useEffect(() => {
@@ -1189,10 +1197,7 @@ function formatUpdateStatus(updateStatus) {
   }
   const checkedAt = new Date(updateStatus.checkedAt);
   if (Number.isNaN(checkedAt.getTime())) return "Έλεγχος ενημερώσεων: ενεργός";
-  const formatted = new Intl.DateTimeFormat("el-GR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(checkedAt);
+  const formatted = formatDateTime(checkedAt);
   if (updateStatus.status === "snapshot") {
     return `Τελευταία ενημέρωση: ${formatted}`;
   }
@@ -1208,10 +1213,27 @@ function formatDataTime(value) {
   if (!value) return "άγνωστη";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "άγνωστη";
-  return new Intl.DateTimeFormat("el-GR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  return formatDateTime(date);
+}
+
+function formatDateTime(date) {
+  try {
+    return new Intl.DateTimeFormat("el-GR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(date);
+  } catch {
+    try {
+      const datePart = date.toLocaleDateString("el-GR");
+      const timePart = date.toLocaleTimeString("el-GR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return `${datePart}, ${timePart}`;
+    } catch {
+      return date.toISOString().slice(0, 16).replace("T", " ");
+    }
+  }
 }
 
 function friendlyRefreshError(error) {
