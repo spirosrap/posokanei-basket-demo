@@ -66,8 +66,13 @@ dist/data/catalog.json
 
 `posokanei.php` is a same-origin proxy for the public PosoKanei catalog
 endpoints. It exists because `https://api.posokanei.gov.gr` currently rejects
-browser CORS requests from `agenticspiros.com`, while server-side requests from
-Plesk work.
+browser CORS requests from `agenticspiros.com`.
+
+Current production caveat, checked on 2026-06-23: the upstream API also returns
+`HTTP 403` to the Plesk server. The app therefore falls back to
+`data/catalog.json` and shows an amber "not live" warning in the UI. Restoring
+true live production requests needs a different proxy/server network or an
+upstream unblock/allowlist.
 
 `update-status.php` samples catalog stats and representative product searches,
 stores a fingerprint in `api/update-status-cache.json`, and lets the app or a
@@ -90,11 +95,26 @@ npm run catalog:snapshot
 npm run build
 ```
 
+Refresh and upload only the production fallback snapshot from a network that can
+reach the upstream API:
+
+```bash
+FTP_USER=agenticspirosftp npm run live:refresh
+```
+
+The script writes `dist/data/catalog.json`, uploads it to
+`demo/posokanei-basket/data/catalog.json`, and verifies the public timestamp. It
+uses `FTP_PASS` when set, or the macOS Keychain service
+`Plesk FTP agenticspiros.com` on Spiros' Mac.
+
 Plesk scheduled task equivalent:
 
 ```bash
 curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1' >/dev/null
 ```
+
+That Plesk task only works when Plesk can reach `api.posokanei.gov.gr`. While
+Plesk is blocked, schedule `npm run live:refresh` somewhere else.
 
 Verification:
 

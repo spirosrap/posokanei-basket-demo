@@ -106,11 +106,13 @@ function App() {
           total: current.total || stats.activeProducts,
         }));
         setHealth({
-          state: "online",
+          state: stats.source === "snapshot" ? "cached" : "online",
           source: stats.source,
+          snapshotGeneratedAt: stats.snapshotGeneratedAt,
+          liveError: stats.liveError,
           label:
             stats.source === "snapshot"
-              ? `${stats.activeProducts.toLocaleString("el-GR")} προϊόντα από cache`
+              ? `Cache · ${stats.activeProducts.toLocaleString("el-GR")} προϊόντα`
               : `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
         });
         setUpdateStatus(fetchedUpdateStatus);
@@ -137,6 +139,7 @@ function App() {
             page: result.page,
             totalPages: result.totalPages,
             hasNext: result.hasNext,
+            source: result.source,
           }));
           setLiveState(result.products.length ? "ready" : "empty");
         })
@@ -200,7 +203,7 @@ function App() {
   );
 
   const addToBasket = (product) => {
-    rememberLiveProduct(product, setLiveBasketProducts);
+    rememberCatalogProduct(product, setLiveBasketProducts);
     setBasket((current) => {
       const found = current.find((entry) => entry.productId === product.id);
       if (found) {
@@ -253,6 +256,7 @@ function App() {
           page: result.page,
           totalPages: result.totalPages,
           hasNext: result.hasNext,
+          source: result.source,
         }));
         setLiveState("ready");
       })
@@ -267,6 +271,7 @@ function App() {
       />
 
       <AppIntro health={health} updateStatus={updateStatus} />
+      <DataFreshnessNotice health={health} updateStatus={updateStatus} />
 
       <main className="workspace" aria-label="Εφαρμογή σύγκρισης καλαθιού">
         <SearchPanel
@@ -276,7 +281,7 @@ function App() {
           setCategoryId={setCategoryId}
           categories={categories}
           products={displayProducts}
-          catalogSource={health.source}
+          catalogSource={liveMeta.source || health.source}
           liveState={liveState}
           liveMeta={liveMeta}
           selectedProduct={selectedProduct}
@@ -322,6 +327,7 @@ function App() {
 
 function Header({ health, basketCount }) {
   const isOnline = health.state === "online";
+  const isCached = health.state === "cached";
   return (
     <header className="topbar">
       <a className="brand" href="/" aria-label="Agentic Spiros home">
@@ -336,10 +342,10 @@ function Header({ health, basketCount }) {
 
       <div className="topbar-actions">
         <div
-          className={`source-status ${isOnline ? "online" : "offline"}`}
+          className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
           title="Κατάσταση API PosoKanei"
         >
-          {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
+          {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
           <span>{health.label}</span>
         </div>
         <div className="basket-pill" title="Προϊόντα στο καλάθι">
@@ -364,12 +370,32 @@ function AppIntro({ health, updateStatus }) {
       <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
         <span>
           {health.source === "snapshot"
-            ? "Κατάλογος από cache"
+            ? "Όχι live αυτή τη στιγμή"
             : health.state === "online"
               ? "Live τιμές προϊόντων"
               : "Αναμονή live τιμών"}
         </span>
         <span>{formatUpdateStatus(updateStatus)}</span>
+      </div>
+    </section>
+  );
+}
+
+function DataFreshnessNotice({ health, updateStatus }) {
+  if (health.source !== "snapshot") return null;
+  const snapshotTime = formatDataTime(health.snapshotGeneratedAt);
+  const errorText =
+    health.liveError || updateStatus?.detail || "Το live API δεν απάντησε από τον server.";
+
+  return (
+    <section className="data-warning" aria-label="Προειδοποίηση φρεσκάδας δεδομένων">
+      <AlertCircle size={18} />
+      <div>
+        <strong>Οι τιμές τώρα εμφανίζονται από snapshot, όχι από live σύνδεση.</strong>
+        <span>
+          Τελευταία λήψη καταλόγου: {snapshotTime}. Σφάλμα live proxy: {errorText}. Αν
+          αυτό συνεχιστεί, θέλει αλλαγή δικτύου/proxy για πραγματικά live τιμές.
+        </span>
       </div>
     </section>
   );
@@ -408,7 +434,7 @@ function SearchPanel({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Αναζήτηση προϊόντος ή barcode από τον live κατάλογο"
+          placeholder="Αναζήτηση προϊόντος ή barcode"
         />
         <Barcode size={17} aria-hidden="true" />
       </label>
@@ -463,15 +489,15 @@ function SearchPanel({
 
 function LiveNotice({ state, total, visible, catalogSource }) {
   const labels = {
-    idle: "Live κατάλογος προϊόντων",
+    idle: "Κατάλογος προϊόντων",
     loading: "Φόρτωση προϊόντων και τιμών",
     loading_more: "Φόρτωση επιπλέον προϊόντων",
     ready:
       catalogSource === "snapshot"
         ? `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} προϊόντα cache`
         : `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
-    empty: "Δεν βρέθηκαν live αποτελέσματα",
-    error: "Ο live κατάλογος δεν είναι διαθέσιμος",
+    empty: "Δεν βρέθηκαν αποτελέσματα",
+    error: "Ο κατάλογος δεν είναι διαθέσιμος",
   };
   return (
     <div className={`inline-status ${state}`}>
@@ -957,7 +983,7 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
           </div>
         </div>
         <p className="drawer-description">
-          {product.description || "Live προϊόν από τον κατάλογο PosoKanei."}
+          {product.description || "Προϊόν από τον κατάλογο PosoKanei."}
         </p>
         <div className="price-table" aria-label="Τιμές ανά αλυσίδα">
           {retailerList.map((retailer) => {
@@ -1016,7 +1042,7 @@ function EmptyBasket() {
     <div className="empty-state">
       <CircleDollarSign size={32} />
       <strong>Άδειο καλάθι</strong>
-      <small>Πρόσθεσε προϊόντα από τον live κατάλογο για να δεις το φθηνότερο πλάνο.</small>
+      <small>Πρόσθεσε προϊόντα από τον κατάλογο για να δεις το φθηνότερο πλάνο.</small>
     </div>
   );
 }
@@ -1045,9 +1071,22 @@ function formatUpdateStatus(updateStatus) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(checkedAt);
+  if (updateStatus.status === "stale" || updateStatus.error) {
+    return `Απέτυχε live έλεγχος: ${formatted}`;
+  }
   return updateStatus.changedSinceLastCheck
     ? `Νέες αλλαγές τιμών: ${formatted}`
     : `Τελευταίος έλεγχος τιμών: ${formatted}`;
+}
+
+function formatDataTime(value) {
+  if (!value) return "άγνωστη";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "άγνωστη";
+  return new Intl.DateTimeFormat("el-GR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function buildPlanAssignmentMap(plan) {
@@ -1066,8 +1105,8 @@ function roundQuantity(value) {
 
 export default App;
 
-function rememberLiveProduct(product, setLiveBasketProducts) {
-  if (product?.source !== "live") return;
+function rememberCatalogProduct(product, setLiveBasketProducts) {
+  if (!product?.id) return;
   setLiveBasketProducts((current) => {
     const byId = new Map(current.map((item) => [item.id, item]));
     byId.set(product.id, product);

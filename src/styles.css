@@ -122,6 +122,12 @@ button {
   color: var(--green-dark);
 }
 
+.source-status.cached {
+  border-color: rgba(199, 121, 3, 0.28);
+  background: #fff7ed;
+  color: var(--amber);
+}
+
 .source-status.offline {
   color: var(--amber);
 }
@@ -182,6 +188,38 @@ button {
 
 .intro-facts span + span {
   color: var(--muted);
+}
+
+.data-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 1480px;
+  margin: 0 auto 14px;
+  border: 1px solid rgba(199, 121, 3, 0.32);
+  border-radius: var(--radius);
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 12px 14px;
+  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.04);
+}
+
+.data-warning strong,
+.data-warning span {
+  display: block;
+}
+
+.data-warning strong {
+  color: #7c2d12;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.data-warning span {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .workspace {

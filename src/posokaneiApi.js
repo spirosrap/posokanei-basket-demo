@@ -52,7 +52,7 @@ async function fetchJson(resource, params = {}, timeout = 12000) {
     });
 
     if (!response.ok) {
-      throw new Error(`PosoKanei proxy ${response.status}`);
+      throw new Error(`PosoKanei proxy HTTP ${response.status}`);
     }
 
     return response.json();
@@ -142,7 +142,7 @@ function normalizePrice(entry) {
   return [String(retailerId).toLowerCase(), price];
 }
 
-export function normalizeProduct(raw) {
+export function normalizeProduct(raw, source = "live") {
   const name = raw.name || raw.title || "Προϊόν";
   const id = String(raw.id ?? raw.gtin ?? raw.barcode ?? raw.product_id ?? crypto.randomUUID());
   const priceEntries = firstArray({
@@ -173,12 +173,12 @@ export function normalizeProduct(raw) {
     prices: Object.fromEntries(priceEntries),
     retailerCount: raw.price_stats?.retailer_count ?? priceEntries.length,
     updatedAt: raw.updated_at || "",
-    source: "live",
+    source,
   };
 }
 
-function normalizeProductResponse(raw) {
-  const products = firstArray(raw).map(normalizeProduct);
+function normalizeProductResponse(raw, source = "live") {
+  const products = firstArray(raw).map((product) => normalizeProduct(product, source));
   return {
     products,
     total: Number(raw?.total ?? products.length) || products.length,
@@ -187,11 +187,12 @@ function normalizeProductResponse(raw) {
     totalPages: Number(raw?.total_pages ?? 1) || 1,
     hasNext: Boolean(raw?.has_next),
     queryTimeMs: Number(raw?.query_time_ms ?? 0) || null,
+    source,
   };
 }
 
 function normalizeSnapshotProducts(rawProducts = []) {
-  return rawProducts.map(normalizeProduct);
+  return rawProducts.map((product) => normalizeProduct(product, "snapshot"));
 }
 
 function searchableText(product) {
@@ -295,10 +296,15 @@ export function normalizeCategory(raw) {
 }
 
 export async function fetchHealth() {
-  const stats = await fetchJson("stats", {}, 7000).catch(async () => {
+  let liveError = "";
+  const stats = await fetchJson("stats", {}, 7000).catch(async (error) => {
+    liveError = error?.message || "Το live API δεν απάντησε.";
     const snapshot = await fetchCatalogSnapshot();
+    const snapshotProductCount = Array.isArray(snapshot.products) ? snapshot.products.length : 0;
     return {
       ...(snapshot.stats || {}),
+      active_products: snapshotProductCount || snapshot.stats?.active_products || 0,
+      total_products: snapshotProductCount || snapshot.stats?.total_products || 0,
       snapshotGeneratedAt: snapshot.generated_at || "",
       source: "snapshot",
     };
@@ -311,6 +317,7 @@ export async function fetchHealth() {
     timestamp: stats.timestamp || "",
     snapshotGeneratedAt: stats.snapshotGeneratedAt || "",
     source: stats.source || "proxy",
+    liveError,
   };
 }
 
@@ -323,6 +330,8 @@ export async function fetchUpdateStatus() {
     sampledProducts: Number(raw.sampled_products ?? raw.sampledProducts ?? 0) || 0,
     fingerprint: raw.fingerprint || "",
     status: raw.status || "ok",
+    error: raw.error || "",
+    detail: raw.detail || "",
   };
 }
 
@@ -363,13 +372,14 @@ export async function fetchProducts({
     try {
       const product = await fetchJson("barcode", { barcode }, 10000);
       return {
-        products: [normalizeProduct(product)],
+        products: [normalizeProduct(product, "live")],
         total: 1,
         page: 1,
         pageSize: 1,
         totalPages: 1,
         hasNext: false,
         queryTimeMs: null,
+        source: "live",
       };
     } catch {
       return snapshotProductResponse({ query: trimmed, categoryId, page, pageSize });
@@ -389,7 +399,7 @@ export async function fetchProducts({
     sort_order: "asc",
     countries: "GR",
   })
-    .then(normalizeProductResponse)
+    .then((raw) => normalizeProductResponse(raw, "live"))
     .catch(() => snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }));
 }
 
@@ -403,5 +413,5 @@ function searchByTitle(query, categoryId, page, pageSize) {
   };
   if (query.trim().length >= 2) params.title = query.trim();
   if (categoryId !== "all") params.category_id = categoryId;
-  return fetchJson("search", params).then(normalizeProductResponse);
+  return fetchJson("search", params).then((raw) => normalizeProductResponse(raw, "live"));
 }

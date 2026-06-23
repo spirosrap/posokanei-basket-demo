@@ -1,6 +1,6 @@
 # Καλάθι Τιμών Supermarket
 
-A React app for building a supermarket basket from the live PosoKanei catalog and ranking Greek supermarket chains by the total cost of the selected groceries.
+A React app for building a supermarket basket from the PosoKanei catalog and ranking Greek supermarket chains by the total cost of the selected groceries.
 
 The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. The workflow is basket-first: choose the exact products you want, adjust quantities, decide whether you can make `1`, `2`, `3`, or `4` supermarket stops, then see the cheapest complete plan.
 
@@ -16,7 +16,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Η βασική ιδέα είναι απλή:
 
-- Διαλέγεις προϊόντα από τον live κατάλογο του PosoKanei.
+- Διαλέγεις προϊόντα από τον κατάλογο του PosoKanei.
 - Προσθέτεις τις ποσότητες που θέλεις στο καλάθι.
 - Επιλέγεις πόσες στάσεις είσαι διατεθειμένος να κάνεις: `1`, `2`, `3` ή `4` αλυσίδες.
 - Η εφαρμογή βρίσκει το φθηνότερο πλήρες πλάνο για τη λίστα σου.
@@ -24,11 +24,13 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
-Η εφαρμογή διαβάζει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Υπάρχει επίσης endpoint και script για περιοδικό έλεγχο ενημερώσεων τιμών/προϊόντων.
+Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, πέφτει σε φρέσκο snapshot του καταλόγου και το γράφει καθαρά στην κορυφή της εφαρμογής.
+
+Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Γι' αυτό το live demo δείχνει ξεκάθαρα ότι χρησιμοποιεί snapshot, όχι πραγματική live σύνδεση, μέχρι να μπει proxy από άλλο δίκτυο/server ή να ξεμπλοκαριστεί το production host.
 
 ## What It Does
 
-- Search or filter live products by category or barcode.
+- Search or filter products by category or barcode.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
 - Rank supermarket chains by total basket price.
@@ -42,7 +44,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 - Load official product photos from the PosoKanei image endpoints.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
-- Provide a scheduler-friendly update check script and PHP endpoint.
+- Provide scheduler-friendly update and snapshot refresh scripts.
 
 ## Live Target
 
@@ -147,6 +149,12 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
+Current production note, checked on 2026-06-23:
+
+- `https://api.posokanei.gov.gr/meta/stats` returns `200` from this Mac.
+- `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `403` because the upstream API rejects the Plesk server request.
+- The live app therefore uses `data/catalog.json` and displays an amber warning with the snapshot time and proxy error.
+
 ## Data Model
 
 Products are normalized into this shape:
@@ -178,6 +186,7 @@ The app includes a lightweight update checker:
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
+- `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, uploads it to the live FTP path, and verifies the public `data/catalog.json` timestamp.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 
 For a cron job:
@@ -193,11 +202,21 @@ npm run catalog:snapshot
 npm run build
 ```
 
-For Plesk Scheduled Tasks, a simple curl check is enough:
+To refresh only the live demo snapshot from a machine that can reach the API:
+
+```bash
+FTP_USER=agenticspirosftp npm run live:refresh
+```
+
+The refresh script reads `FTP_PASS` from the environment when set. On Spiros' Mac it can also read the FTP password from the macOS Keychain service `Plesk FTP agenticspiros.com`.
+
+For Plesk Scheduled Tasks, a simple curl check is enough only when the Plesk server can reach the upstream API:
 
 ```bash
 curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1' >/dev/null
 ```
+
+When Plesk is upstream-blocked, schedule `npm run live:refresh` on a machine, GitHub runner, or serverless worker that can reach `https://api.posokanei.gov.gr`.
 
 ## Deployment
 
@@ -217,7 +236,7 @@ curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/po
 ## Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- If the upstream API blocks the production host, the app falls back to the last generated `data/catalog.json` snapshot.
+- As of 2026-06-23, the production Plesk proxy is upstream-blocked with `HTTP 403`; the app falls back to the latest generated `data/catalog.json` snapshot and shows that state in the UI.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.

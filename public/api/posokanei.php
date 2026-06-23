@@ -45,13 +45,17 @@ function forward_json(string $method, string $path, array $query = [], ?array $b
 
     $headers = [
         'Accept: application/json',
-        'User-Agent: agenticspiros-posokanei-basket-demo/1.0',
+        'Accept-Language: el-GR,el;q=0.9,en;q=0.8',
+        'Origin: https://posokanei.gov.gr',
+        'Referer: https://posokanei.gov.gr/',
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 agenticspiros-posokanei-basket-demo/1.0',
     ];
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_ENCODING => '',
         CURLOPT_CONNECTTIMEOUT => 8,
         CURLOPT_TIMEOUT => 18,
         CURLOPT_CUSTOMREQUEST => $method,
