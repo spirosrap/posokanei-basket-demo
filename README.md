@@ -26,7 +26,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο.
 
-Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από μηχάνημα/δίκτυο που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
+Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
 ## What It Does
 
@@ -44,7 +44,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 - Load official product photos from the PosoKanei image endpoints.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
-- Provide scheduler-friendly update, snapshot refresh, and macOS LaunchAgent install scripts.
+- Provide scheduler-friendly update and snapshot refresh scripts.
 
 ## Live Target
 
@@ -152,10 +152,10 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 
 Current production note, checked on 2026-06-23:
 
-- `https://api.posokanei.gov.gr/meta/stats` returns `200` from this Mac.
+- `https://api.posokanei.gov.gr/meta/stats` returns `200` from allowed development/refresh environments.
 - `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `200` with `source: "snapshot"` because the PHP endpoint now falls back to the refreshed catalogue when upstream rejects the Plesk server request.
 - Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
-- The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed hourly from this Mac, and displays an amber notice with the latest catalogue update time.
+- The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync, and displays an amber notice with the latest catalogue update time.
 
 ## Data Model
 
@@ -189,7 +189,7 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads both to the live FTP path, and verifies the public `data/catalog.json` timestamp.
-- `npm run live:install-refresh` installs a user LaunchAgent on macOS that runs `npm run live:refresh` hourly.
+- `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 
 For a cron job:
@@ -205,13 +205,13 @@ npm run catalog:snapshot
 npm run build
 ```
 
-To refresh only the live demo snapshot from a machine that can reach the API:
+To refresh only the live demo snapshot from an environment that can reach the API, configure `.env.local` from `.env.example`, then run:
 
 ```bash
-FTP_USER=agenticspirosftp npm run live:refresh
+npm run live:refresh
 ```
 
-The refresh script reads `FTP_PASS` from the environment when set. On Spiros' Mac it can also read the FTP password from the macOS Keychain service `Plesk FTP agenticspiros.com`.
+The refresh script reads deployment settings from environment variables or `.env.local`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for FTP authentication.
 
 To install the hourly refresh job on macOS:
 
@@ -219,18 +219,7 @@ To install the hourly refresh job on macOS:
 npm run live:install-refresh
 ```
 
-Installed job:
-
-```text
-~/Library/LaunchAgents/com.agenticspiros.posokanei-basket-refresh.plist
-```
-
-Logs:
-
-```text
-~/Library/Logs/posokanei-basket-refresh.log
-~/Library/Logs/posokanei-basket-refresh.err.log
-```
+The installer prints the scheduler and log paths for the local machine.
 
 For Plesk Scheduled Tasks, a simple curl check is enough only when the Plesk server can reach the upstream API:
 

@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
+import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+loadLocalEnv(resolve(projectRoot, ".env.local"));
+
 const snapshotPath = resolve(
   projectRoot,
   process.env.POSOKANEI_SNAPSHOT_OUT || "dist/data/catalog.json",
@@ -15,10 +18,10 @@ const metaPath = resolve(
   process.env.POSOKANEI_META_OUT || "dist/data/catalog-meta.json",
 );
 const uploadEnabled = !process.argv.includes("--no-upload");
-const ftpHost = process.env.FTP_HOST || "agenticspiros.com";
-const ftpRemoteDir = trimSlashes(process.env.FTP_REMOTE_DIR || "demo/posokanei-basket");
-const ftpUser = process.env.FTP_USER || "agenticspirosftp";
-const keychainService = process.env.FTP_KEYCHAIN_SERVICE || "Plesk FTP agenticspiros.com";
+const ftpHost = requiredEnv("FTP_HOST");
+const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
+const ftpUser = requiredEnv("FTP_USER");
+const keychainService = process.env.FTP_KEYCHAIN_SERVICE || "";
 const minimumProducts = Number(process.env.POSOKANEI_MIN_PRODUCTS || 1000);
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
@@ -56,6 +59,30 @@ if (uploadEnabled) {
   console.log("Upload skipped because --no-upload was passed.");
 }
 
+function loadLocalEnv(envPath) {
+  if (!existsSync(envPath)) return;
+  const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(trimmed);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = rawValue
+      .replace(/^['"]|['"]$/g, "")
+      .replace(/\\n/g, "\n");
+  }
+}
+
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be set in the environment or .env.local.`);
+  }
+  return value;
+}
+
 async function runNodeScript(script, extraEnv = {}) {
   await run(process.execPath, [resolve(projectRoot, script)], {
     cwd: projectRoot,
@@ -64,6 +91,9 @@ async function runNodeScript(script, extraEnv = {}) {
 }
 
 async function readKeychainPassword() {
+  if (!keychainService) {
+    throw new Error("FTP_PASS or FTP_KEYCHAIN_SERVICE must be set in the environment or .env.local.");
+  }
   const { stdout } = await run("/usr/bin/security", [
     "find-generic-password",
     "-s",

@@ -9,7 +9,7 @@ https://agenticspiros.com/demo/posokanei-basket/
 Static artifact:
 
 ```text
-/Users/spiros/Projects/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
+deploy/posokanei-basket-dist.zip
 ```
 
 Live status:
@@ -18,14 +18,13 @@ Live status:
 Deployed on 2026-06-18 under the existing agenticspiros.com document root.
 ```
 
-Plesk path, following the existing `agenticspiros.com`/SecurityTech setup:
+Example Plesk target path:
 
 ```text
-/var/www/vhosts/securitytech.gr/httpdocs/spiros/demo/posokanei-basket/
+/var/www/vhosts/<domain>/httpdocs/demo/posokanei-basket/
 ```
 
-The FTP account for `agenticspiros.com` opens at the personal-site document
-root, so the remote upload path is:
+The remote upload path is:
 
 ```text
 demo/posokanei-basket/
@@ -44,13 +43,13 @@ curl --ftp-create-dirs -T dist/assets/<asset-file> \
 If using Plesk File Manager instead, upload and extract:
 
 ```text
-/Users/spiros/Projects/posokanei-basket-demo/deploy/posokanei-basket-dist.zip
+deploy/posokanei-basket-dist.zip
 ```
 
 into:
 
 ```text
-httpdocs/spiros/demo/posokanei-basket/
+httpdocs/demo/posokanei-basket/
 ```
 
 The production build uses absolute subpath assets via `vite.config.js`
@@ -74,8 +73,8 @@ browser CORS requests from `agenticspiros.com`.
 Current production caveat, checked on 2026-06-23: the upstream API also returns
 `HTTP 403` to the Plesk server. Vercel Node, Vercel Edge, and Cloudflare Worker
 probes also returned upstream `403`. `posokanei.php` therefore falls back
-server-side to `data/catalog.json`, which is refreshed hourly from this Mac, and
-returns only the requested page/search results to the browser. The UI shows an
+server-side to `data/catalog.json`, which is refreshed by an external scheduled
+sync, and returns only the requested page/search results to the browser. The UI shows an
 amber catalogue freshness notice with the latest sync time. Restoring true
 request-time live production requests needs an upstream unblock/allowlist or a
 proxy network that the upstream accepts.
@@ -108,13 +107,14 @@ Refresh and upload only the production fallback snapshot from a network that can
 reach the upstream API:
 
 ```bash
-FTP_USER=agenticspirosftp npm run live:refresh
+npm run live:refresh
 ```
 
 The script writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
 uploads both under `demo/posokanei-basket/data/`, and verifies the public
-catalogue timestamp. It uses `FTP_PASS` when set, or the macOS Keychain service
-`Plesk FTP agenticspiros.com` on Spiros' Mac.
+catalogue timestamp. Configure FTP and public URL settings with environment
+variables or `.env.local` based on `.env.example`. Use either `FTP_PASS` or
+`FTP_KEYCHAIN_SERVICE` for FTP authentication.
 
 Install the hourly macOS LaunchAgent refresh:
 
@@ -122,13 +122,7 @@ Install the hourly macOS LaunchAgent refresh:
 npm run live:install-refresh
 ```
 
-Installed local job and logs:
-
-```text
-~/Library/LaunchAgents/com.agenticspiros.posokanei-basket-refresh.plist
-~/Library/Logs/posokanei-basket-refresh.log
-~/Library/Logs/posokanei-basket-refresh.err.log
-```
+The installer prints the scheduler and log paths for the local machine.
 
 Plesk scheduled task equivalent:
 
@@ -137,8 +131,8 @@ curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php
 ```
 
 That Plesk task only works when Plesk can reach `api.posokanei.gov.gr`. While
-Plesk is blocked, the installed LaunchAgent on Spiros' Mac runs
-`npm run live:refresh` every hour.
+Plesk is blocked, run `npm run live:refresh` from a separate environment that can
+reach the upstream API.
 
 Verification:
 
