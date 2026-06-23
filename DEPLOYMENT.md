@@ -61,6 +61,7 @@ Live catalog support also deploys:
 ```text
 dist/api/posokanei.php
 dist/api/update-status.php
+dist/data/catalog.json
 ```
 
 `posokanei.php` is a same-origin proxy for the public PosoKanei catalog
@@ -72,10 +73,21 @@ Plesk work.
 stores a fingerprint in `api/update-status-cache.json`, and lets the app or a
 scheduled task show when prices/products were last checked.
 
+`data/catalog.json` is a generated same-origin catalogue snapshot. The frontend
+uses it as a fallback when the hosted PHP proxy is reachable but the upstream
+PosoKanei API rejects server-side requests.
+
 Scheduled update check:
 
 ```bash
 npm run check:updates
+```
+
+Snapshot refresh before deploying:
+
+```bash
+npm run catalog:snapshot
+npm run build
 ```
 
 Plesk scheduled task equivalent:
@@ -89,6 +101,7 @@ Verification:
 ```bash
 curl -L https://agenticspiros.com/demo/posokanei-basket/
 curl -L https://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
+curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog.json
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'

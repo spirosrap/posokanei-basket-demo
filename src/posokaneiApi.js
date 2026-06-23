@@ -5,6 +5,7 @@ const PROXY_BASE = import.meta.env.DEV
 const UPDATE_STATUS_URL = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php"
   : "./api/update-status.php";
+const CATALOG_SNAPSHOT_URL = "./data/catalog.json";
 
 const PAGE_SIZE = 30;
 const RETAILER_COLORS = [
@@ -21,6 +22,8 @@ const RETAILER_COLORS = [
   "#b45309",
   "#334155",
 ];
+
+let catalogSnapshotPromise = null;
 
 function withTimeout(ms = 12000) {
   const controller = new AbortController();
@@ -75,6 +78,13 @@ async function fetchDirectJson(url, timeout = 12000) {
   } finally {
     timer.clear();
   }
+}
+
+async function fetchCatalogSnapshot() {
+  if (!catalogSnapshotPromise) {
+    catalogSnapshotPromise = fetchDirectJson(CATALOG_SNAPSHOT_URL, 20000);
+  }
+  return catalogSnapshotPromise;
 }
 
 function firstArray(raw) {
@@ -180,6 +190,63 @@ function normalizeProductResponse(raw) {
   };
 }
 
+function normalizeSnapshotProducts(rawProducts = []) {
+  return rawProducts.map(normalizeProduct);
+}
+
+function searchableText(product) {
+  return [
+    product.name,
+    product.brand,
+    product.category,
+    product.gtin,
+    product.unitQuantity,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("el-GR");
+}
+
+function productMatchesCategory(product, categoryId) {
+  if (categoryId === "all") return true;
+  return product.category === categoryId || product.categoryIds?.includes(categoryId);
+}
+
+async function snapshotProductResponse({
+  query = "",
+  categoryId = "all",
+  page = 1,
+  pageSize = PAGE_SIZE,
+} = {}) {
+  const snapshot = await fetchCatalogSnapshot();
+  const normalizedQuery = query.trim().toLocaleLowerCase("el-GR");
+  const barcode = /^\d{8,14}$/.test(normalizedQuery) ? normalizedQuery : "";
+  const products = normalizeSnapshotProducts(snapshot.products || [])
+    .filter((product) => {
+      if (!productMatchesCategory(product, categoryId)) return false;
+      if (barcode) return product.gtin === barcode;
+      return !normalizedQuery || searchableText(product).includes(normalizedQuery);
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "el"));
+
+  const safePage = Math.max(1, Number(page) || 1);
+  const safePageSize = Math.max(1, Number(pageSize) || PAGE_SIZE);
+  const start = (safePage - 1) * safePageSize;
+  const pagedProducts = products.slice(start, start + safePageSize);
+  const totalPages = Math.max(1, Math.ceil(products.length / safePageSize));
+
+  return {
+    products: pagedProducts,
+    total: products.length,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages,
+    hasNext: safePage < totalPages,
+    queryTimeMs: null,
+    source: "snapshot",
+  };
+}
+
 export function normalizeRetailer(raw, index = 0) {
   const id = String(raw.id || raw.retailer || raw.name || `retailer-${index}`).toLowerCase();
   const name = raw.name || raw.retailer_display_name || id;
@@ -228,13 +295,22 @@ export function normalizeCategory(raw) {
 }
 
 export async function fetchHealth() {
-  const stats = await fetchJson("stats", {}, 7000);
+  const stats = await fetchJson("stats", {}, 7000).catch(async () => {
+    const snapshot = await fetchCatalogSnapshot();
+    return {
+      ...(snapshot.stats || {}),
+      snapshotGeneratedAt: snapshot.generated_at || "",
+      source: "snapshot",
+    };
+  });
   return {
     totalProducts: Number(stats.total_products ?? 0) || 0,
     activeProducts: Number(stats.active_products ?? stats.total_products ?? 0) || 0,
     retailerCount: Number(stats.retailer_count ?? 0) || 0,
     productsOnDiscount: Number(stats.products_on_discount ?? 0) || 0,
     timestamp: stats.timestamp || "",
+    snapshotGeneratedAt: stats.snapshotGeneratedAt || "",
+    source: stats.source || "proxy",
   };
 }
 
@@ -251,7 +327,10 @@ export async function fetchUpdateStatus() {
 }
 
 export async function fetchRetailers() {
-  const raw = await fetchJson("retailers", { countries: "GR" });
+  const raw = await fetchJson("retailers", { countries: "GR" }).catch(async () => {
+    const snapshot = await fetchCatalogSnapshot();
+    return { retailers: snapshot.retailers || [] };
+  });
   const list = firstArray({ products: raw.retailers || raw });
   return list
     .map(normalizeRetailer)
@@ -260,7 +339,10 @@ export async function fetchRetailers() {
 }
 
 export async function fetchCategories() {
-  const raw = await fetchJson("categories");
+  const raw = await fetchJson("categories").catch(async () => {
+    const snapshot = await fetchCatalogSnapshot();
+    return { categories: snapshot.categories || [] };
+  });
   const list = firstArray({ products: raw.categories || raw });
   return list
     .map(normalizeCategory)
@@ -290,22 +372,25 @@ export async function fetchProducts({
         queryTimeMs: null,
       };
     } catch {
-      return searchByTitle(trimmed, categoryId, page, pageSize);
+      return snapshotProductResponse({ query: trimmed, categoryId, page, pageSize });
     }
   }
 
   if (trimmed.length >= 2 || categoryId !== "all") {
-    return searchByTitle(trimmed, categoryId, page, pageSize);
+    return searchByTitle(trimmed, categoryId, page, pageSize).catch(() =>
+      snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }),
+    );
   }
 
-  const raw = await fetchJson("products", {
+  return fetchJson("products", {
     page,
     page_size: pageSize,
     sort_by: "name",
     sort_order: "asc",
     countries: "GR",
-  });
-  return normalizeProductResponse(raw);
+  })
+    .then(normalizeProductResponse)
+    .catch(() => snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }));
 }
 
 function searchByTitle(query, categoryId, page, pageSize) {

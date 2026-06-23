@@ -107,7 +107,11 @@ function App() {
         }));
         setHealth({
           state: "online",
-          label: `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
+          source: stats.source,
+          label:
+            stats.source === "snapshot"
+              ? `${stats.activeProducts.toLocaleString("el-GR")} προϊόντα από cache`
+              : `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
         });
         setUpdateStatus(fetchedUpdateStatus);
       })
@@ -272,6 +276,7 @@ function App() {
           setCategoryId={setCategoryId}
           categories={categories}
           products={displayProducts}
+          catalogSource={health.source}
           liveState={liveState}
           liveMeta={liveMeta}
           selectedProduct={selectedProduct}
@@ -357,7 +362,13 @@ function AppIntro({ health, updateStatus }) {
         </p>
       </div>
       <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
-        <span>{health.state === "online" ? "Live τιμές προϊόντων" : "Αναμονή live τιμών"}</span>
+        <span>
+          {health.source === "snapshot"
+            ? "Κατάλογος από cache"
+            : health.state === "online"
+              ? "Live τιμές προϊόντων"
+              : "Αναμονή live τιμών"}
+        </span>
         <span>{formatUpdateStatus(updateStatus)}</span>
       </div>
     </section>
@@ -371,6 +382,7 @@ function SearchPanel({
   setCategoryId,
   categories,
   products,
+  catalogSource,
   liveState,
   liveMeta,
   selectedProduct,
@@ -415,7 +427,12 @@ function SearchPanel({
         ))}
       </div>
 
-      <LiveNotice state={liveState} total={liveMeta.total} visible={products.length} />
+      <LiveNotice
+        state={liveState}
+        total={liveMeta.total}
+        visible={products.length}
+        catalogSource={catalogSource}
+      />
 
       <div className="product-list">
         {products.map((product) => (
@@ -444,12 +461,15 @@ function SearchPanel({
   );
 }
 
-function LiveNotice({ state, total, visible }) {
+function LiveNotice({ state, total, visible, catalogSource }) {
   const labels = {
     idle: "Live κατάλογος προϊόντων",
     loading: "Φόρτωση προϊόντων και τιμών",
     loading_more: "Φόρτωση επιπλέον προϊόντων",
-    ready: `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
+    ready:
+      catalogSource === "snapshot"
+        ? `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} προϊόντα cache`
+        : `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
     empty: "Δεν βρέθηκαν live αποτελέσματα",
     error: "Ο live κατάλογος δεν είναι διαθέσιμος",
   };

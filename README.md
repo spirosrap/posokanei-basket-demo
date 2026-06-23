@@ -177,12 +177,20 @@ The app includes a lightweight update checker:
 
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
+- `npm run catalog:snapshot` builds `public/data/catalog.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 
 For a cron job:
 
 ```bash
 */30 * * * * cd /path/to/posokanei-basket-demo && npm run check:updates
+```
+
+To refresh the fallback catalogue before deploying:
+
+```bash
+npm run catalog:snapshot
+npm run build
 ```
 
 For Plesk Scheduled Tasks, a simple curl check is enough:
@@ -203,11 +211,13 @@ npm run build
 curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei-basket/index.html
 curl --ftp-create-dirs -T dist/api/posokanei.php ftp://agenticspiros.com/demo/posokanei-basket/api/posokanei.php
 curl --ftp-create-dirs -T dist/api/update-status.php ftp://agenticspiros.com/demo/posokanei-basket/api/update-status.php
+curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/posokanei-basket/data/catalog.json
 ```
 
 ## Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
+- If the upstream API blocks the production host, the app falls back to the last generated `data/catalog.json` snapshot.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.
