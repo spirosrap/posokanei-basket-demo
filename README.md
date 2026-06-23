@@ -24,9 +24,9 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
-Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, πέφτει σε φρέσκο snapshot του καταλόγου και το γράφει καθαρά στην κορυφή της εφαρμογής.
+Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο.
 
-Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο snapshot από μηχάνημα/δίκτυο που μπορεί να φτάσει το API και δείχνει την ώρα τελευταίας λήψης στην κορυφή.
+Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από μηχάνημα/δίκτυο που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
 ## What It Does
 
@@ -54,7 +54,7 @@ The app is built to run as a subpath deployment:
 https://agenticspiros.com/demo/posokanei-basket/
 ```
 
-The React build uses relative assets (`base: "./"` in `vite.config.js`). The live catalog uses small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog and update-status calls.
+The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. The live catalog uses small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog and update-status calls.
 
 ## Screenshots
 
@@ -146,15 +146,16 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - A same-origin PHP proxy in `public/api/posokanei.php`.
 - A cached update-status endpoint in `public/api/update-status.php`.
 - A live catalog adapter in `src/posokaneiApi.js`.
+- A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`.
 - A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
 Current production note, checked on 2026-06-23:
 
 - `https://api.posokanei.gov.gr/meta/stats` returns `200` from this Mac.
-- `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `403` because the upstream API rejects the Plesk server request.
+- `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `200` with `source: "snapshot"` because the PHP endpoint now falls back to the refreshed catalogue when upstream rejects the Plesk server request.
 - Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
-- The live app therefore uses `data/catalog.json`, refreshed hourly from this Mac, and displays an amber notice with the snapshot time and proxy error.
+- The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed hourly from this Mac, and displays an amber notice with the latest catalogue update time.
 
 ## Data Model
 
@@ -186,8 +187,8 @@ The app includes a lightweight update checker:
 
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
-- `npm run catalog:snapshot` builds `public/data/catalog.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
-- `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, uploads it to the live FTP path, and verifies the public `data/catalog.json` timestamp.
+- `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
+- `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads both to the live FTP path, and verifies the public `data/catalog.json` timestamp.
 - `npm run live:install-refresh` installs a user LaunchAgent on macOS that runs `npm run live:refresh` hourly.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 

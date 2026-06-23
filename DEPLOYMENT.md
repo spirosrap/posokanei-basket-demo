@@ -53,8 +53,10 @@ into:
 httpdocs/spiros/demo/posokanei-basket/
 ```
 
-The build uses relative assets via `vite.config.js` (`base: "./"`). The generated
-`.htaccess` disables PageSpeed and sets `index.html` as the directory index.
+The production build uses absolute subpath assets via `vite.config.js`
+(`base: "/demo/posokanei-basket/"`) and targets older Safari-compatible syntax.
+The generated `.htaccess` disables PageSpeed and sets `index.html` as the
+directory index.
 
 Live catalog support also deploys:
 
@@ -62,6 +64,7 @@ Live catalog support also deploys:
 dist/api/posokanei.php
 dist/api/update-status.php
 dist/data/catalog.json
+dist/data/catalog-meta.json
 ```
 
 `posokanei.php` is a same-origin proxy for the public PosoKanei catalog
@@ -70,20 +73,23 @@ browser CORS requests from `agenticspiros.com`.
 
 Current production caveat, checked on 2026-06-23: the upstream API also returns
 `HTTP 403` to the Plesk server. Vercel Node, Vercel Edge, and Cloudflare Worker
-probes also returned upstream `403`. The app therefore falls back to
-`data/catalog.json`, which is refreshed hourly from this Mac, and shows an amber
-snapshot freshness notice in the UI. Restoring true request-time live production
-requests needs an upstream unblock/allowlist or a proxy network that the
-upstream accepts.
+probes also returned upstream `403`. `posokanei.php` therefore falls back
+server-side to `data/catalog.json`, which is refreshed hourly from this Mac, and
+returns only the requested page/search results to the browser. The UI shows an
+amber catalogue freshness notice with the latest sync time. Restoring true
+request-time live production requests needs an upstream unblock/allowlist or a
+proxy network that the upstream accepts.
 
 `update-status.php` samples catalog stats and representative product searches
 when the upstream is reachable. When the upstream is blocked, it reads
 `../data/catalog.json` and reports `status: "snapshot"` plus the generated
 timestamp so the UI can show the actual deployed data freshness.
 
-`data/catalog.json` is a generated same-origin catalogue snapshot. The frontend
-uses it as a fallback when the hosted PHP proxy is reachable but the upstream
-PosoKanei API rejects server-side requests.
+`data/catalog.json` is a generated same-origin catalogue snapshot.
+`data/catalog-meta.json` is a smaller generated metadata file for stats,
+retailers, and categories. The PHP API uses both as a fallback when the upstream
+PosoKanei API rejects server-side requests, so the frontend does not need to
+download the full catalogue on first load.
 
 Scheduled update check:
 
@@ -105,9 +111,9 @@ reach the upstream API:
 FTP_USER=agenticspirosftp npm run live:refresh
 ```
 
-The script writes `dist/data/catalog.json`, uploads it to
-`demo/posokanei-basket/data/catalog.json`, and verifies the public timestamp. It
-uses `FTP_PASS` when set, or the macOS Keychain service
+The script writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
+uploads both under `demo/posokanei-basket/data/`, and verifies the public
+catalogue timestamp. It uses `FTP_PASS` when set, or the macOS Keychain service
 `Plesk FTP agenticspiros.com` on Spiros' Mac.
 
 Install the hourly macOS LaunchAgent refresh:
@@ -140,6 +146,7 @@ Verification:
 curl -L https://agenticspiros.com/demo/posokanei-basket/
 curl -L https://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
 curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog.json
+curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog-meta.json
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'

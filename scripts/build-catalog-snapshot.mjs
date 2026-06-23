@@ -6,6 +6,10 @@ import { dirname, resolve } from "node:path";
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
 const outputPath = resolve(process.env.POSOKANEI_SNAPSHOT_OUT || "public/data/catalog.json");
+const metaOutputPath = resolve(
+  process.env.POSOKANEI_META_OUT ||
+    outputPath.replace(/catalog\.json$/, "catalog-meta.json"),
+);
 
 async function fetchJson(path, options = {}) {
   const response = await fetch(`${API_ORIGIN}${path}`, {
@@ -63,10 +67,24 @@ const snapshot = {
   retailers: retailersRaw.retailers || retailersRaw,
   products,
 };
+const metadata = {
+  generated_at: snapshot.generated_at,
+  source: snapshot.source,
+  stats: {
+    ...stats,
+    total_products: products.length || stats.total_products,
+    active_products: products.length || stats.active_products || stats.total_products,
+  },
+  categories: snapshot.categories,
+  retailers: snapshot.retailers,
+};
 
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(snapshot)}\n`, "utf8");
+await mkdir(dirname(metaOutputPath), { recursive: true });
+await writeFile(metaOutputPath, `${JSON.stringify(metadata)}\n`, "utf8");
 
 console.log(
   `Wrote ${products.length} products, ${snapshot.categories.length} categories, ${snapshot.retailers.length} retailers to ${outputPath}`,
 );
+console.log(`Wrote catalogue metadata to ${metaOutputPath}`);

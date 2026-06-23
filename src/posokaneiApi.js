@@ -117,6 +117,25 @@ function productTile(name) {
   return (letters || "ΠΡ").toLowerCase();
 }
 
+function fallbackProductId(raw, name) {
+  const source = [
+    name,
+    raw.brand,
+    raw.category,
+    raw.subcategory,
+    raw.unit,
+    raw.unit_quantity,
+    raw.image_url,
+  ]
+    .filter(Boolean)
+    .join("|");
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0;
+  }
+  return `snapshot-${hash.toString(36)}`;
+}
+
 function unitLabel(raw) {
   const quantity = raw.unit_quantity ?? raw.unitQuantity;
   const unit = raw.unit || "τεμ.";
@@ -144,7 +163,7 @@ function normalizePrice(entry) {
 
 export function normalizeProduct(raw, source = "live") {
   const name = raw.name || raw.title || "Προϊόν";
-  const id = String(raw.id ?? raw.gtin ?? raw.barcode ?? raw.product_id ?? crypto.randomUUID());
+  const id = String(raw.id ?? raw.gtin ?? raw.barcode ?? raw.product_id ?? fallbackProductId(raw, name));
   const priceEntries = firstArray({
     products:
       raw.retailer_prices ||
@@ -178,7 +197,8 @@ export function normalizeProduct(raw, source = "live") {
 }
 
 function normalizeProductResponse(raw, source = "live") {
-  const products = firstArray(raw).map((product) => normalizeProduct(product, source));
+  const responseSource = raw?.source || source;
+  const products = firstArray(raw).map((product) => normalizeProduct(product, responseSource));
   return {
     products,
     total: Number(raw?.total ?? products.length) || products.length,
@@ -187,7 +207,7 @@ function normalizeProductResponse(raw, source = "live") {
     totalPages: Number(raw?.total_pages ?? 1) || 1,
     hasNext: Boolean(raw?.has_next),
     queryTimeMs: Number(raw?.query_time_ms ?? 0) || null,
-    source,
+    source: responseSource,
   };
 }
 

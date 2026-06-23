@@ -10,6 +10,10 @@ const snapshotPath = resolve(
   projectRoot,
   process.env.POSOKANEI_SNAPSHOT_OUT || "dist/data/catalog.json",
 );
+const metaPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_META_OUT || "dist/data/catalog-meta.json",
+);
 const uploadEnabled = !process.argv.includes("--no-upload");
 const ftpHost = process.env.FTP_HOST || "agenticspiros.com";
 const ftpRemoteDir = trimSlashes(process.env.FTP_REMOTE_DIR || "demo/posokanei-basket");
@@ -22,6 +26,7 @@ const publicCatalogUrl =
 
 await runNodeScript("scripts/build-catalog-snapshot.mjs", {
   POSOKANEI_SNAPSHOT_OUT: snapshotPath,
+  POSOKANEI_META_OUT: metaPath,
 });
 
 const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
@@ -39,6 +44,10 @@ console.log(
 if (uploadEnabled) {
   const password = process.env.FTP_PASS || (await readKeychainPassword());
   await uploadFile(snapshotPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/catalog.json`, {
+    user: ftpUser,
+    password,
+  });
+  await uploadFile(metaPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/catalog-meta.json`, {
     user: ftpUser,
     password,
   });

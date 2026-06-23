@@ -112,7 +112,7 @@ function App() {
           liveError: stats.liveError,
           label:
             stats.source === "snapshot"
-              ? `Cache · ${stats.activeProducts.toLocaleString("el-GR")} προϊόντα`
+              ? `Κατάλογος · ${stats.activeProducts.toLocaleString("el-GR")} προϊόντα`
               : `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
         });
         setUpdateStatus(fetchedUpdateStatus);
@@ -370,7 +370,7 @@ function AppIntro({ health, updateStatus }) {
       <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
         <span>
           {health.source === "snapshot"
-            ? "Όχι live αυτή τη στιγμή"
+            ? "Ενημέρωση κάθε ώρα"
             : health.state === "online"
               ? "Live τιμές προϊόντων"
               : "Αναμονή live τιμών"}
@@ -385,8 +385,6 @@ function DataFreshnessNotice({ health, updateStatus }) {
   if (health.source !== "snapshot") return null;
   const snapshotTime = formatDataTime(updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt);
   const isAutoSnapshot = updateStatus?.status === "snapshot";
-  const errorText =
-    health.liveError || updateStatus?.detail || "Το live API δεν απάντησε από τον server.";
 
   return (
     <section className="data-warning" aria-label="Προειδοποίηση φρεσκάδας δεδομένων">
@@ -394,13 +392,13 @@ function DataFreshnessNotice({ health, updateStatus }) {
       <div>
         <strong>
           {isAutoSnapshot
-            ? "Οι τιμές ενημερώνονται αυτόματα από snapshot."
-            : "Οι τιμές τώρα εμφανίζονται από snapshot, όχι από live σύνδεση."}
+            ? "Οι τιμές ενημερώνονται αυτόματα κάθε ώρα από το PosoKanei."
+            : "Οι τιμές εμφανίζονται από τον πιο πρόσφατο κατάλογο."}
         </strong>
         <span>
-          Τελευταία λήψη καταλόγου: {snapshotTime}. Το request-time live proxy συνεχίζει
-          να μπλοκάρεται ({errorText}), οπότε η παραγωγή βασίζεται στον αυτόματο
-          περιοδικό συγχρονισμό.
+          Το demo δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον
+          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση:
+          {" "}{snapshotTime}.
         </span>
       </div>
     </section>
@@ -500,7 +498,7 @@ function LiveNotice({ state, total, visible, catalogSource }) {
     loading_more: "Φόρτωση επιπλέον προϊόντων",
     ready:
       catalogSource === "snapshot"
-        ? `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} προϊόντα cache`
+        ? `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} προϊόντα από ενημερωμένο κατάλογο`
         : `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
     empty: "Δεν βρέθηκαν αποτελέσματα",
     error: "Ο κατάλογος δεν είναι διαθέσιμος",
@@ -1078,7 +1076,7 @@ function formatUpdateStatus(updateStatus) {
     timeStyle: "short",
   }).format(checkedAt);
   if (updateStatus.status === "snapshot") {
-    return `Snapshot ενημερώθηκε: ${formatted}`;
+    return `Τελευταία ενημέρωση: ${formatted}`;
   }
   if (updateStatus.status === "stale" || updateStatus.error) {
     return `Απέτυχε live έλεγχος: ${formatted}`;
