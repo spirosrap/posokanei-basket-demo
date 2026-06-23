@@ -18,6 +18,7 @@
   --red: #dc2626;
   --shadow: 0 18px 50px rgba(31, 41, 55, 0.12);
   --radius: 8px;
+  --asset-revision: safari-css-2026-06-23;
 }
 
 * {
