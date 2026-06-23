@@ -21,7 +21,7 @@ if (
     && $cacheAge >= 0
     && $cacheAge < CACHE_TTL_SECONDS
 ) {
-    echo json_encode($previous, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo json_encode(with_refresh_status($previous), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return;
 }
 
@@ -32,7 +32,7 @@ if (
     && $cacheAge >= 0
     && $cacheAge < MIN_REFRESH_SECONDS
 ) {
-    echo json_encode($previous, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo json_encode(with_refresh_status($previous), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return;
 }
 
@@ -86,7 +86,7 @@ function snapshot_status(array $snapshot, string $detail): array
     $retailers = is_array($snapshot['retailers'] ?? null) ? $snapshot['retailers'] : [];
     $generatedAt = (string) ($snapshot['generated_at'] ?? gmdate('c'));
 
-    return [
+    return with_refresh_status([
         'status' => 'snapshot',
         'error' => 'live_proxy_blocked',
         'detail' => $detail,
@@ -102,7 +102,28 @@ function snapshot_status(array $snapshot, string $detail): array
         'fingerprint' => hash('sha256', $generatedAt . ':' . count($products)),
         'snapshot_generated_at' => $generatedAt,
         'next_suggested_check_after' => gmdate('c', strtotime($generatedAt) + CACHE_TTL_SECONDS),
-    ];
+    ]);
+}
+
+function with_refresh_status(array $status): array
+{
+    $refreshStatus = read_cache(__DIR__ . '/../data/refresh-status.json');
+    $snapshotGeneratedAt = (string) ($status['snapshot_generated_at'] ?? $status['snapshotGeneratedAt'] ?? '');
+    if (!is_array($refreshStatus)) {
+        return $status + [
+            'refresh_status' => '',
+            'refresh_checked_at' => '',
+            'refresh_error' => '',
+            'last_successful_refresh_at' => $snapshotGeneratedAt,
+        ];
+    }
+
+    return array_merge($status, [
+        'refresh_status' => (string) ($refreshStatus['status'] ?? ''),
+        'refresh_checked_at' => (string) ($refreshStatus['checked_at'] ?? ''),
+        'refresh_error' => (string) ($refreshStatus['error'] ?? ''),
+        'last_successful_refresh_at' => (string) ($refreshStatus['generated_at'] ?? $snapshotGeneratedAt),
+    ]);
 }
 
 function build_update_status(?array $previous): array

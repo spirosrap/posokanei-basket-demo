@@ -353,6 +353,11 @@ export async function fetchUpdateStatus() {
     error: raw.error || "",
     detail: raw.detail || "",
     snapshotGeneratedAt: raw.snapshot_generated_at || raw.snapshotGeneratedAt || "",
+    refreshStatus: raw.refresh_status || raw.refreshStatus || "",
+    refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
+    refreshError: raw.refresh_error || raw.refreshError || "",
+    lastSuccessfulRefreshAt:
+      raw.last_successful_refresh_at || raw.lastSuccessfulRefreshAt || raw.snapshot_generated_at || "",
   };
 }
 

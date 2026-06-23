@@ -358,6 +358,7 @@ function Header({ health, basketCount }) {
 }
 
 function AppIntro({ health, updateStatus }) {
+  const refreshFailed = updateStatus?.refreshStatus === "failed";
   return (
     <section className="app-intro" aria-label="Σκοπός εφαρμογής">
       <div>
@@ -369,7 +370,9 @@ function AppIntro({ health, updateStatus }) {
       </div>
       <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
         <span>
-          {health.source === "snapshot"
+          {refreshFailed
+            ? "Η τελευταία προσπάθεια απέτυχε"
+            : health.source === "snapshot"
             ? "Ενημέρωση κάθε ώρα"
             : health.state === "online"
               ? "Live τιμές προϊόντων"
@@ -383,7 +386,11 @@ function AppIntro({ health, updateStatus }) {
 
 function DataFreshnessNotice({ health, updateStatus }) {
   if (health.source !== "snapshot") return null;
-  const snapshotTime = formatDataTime(updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt);
+  const snapshotTime = formatDataTime(
+    updateStatus?.lastSuccessfulRefreshAt || updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt,
+  );
+  const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt);
+  const refreshFailed = updateStatus?.refreshStatus === "failed";
   const isAutoSnapshot = updateStatus?.status === "snapshot";
 
   return (
@@ -391,14 +398,21 @@ function DataFreshnessNotice({ health, updateStatus }) {
       <AlertCircle size={18} />
       <div>
         <strong>
-          {isAutoSnapshot
+          {refreshFailed
+            ? "Η τελευταία αυτόματη ενημέρωση απέτυχε."
+            : isAutoSnapshot
             ? "Οι τιμές ενημερώνονται αυτόματα κάθε ώρα από το PosoKanei."
             : "Οι τιμές εμφανίζονται από τον πιο πρόσφατο κατάλογο."}
         </strong>
         <span>
           Το demo δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον
-          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση:
-          {" "}{snapshotTime}.
+          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία επιτυχής
+          ενημέρωση: {snapshotTime}.
+          {refreshFailed
+            ? ` Τελευταία προσπάθεια: ${refreshAttemptTime} (${friendlyRefreshError(
+                updateStatus?.refreshError,
+              )}).`
+            : ""}
         </span>
       </div>
     </section>
@@ -1069,6 +1083,11 @@ function formatStopLimit(count) {
 
 function formatUpdateStatus(updateStatus) {
   if (!updateStatus?.checkedAt) return "Έλεγχος ενημερώσεων: κατά τη χρήση";
+  if (updateStatus.refreshStatus === "failed") {
+    return `Τελευταία επιτυχής ενημέρωση: ${formatDataTime(
+      updateStatus.lastSuccessfulRefreshAt || updateStatus.snapshotGeneratedAt,
+    )}`;
+  }
   const checkedAt = new Date(updateStatus.checkedAt);
   if (Number.isNaN(checkedAt.getTime())) return "Έλεγχος ενημερώσεων: ενεργός";
   const formatted = new Intl.DateTimeFormat("el-GR", {
@@ -1094,6 +1113,12 @@ function formatDataTime(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+function friendlyRefreshError(error) {
+  if (!error) return "ο έλεγχος δεν ολοκληρώθηκε";
+  if (String(error).includes("HTTP 403")) return "μπλοκαρίστηκε από το upstream API";
+  return "ο έλεγχος δεν ολοκληρώθηκε";
 }
 
 function buildPlanAssignmentMap(plan) {

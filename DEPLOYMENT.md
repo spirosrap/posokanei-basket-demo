@@ -64,6 +64,7 @@ dist/api/posokanei.php
 dist/api/update-status.php
 dist/data/catalog.json
 dist/data/catalog-meta.json
+dist/data/refresh-status.json
 ```
 
 `posokanei.php` is a same-origin proxy for the public PosoKanei catalog
@@ -89,6 +90,11 @@ timestamp so the UI can show the actual deployed data freshness.
 retailers, and categories. The PHP API uses both as a fallback when the upstream
 PosoKanei API rejects server-side requests, so the frontend does not need to
 download the full catalogue on first load.
+
+`data/refresh-status.json` records the latest scheduled refresh result. On
+success it stores the new catalogue timestamp; on upstream failure it stores the
+failed attempt time and a short error such as `Upstream returned HTTP 403`.
+`update-status.php` merges this into the UI status response.
 
 Scheduled update check:
 
@@ -116,6 +122,16 @@ catalogue timestamp. Configure FTP and public URL settings with environment
 variables or `.env.local` based on `.env.example`. Use either `FTP_PASS` or
 `FTP_KEYCHAIN_SERVICE` for FTP authentication.
 
+When the upstream blocks refresh requests, the script exits non-zero but still
+uploads `data/refresh-status.json` so production can show the failed refresh
+attempt while continuing to serve the last successful catalogue.
+
+When the local/deployment network is blocked but another trusted machine can
+reach `api.posokanei.gov.gr`, set `POSOKANEI_REFRESH_HOST=<ssh-host>`. The
+script copies the snapshot builder to that host, builds the catalogue there,
+pulls back `catalog.json` and `catalog-meta.json`, then uploads them locally.
+FTP credentials are not copied to the remote host.
+
 Install the hourly macOS LaunchAgent refresh:
 
 ```bash
@@ -141,6 +157,7 @@ curl -L https://agenticspiros.com/demo/posokanei-basket/
 curl -L https://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
 curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog.json
 curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog-meta.json
+curl -L https://agenticspiros.com/demo/posokanei-basket/data/refresh-status.json
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1'
 curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'
