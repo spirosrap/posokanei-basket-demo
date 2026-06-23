@@ -532,11 +532,38 @@ button {
   color: var(--blue);
 }
 
+.text-button.danger-button {
+  border-color: rgba(220, 38, 38, 0.22);
+  background: #fff5f5;
+  color: var(--red);
+}
+
 .basket-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.demo-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -2px 0 12px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: var(--radius);
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.demo-hint svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
 
 .basket-item {

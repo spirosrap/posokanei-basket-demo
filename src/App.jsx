@@ -45,12 +45,29 @@ import {
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 
-const hasStoredBasket = () => {
+const basketsMatch = (basket, referenceBasket) => {
+  if (!Array.isArray(basket) || basket.length !== referenceBasket.length) return false;
+  const quantities = new Map(basket.map((entry) => [entry.productId, entry.quantity]));
+  return referenceBasket.every((entry) => quantities.get(entry.productId) === entry.quantity);
+};
+
+const shouldStartWithDemoBasket = () => {
   try {
-    return localStorage.getItem(BASKET_KEY) !== null;
+    const stored = localStorage.getItem(BASKET_KEY);
+    if (stored === null) return true;
+    const parsed = JSON.parse(stored);
+    return !Array.isArray(parsed) || parsed.length === 0 || basketsMatch(parsed, DEFAULT_DEMO_BASKET);
   } catch {
     return true;
   }
+};
+
+const mergeDefaultProducts = (products) => {
+  const byId = new Map(DEFAULT_DEMO_PRODUCTS.map((product) => [product.id, product]));
+  products.forEach((product) => {
+    if (product?.id) byId.set(product.id, product);
+  });
+  return [...byId.values()];
 };
 
 const savedBasket = () => {
@@ -58,7 +75,8 @@ const savedBasket = () => {
     const stored = localStorage.getItem(BASKET_KEY);
     if (stored === null) return DEFAULT_DEMO_BASKET;
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_DEMO_BASKET;
+    return parsed;
   } catch {
     return DEFAULT_DEMO_BASKET;
   }
@@ -67,9 +85,9 @@ const savedBasket = () => {
 const savedLiveBasketProducts = () => {
   try {
     const stored = localStorage.getItem(LIVE_BASKET_PRODUCTS_KEY);
-    if (stored === null && !hasStoredBasket()) return DEFAULT_DEMO_PRODUCTS;
     const parsed = JSON.parse(stored || "[]");
-    return Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
+    const products = Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
+    return shouldStartWithDemoBasket() ? mergeDefaultProducts(products) : products;
   } catch {
     return DEFAULT_DEMO_PRODUCTS;
   }
@@ -94,7 +112,7 @@ function App() {
   });
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [maxChains, setMaxChains] = useState(() => (hasStoredBasket() ? 1 : 4));
+  const [maxChains, setMaxChains] = useState(() => (shouldStartWithDemoBasket() ? 4 : 1));
   const refreshedDemoProducts = useRef(false);
 
   useEffect(() => {
@@ -197,6 +215,7 @@ function App() {
     () => new Map(allProducts.map((product) => [product.id, product])),
     [allProducts],
   );
+  const isDemoBasket = useMemo(() => basketsMatch(basket, DEFAULT_DEMO_BASKET), [basket]);
 
   useEffect(() => {
     if (refreshedDemoProducts.current) return undefined;
@@ -268,7 +287,10 @@ function App() {
     );
   };
 
-  const clearBasket = () => setBasket([]);
+  const clearBasket = () => {
+    setBasket([]);
+    setMaxChains(1);
+  };
 
   const loadDemoBasket = () => {
     setLiveBasketProducts((current) => mergeCatalogProducts(current, DEFAULT_DEMO_PRODUCTS));
@@ -343,6 +365,7 @@ function App() {
           bestCompleteRanking={bestCompleteRanking}
           visitPlan={visitPlan}
           maxChains={maxChains}
+          isDemoBasket={isDemoBasket}
           onQuantity={updateQuantity}
           onClear={clearBasket}
           onCopy={copyBasket}
@@ -608,6 +631,7 @@ function BasketPanel({
   bestCompleteRanking,
   visitPlan,
   maxChains,
+  isDemoBasket,
   onQuantity,
   onClear,
   onCopy,
@@ -640,10 +664,26 @@ function BasketPanel({
           <ClipboardList size={16} />
           Αντιγραφή
         </button>
-        <button type="button" className="icon-button danger" onClick={onClear} aria-label="Άδειασμα καλαθιού">
+        <button
+          type="button"
+          className="text-button danger-button"
+          onClick={onClear}
+          aria-label="Καθαρισμός παραδείγματος και έναρξη νέου καλαθιού"
+        >
           <Trash2 size={17} />
+          Νέο καλάθι
         </button>
       </div>
+
+      {isDemoBasket ? (
+        <div className="demo-hint">
+          <Sparkles size={15} />
+          <span>
+            Βλέπεις παράδειγμα. Πάτησε «Νέο καλάθι» για να το καθαρίσεις και να
+            ξεκινήσεις τη δική σου λίστα.
+          </span>
+        </div>
+      ) : null}
 
       <div className="basket-list">
         {basket.length === 0 ? (
