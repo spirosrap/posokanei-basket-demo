@@ -526,6 +526,12 @@ button {
   padding: 0 10px;
 }
 
+.text-button.demo-button {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: #eff6ff;
+  color: var(--blue);
+}
+
 .basket-toolbar {
   display: flex;
   align-items: center;

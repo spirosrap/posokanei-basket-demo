@@ -429,6 +429,24 @@ export async function fetchProducts({
     .catch(() => snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }));
 }
 
+export async function fetchProductsByIds(productIds = []) {
+  const wantedIds = new Set(productIds.map((id) => String(id)));
+  if (!wantedIds.size) return [];
+
+  const snapshot = await fetchCatalogSnapshot();
+  const productsById = new Map();
+  (snapshot.products || []).forEach((rawProduct) => {
+    const id = String(rawProduct.id ?? rawProduct.gtin ?? rawProduct.barcode ?? rawProduct.product_id);
+    if (wantedIds.has(id)) {
+      productsById.set(id, normalizeProduct(rawProduct, "snapshot"));
+    }
+  });
+
+  return productIds
+    .map((id) => productsById.get(String(id)))
+    .filter(Boolean);
+}
+
 function searchByTitle(query, categoryId, page, pageSize) {
   const params = {
     page,

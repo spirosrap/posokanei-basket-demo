@@ -13,20 +13,27 @@ import {
   RefreshCw,
   Search,
   ShoppingBasket,
+  Sparkles,
   Store,
   Trash2,
   Wifi,
   WifiOff,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCategories,
   fetchHealth,
   fetchProducts,
+  fetchProductsByIds,
   fetchRetailers,
   fetchUpdateStatus,
 } from "./posokaneiApi";
+import {
+  DEFAULT_DEMO_BASKET,
+  DEFAULT_DEMO_PRODUCT_IDS,
+  DEFAULT_DEMO_PRODUCTS,
+} from "./demoBasket";
 import {
   calculateRankings,
   calculateVisitPlan,
@@ -38,23 +45,33 @@ import {
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 
+const hasStoredBasket = () => {
+  try {
+    return localStorage.getItem(BASKET_KEY) !== null;
+  } catch {
+    return true;
+  }
+};
+
 const savedBasket = () => {
   try {
     const stored = localStorage.getItem(BASKET_KEY);
-    if (stored === null) return [];
+    if (stored === null) return DEFAULT_DEMO_BASKET;
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return [];
+    return DEFAULT_DEMO_BASKET;
   }
 };
 
 const savedLiveBasketProducts = () => {
   try {
-    const parsed = JSON.parse(localStorage.getItem(LIVE_BASKET_PRODUCTS_KEY) || "[]");
+    const stored = localStorage.getItem(LIVE_BASKET_PRODUCTS_KEY);
+    if (stored === null && !hasStoredBasket()) return DEFAULT_DEMO_PRODUCTS;
+    const parsed = JSON.parse(stored || "[]");
     return Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
   } catch {
-    return [];
+    return DEFAULT_DEMO_PRODUCTS;
   }
 };
 
@@ -77,7 +94,8 @@ function App() {
   });
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [maxChains, setMaxChains] = useState(1);
+  const [maxChains, setMaxChains] = useState(() => (hasStoredBasket() ? 1 : 4));
+  const refreshedDemoProducts = useRef(false);
 
   useEffect(() => {
     localStorage.setItem(BASKET_KEY, JSON.stringify(basket));
@@ -181,6 +199,27 @@ function App() {
   );
 
   useEffect(() => {
+    if (refreshedDemoProducts.current) return undefined;
+    if (!basket.some((entry) => DEFAULT_DEMO_PRODUCT_IDS.includes(entry.productId))) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    refreshedDemoProducts.current = true;
+    fetchProductsByIds(DEFAULT_DEMO_PRODUCT_IDS)
+      .then((products) => {
+        if (!cancelled && products.length) {
+          setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [basket]);
+
+  useEffect(() => {
     setBasket((current) => {
       const next = current.filter((entry) => productMap.has(entry.productId));
       return next.length === current.length ? current : next;
@@ -230,6 +269,13 @@ function App() {
   };
 
   const clearBasket = () => setBasket([]);
+
+  const loadDemoBasket = () => {
+    setLiveBasketProducts((current) => mergeCatalogProducts(current, DEFAULT_DEMO_PRODUCTS));
+    setBasket(DEFAULT_DEMO_BASKET);
+    setMaxChains(4);
+    refreshedDemoProducts.current = false;
+  };
 
   const copyBasket = async () => {
     const lines = basket.map((entry) => {
@@ -300,6 +346,7 @@ function App() {
           onQuantity={updateQuantity}
           onClear={clearBasket}
           onCopy={copyBasket}
+          onLoadDemo={loadDemoBasket}
           onSelect={setSelectedProduct}
         />
 
@@ -564,6 +611,7 @@ function BasketPanel({
   onQuantity,
   onClear,
   onCopy,
+  onLoadDemo,
   onSelect,
 }) {
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
@@ -584,6 +632,10 @@ function BasketPanel({
       />
 
       <div className="basket-toolbar">
+        <button type="button" className="text-button demo-button" onClick={onLoadDemo}>
+          <Sparkles size={16} />
+          Παράδειγμα
+        </button>
         <button type="button" className="text-button" onClick={onCopy}>
           <ClipboardList size={16} />
           Αντιγραφή
@@ -1025,10 +1077,17 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
 }
 
 function ProductThumb({ product, compact = false }) {
-  if (product.imageUrl) {
+  const [failedImageUrl, setFailedImageUrl] = useState("");
+  const imageUrl = product.imageUrl || "";
+  if (imageUrl && failedImageUrl !== imageUrl) {
     return (
       <span className={compact ? "product-thumb compact" : "product-thumb"}>
-        <img src={product.imageUrl} alt="" loading="lazy" />
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setFailedImageUrl(imageUrl)}
+        />
       </span>
     );
   }
@@ -1139,9 +1198,13 @@ export default App;
 
 function rememberCatalogProduct(product, setLiveBasketProducts) {
   if (!product?.id) return;
-  setLiveBasketProducts((current) => {
-    const byId = new Map(current.map((item) => [item.id, item]));
-    byId.set(product.id, product);
-    return [...byId.values()].slice(-200);
+  setLiveBasketProducts((current) => mergeCatalogProducts(current, [product]));
+}
+
+function mergeCatalogProducts(current, products) {
+  const byId = new Map(current.map((item) => [item.id, item]));
+  products.forEach((product) => {
+    if (product?.id) byId.set(product.id, product);
   });
+  return [...byId.values()].slice(-200);
 }
