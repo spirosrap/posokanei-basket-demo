@@ -69,14 +69,17 @@ endpoints. It exists because `https://api.posokanei.gov.gr` currently rejects
 browser CORS requests from `agenticspiros.com`.
 
 Current production caveat, checked on 2026-06-23: the upstream API also returns
-`HTTP 403` to the Plesk server. The app therefore falls back to
-`data/catalog.json` and shows an amber "not live" warning in the UI. Restoring
-true live production requests needs a different proxy/server network or an
-upstream unblock/allowlist.
+`HTTP 403` to the Plesk server. Vercel Node, Vercel Edge, and Cloudflare Worker
+probes also returned upstream `403`. The app therefore falls back to
+`data/catalog.json`, which is refreshed hourly from this Mac, and shows an amber
+snapshot freshness notice in the UI. Restoring true request-time live production
+requests needs an upstream unblock/allowlist or a proxy network that the
+upstream accepts.
 
-`update-status.php` samples catalog stats and representative product searches,
-stores a fingerprint in `api/update-status-cache.json`, and lets the app or a
-scheduled task show when prices/products were last checked.
+`update-status.php` samples catalog stats and representative product searches
+when the upstream is reachable. When the upstream is blocked, it reads
+`../data/catalog.json` and reports `status: "snapshot"` plus the generated
+timestamp so the UI can show the actual deployed data freshness.
 
 `data/catalog.json` is a generated same-origin catalogue snapshot. The frontend
 uses it as a fallback when the hosted PHP proxy is reachable but the upstream
@@ -107,6 +110,20 @@ The script writes `dist/data/catalog.json`, uploads it to
 uses `FTP_PASS` when set, or the macOS Keychain service
 `Plesk FTP agenticspiros.com` on Spiros' Mac.
 
+Install the hourly macOS LaunchAgent refresh:
+
+```bash
+npm run live:install-refresh
+```
+
+Installed local job and logs:
+
+```text
+~/Library/LaunchAgents/com.agenticspiros.posokanei-basket-refresh.plist
+~/Library/Logs/posokanei-basket-refresh.log
+~/Library/Logs/posokanei-basket-refresh.err.log
+```
+
 Plesk scheduled task equivalent:
 
 ```bash
@@ -114,7 +131,8 @@ curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php
 ```
 
 That Plesk task only works when Plesk can reach `api.posokanei.gov.gr`. While
-Plesk is blocked, schedule `npm run live:refresh` somewhere else.
+Plesk is blocked, the installed LaunchAgent on Spiros' Mac runs
+`npm run live:refresh` every hour.
 
 Verification:
 

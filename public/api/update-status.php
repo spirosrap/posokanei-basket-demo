@@ -41,6 +41,13 @@ try {
     @file_put_contents($cacheFile, json_encode($status, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n", LOCK_EX);
     echo json_encode($status, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (Throwable $error) {
+    $snapshot = read_snapshot(__DIR__ . '/../data/catalog.json');
+    if (is_array($snapshot)) {
+        http_response_code(200);
+        echo json_encode(snapshot_status($snapshot, $error->getMessage()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return;
+    }
+
     http_response_code(is_array($previous) ? 200 : 502);
     echo json_encode([
         'status' => 'stale',
@@ -61,6 +68,41 @@ function read_cache(string $cacheFile): ?array
     if ($raw === false) return null;
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : null;
+}
+
+function read_snapshot(string $snapshotFile): ?array
+{
+    if (!is_file($snapshotFile)) return null;
+    $raw = file_get_contents($snapshotFile);
+    if ($raw === false) return null;
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+function snapshot_status(array $snapshot, string $detail): array
+{
+    $stats = is_array($snapshot['stats'] ?? null) ? $snapshot['stats'] : [];
+    $products = is_array($snapshot['products'] ?? null) ? $snapshot['products'] : [];
+    $retailers = is_array($snapshot['retailers'] ?? null) ? $snapshot['retailers'] : [];
+    $generatedAt = (string) ($snapshot['generated_at'] ?? gmdate('c'));
+
+    return [
+        'status' => 'snapshot',
+        'error' => 'live_proxy_blocked',
+        'detail' => $detail,
+        'checked_at' => $generatedAt,
+        'changed_since_last_check' => false,
+        'stats' => [
+            'total_products' => count($products) ?: (int) ($stats['total_products'] ?? 0),
+            'active_products' => count($products) ?: (int) ($stats['active_products'] ?? $stats['total_products'] ?? 0),
+            'retailer_count' => count($retailers) ?: (int) ($stats['retailer_count'] ?? 0),
+            'products_on_discount' => (int) ($stats['products_on_discount'] ?? 0),
+        ],
+        'sampled_products' => 0,
+        'fingerprint' => hash('sha256', $generatedAt . ':' . count($products)),
+        'snapshot_generated_at' => $generatedAt,
+        'next_suggested_check_after' => gmdate('c', strtotime($generatedAt) + CACHE_TTL_SECONDS),
+    ];
 }
 
 function build_update_status(?array $previous): array

@@ -73,10 +73,10 @@ async function readKeychainPassword() {
 async function uploadFile(filePath, url, credentials) {
   const curlConfig = [
     `user = "${escapeCurlConfig(`${credentials.user}:${credentials.password}`)}"`,
-    "ftp-create-dirs = true",
-    "silent = true",
-    "show-error = true",
-    "fail = true",
+    "ftp-create-dirs",
+    "silent",
+    "show-error",
+    "fail",
   ].join("\n");
 
   await run("/usr/bin/curl", ["--config", "-", "-T", filePath, url], {

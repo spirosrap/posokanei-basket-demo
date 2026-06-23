@@ -10,5 +10,6 @@ deploy/*.zip
 .env
 .env.*
 !.env.example
+.vercel/
 .idea/
 .vscode/

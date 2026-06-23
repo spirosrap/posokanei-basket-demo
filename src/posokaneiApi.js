@@ -332,6 +332,7 @@ export async function fetchUpdateStatus() {
     status: raw.status || "ok",
     error: raw.error || "",
     detail: raw.detail || "",
+    snapshotGeneratedAt: raw.snapshot_generated_at || raw.snapshotGeneratedAt || "",
   };
 }
 

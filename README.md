@@ -26,7 +26,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, πέφτει σε φρέσκο snapshot του καταλόγου και το γράφει καθαρά στην κορυφή της εφαρμογής.
 
-Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Γι' αυτό το live demo δείχνει ξεκάθαρα ότι χρησιμοποιεί snapshot, όχι πραγματική live σύνδεση, μέχρι να μπει proxy από άλλο δίκτυο/server ή να ξεμπλοκαριστεί το production host.
+Στις 2026-06-23 ο upstream API είναι προσβάσιμος από developer μηχανή, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο snapshot από μηχάνημα/δίκτυο που μπορεί να φτάσει το API και δείχνει την ώρα τελευταίας λήψης στην κορυφή.
 
 ## What It Does
 
@@ -44,7 +44,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 - Load official product photos from the PosoKanei image endpoints.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
-- Provide scheduler-friendly update and snapshot refresh scripts.
+- Provide scheduler-friendly update, snapshot refresh, and macOS LaunchAgent install scripts.
 
 ## Live Target
 
@@ -153,7 +153,8 @@ Current production note, checked on 2026-06-23:
 
 - `https://api.posokanei.gov.gr/meta/stats` returns `200` from this Mac.
 - `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `403` because the upstream API rejects the Plesk server request.
-- The live app therefore uses `data/catalog.json` and displays an amber warning with the snapshot time and proxy error.
+- Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
+- The live app therefore uses `data/catalog.json`, refreshed hourly from this Mac, and displays an amber notice with the snapshot time and proxy error.
 
 ## Data Model
 
@@ -187,6 +188,7 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, uploads it to the live FTP path, and verifies the public `data/catalog.json` timestamp.
+- `npm run live:install-refresh` installs a user LaunchAgent on macOS that runs `npm run live:refresh` hourly.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 
 For a cron job:
@@ -209,6 +211,25 @@ FTP_USER=agenticspirosftp npm run live:refresh
 ```
 
 The refresh script reads `FTP_PASS` from the environment when set. On Spiros' Mac it can also read the FTP password from the macOS Keychain service `Plesk FTP agenticspiros.com`.
+
+To install the hourly refresh job on macOS:
+
+```bash
+npm run live:install-refresh
+```
+
+Installed job:
+
+```text
+~/Library/LaunchAgents/com.agenticspiros.posokanei-basket-refresh.plist
+```
+
+Logs:
+
+```text
+~/Library/Logs/posokanei-basket-refresh.log
+~/Library/Logs/posokanei-basket-refresh.err.log
+```
 
 For Plesk Scheduled Tasks, a simple curl check is enough only when the Plesk server can reach the upstream API:
 
@@ -236,7 +257,7 @@ curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/po
 ## Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- As of 2026-06-23, the production Plesk proxy is upstream-blocked with `HTTP 403`; the app falls back to the latest generated `data/catalog.json` snapshot and shows that state in the UI.
+- As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest generated `data/catalog.json` snapshot and shows that state in the UI.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.

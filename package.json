@@ -25,6 +25,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",
     "catalog:snapshot": "node scripts/build-catalog-snapshot.mjs",
+    "live:install-refresh": "node scripts/install-live-refresh-launchd.mjs",
     "live:refresh": "node scripts/refresh-live-catalog.mjs",
     "check:updates": "node scripts/check-posokanei-updates.mjs"
   },

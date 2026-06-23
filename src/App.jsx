@@ -383,7 +383,8 @@ function AppIntro({ health, updateStatus }) {
 
 function DataFreshnessNotice({ health, updateStatus }) {
   if (health.source !== "snapshot") return null;
-  const snapshotTime = formatDataTime(health.snapshotGeneratedAt);
+  const snapshotTime = formatDataTime(updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt);
+  const isAutoSnapshot = updateStatus?.status === "snapshot";
   const errorText =
     health.liveError || updateStatus?.detail || "Το live API δεν απάντησε από τον server.";
 
@@ -391,10 +392,15 @@ function DataFreshnessNotice({ health, updateStatus }) {
     <section className="data-warning" aria-label="Προειδοποίηση φρεσκάδας δεδομένων">
       <AlertCircle size={18} />
       <div>
-        <strong>Οι τιμές τώρα εμφανίζονται από snapshot, όχι από live σύνδεση.</strong>
+        <strong>
+          {isAutoSnapshot
+            ? "Οι τιμές ενημερώνονται αυτόματα από snapshot."
+            : "Οι τιμές τώρα εμφανίζονται από snapshot, όχι από live σύνδεση."}
+        </strong>
         <span>
-          Τελευταία λήψη καταλόγου: {snapshotTime}. Σφάλμα live proxy: {errorText}. Αν
-          αυτό συνεχιστεί, θέλει αλλαγή δικτύου/proxy για πραγματικά live τιμές.
+          Τελευταία λήψη καταλόγου: {snapshotTime}. Το request-time live proxy συνεχίζει
+          να μπλοκάρεται ({errorText}), οπότε η παραγωγή βασίζεται στον αυτόματο
+          περιοδικό συγχρονισμό.
         </span>
       </div>
     </section>
@@ -1071,6 +1077,9 @@ function formatUpdateStatus(updateStatus) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(checkedAt);
+  if (updateStatus.status === "snapshot") {
+    return `Snapshot ενημερώθηκε: ${formatted}`;
+  }
   if (updateStatus.status === "stale" || updateStatus.error) {
     return `Απέτυχε live έλεγχος: ${formatted}`;
   }
