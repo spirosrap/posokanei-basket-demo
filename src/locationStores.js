@@ -46,7 +46,7 @@ export function getBrowserLocation() {
   });
 }
 
-export async function fetchNearbySupermarkets(position, radiusKm = 5) {
+export async function fetchNearbySupermarkets(position, radiusKm = 2) {
   const response = await fetch(BRANCH_PROXY_ENDPOINT, {
     method: "POST",
     headers: {

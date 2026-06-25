@@ -149,7 +149,7 @@ function App() {
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [maxChains, setMaxChains] = useState(() => (shouldStartWithDemoBasket() ? 4 : 1));
-  const [locationRadiusKm, setLocationRadiusKm] = useState(5);
+  const [locationRadiusKm, setLocationRadiusKm] = useState(2);
   const [locationState, setLocationState] = useState({
     status: "idle",
     position: null,

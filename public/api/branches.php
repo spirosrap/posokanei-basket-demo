@@ -32,7 +32,7 @@ if (!is_array($input)) {
 
 $lat = clean_float($input['lat'] ?? null);
 $lon = clean_float($input['lon'] ?? null);
-$radiusKm = clean_float($input['radiusKm'] ?? 5.0);
+$radiusKm = clean_float($input['radiusKm'] ?? 2.0);
 
 if ($lat === null || $lon === null || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
     http_response_code(400);
@@ -40,7 +40,7 @@ if ($lat === null || $lon === null || $lat < -90 || $lat > 90 || $lon < -180 || 
     return;
 }
 
-$radiusMeters = max(500, min(15000, (int) round(($radiusKm ?? 5.0) * 1000)));
+$radiusMeters = max(500, min(15000, (int) round(($radiusKm ?? 2.0) * 1000)));
 $query = sprintf(
     '[out:json][timeout:18];(node["shop"="supermarket"](around:%d,%.7F,%.7F);way["shop"="supermarket"](around:%d,%.7F,%.7F);relation["shop"="supermarket"](around:%d,%.7F,%.7F););out center tags 80;',
     $radiusMeters,
