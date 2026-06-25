@@ -287,22 +287,56 @@ function snapshot_payload(string $resource, array $request): ?array
 function read_snapshot_meta(): ?array
 {
     $meta = read_json_file(__DIR__ . '/../data/catalog-meta.json');
+    $snapshot = read_snapshot();
+
     if (is_array($meta)) {
-        return $meta;
+        return is_array($snapshot) ? reconcile_snapshot_meta($meta, $snapshot) : $meta;
     }
 
-    $snapshot = read_snapshot();
     if (!is_array($snapshot)) {
         return null;
     }
 
-    return [
+    return reconcile_snapshot_meta([
         'generated_at' => $snapshot['generated_at'] ?? '',
         'source' => $snapshot['source'] ?? POSOKANEI_API,
         'stats' => $snapshot['stats'] ?? [],
         'categories' => $snapshot['categories'] ?? [],
         'retailers' => $snapshot['retailers'] ?? [],
-    ];
+    ], $snapshot);
+}
+
+function reconcile_snapshot_meta(array $meta, array $snapshot): array
+{
+    $products = first_array(['products' => $snapshot['products'] ?? []]);
+    $snapshotStats = is_array($snapshot['stats'] ?? null) ? $snapshot['stats'] : [];
+    $metaStats = is_array($meta['stats'] ?? null) ? $meta['stats'] : [];
+    $snapshotGeneratedAt = (string) ($snapshot['generated_at'] ?? '');
+    $metaGeneratedAt = (string) ($meta['generated_at'] ?? '');
+    $productCount = count($products);
+
+    if ($snapshotGeneratedAt !== '' && $snapshotGeneratedAt !== $metaGeneratedAt) {
+        $meta['generated_at'] = $snapshotGeneratedAt;
+    }
+
+    $stats = array_merge($metaStats, $snapshotStats);
+    if ($productCount > 0) {
+        $stats['total_products'] = $productCount;
+        $stats['active_products'] = $productCount;
+    }
+
+    $snapshotRetailers = first_array(['products' => $snapshot['retailers'] ?? []]);
+    if ($snapshotRetailers !== []) {
+        $meta['retailers'] = $snapshotRetailers;
+        $stats['retailer_count'] = count($snapshotRetailers);
+    }
+
+    if (!isset($meta['categories']) || !is_array($meta['categories'])) {
+        $meta['categories'] = $snapshot['categories'] ?? [];
+    }
+
+    $meta['stats'] = $stats;
+    return $meta;
 }
 
 function read_snapshot(): ?array

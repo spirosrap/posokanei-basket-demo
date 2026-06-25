@@ -8,7 +8,7 @@ This is an unofficial app. It is not affiliated with PosoKanei or any supermarke
 
 Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
 
-![Desktop screenshot showing a two-stop supermarket basket plan](screenshots/desktop.png)
+![Desktop screenshot showing the starter basket and supermarket stop comparison](screenshots/desktop.png)
 
 ## Ελληνικά
 
@@ -24,7 +24,9 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
-Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο.
+Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
+
+Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο. Οι φωτογραφίες προϊόντων περνούν επίσης από same-origin proxy, για να εμφανίζονται σταθερά σε Safari και σε browsers που μπλοκάρουν ή απορρίπτουν τα direct image requests.
 
 Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
@@ -33,6 +35,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 ## What It Does
 
 - Search or filter products by category or barcode.
+- Start with an illustrative example basket that can be cleared in one click.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
 - Rank supermarket chains by total basket price.
@@ -42,8 +45,8 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 - Show which products to buy from each chain in a multi-stop plan.
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
-- Open product detail with barcode, unit, description, and per-chain prices.
-- Load official product photos from the PosoKanei image endpoints.
+- Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
+- Load official product photos through a same-origin image proxy with fallback handling.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
 - Provide scheduler-friendly update and snapshot refresh scripts.
@@ -56,7 +59,7 @@ The app is built to run as a subpath deployment:
 https://agenticspiros.com/demo/posokanei-basket/
 ```
 
-The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. The live catalog uses small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog and update-status calls.
+The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog and product images use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog, image proxy, and update-status calls.
 
 ## Screenshots
 
@@ -67,6 +70,10 @@ Desktop, with a two-stop optimized basket:
 Mobile:
 
 ![Mobile app](screenshots/mobile.png)
+
+Product detail, with a larger image for checking the exact product:
+
+![Product detail drawer with large product image and per-chain prices](screenshots/detail.png)
 
 ## Local Development
 
@@ -102,7 +109,7 @@ dist/
 
 ## Validation
 
-These checks were run during the initial release:
+Core checks:
 
 ```bash
 npm run lint
@@ -110,7 +117,7 @@ npm run build
 npm audit --omit=dev
 ```
 
-Browser QA covered:
+Browser QA covers:
 
 - Desktop first viewport.
 - Mobile 390px viewport.
@@ -119,6 +126,8 @@ Browser QA covered:
 - Product add flow.
 - Quantity update flow.
 - Product detail drawer open/close.
+- Large product image in the detail drawer.
+- Basket and catalog product thumbnails through the image proxy.
 - Loading the official catalog.
 - Live search for `γάλα`, including product photos.
 - Adding an official live product to the basket and recalculating the plan.
@@ -149,6 +158,8 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - A cached update-status endpoint in `public/api/update-status.php`.
 - A live catalog adapter in `src/posokaneiApi.js`.
 - A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`.
+- Snapshot stats are reconciled against the actual `catalog.json` product count so stale metadata does not show a different catalogue size from search results.
+- A product-image proxy mode in `public/api/posokanei.php?resource=image`, used by thumbnails and the detail drawer.
 - A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
@@ -160,6 +171,7 @@ Current production note, checked on 2026-06-23:
 - The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync, and displays an amber notice with the latest catalogue update time.
 - If a scheduled refresh attempt fails, `data/refresh-status.json` records the failed attempt time and reason. The UI then shows both the last successful catalogue update and the latest failed attempt, so stale data is visible instead of silent.
 - The refresh script can also fetch through an SSH runner by setting `POSOKANEI_REFRESH_HOST`. This is useful when the deployment server or primary machine is blocked but another trusted environment can reach the public API.
+- `data/catalog-meta.json` describes the last successful snapshot. `data/refresh-status.json` describes the last refresh attempt. Those timestamps can differ, and the UI is designed to make that distinction visible.
 
 Why this can happen even on the same local network:
 
@@ -203,6 +215,7 @@ The app includes a lightweight update checker:
 - When `npm run live:refresh` fails because the upstream API returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
+- Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.
 
 For a cron job:
 
