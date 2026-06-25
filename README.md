@@ -28,6 +28,8 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 
 Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο. Οι φωτογραφίες προϊόντων περνούν επίσης από same-origin proxy, για να εμφανίζονται σταθερά σε Safari και σε browsers που μπλοκάρουν ή απορρίπτουν τα direct image requests.
 
+Τα λογότυπα των αλυσίδων διαβάζονται από τα retailer metadata του PosoKanei και περνούν από το ίδιο same-origin proxy, ώστε το πλάνο να δείχνει πραγματικά supermarket logos αντί για αρχικά γραμμάτων. Για λίγες αλυσίδες υπάρχουν fallback logo URLs από επίσημες ή δημόσιες πηγές, αν η upstream εικόνα δεν φορτώσει.
+
 Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
 Σημαντική λεπτομέρεια: το block δεν φαίνεται να είναι θέμα συσκευής ή MAC address. Ένας δημόσιος API server συνήθως δεν βλέπει MAC addresses. Ακόμα και συσκευές στο ίδιο τοπικό δίκτυο μπορούν να φαίνονται διαφορετικές προς το upstream λόγω διαφορετικού public egress IP, VPN/split tunnel, IPv4/IPv6 διαδρομής, CDN/WAF κανόνων ή TLS/client fingerprint. Γι' αυτό το refresh script υποστηρίζει trusted SSH runner: το κατέβασμα γίνεται από περιβάλλον που επιτρέπεται, ενώ τα deployment credentials μένουν τοπικά.
@@ -47,6 +49,7 @@ Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/de
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
 - Load official product photos through a same-origin image proxy with fallback handling.
+- Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
 - Provide scheduler-friendly update and snapshot refresh scripts.
@@ -128,6 +131,7 @@ Browser QA covers:
 - Product detail drawer open/close.
 - Large product image in the detail drawer.
 - Basket and catalog product thumbnails through the image proxy.
+- Supermarket chain logos in desktop, mobile, and product-detail views.
 - Loading the official catalog.
 - Live search for `γάλα`, including product photos.
 - Adding an official live product to the basket and recalculating the plan.
@@ -160,6 +164,7 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`.
 - Snapshot stats are reconciled against the actual `catalog.json` product count so stale metadata does not show a different catalogue size from search results.
 - A product-image proxy mode in `public/api/posokanei.php?resource=image`, used by thumbnails and the detail drawer.
+- A retailer-logo proxy mode in `public/api/posokanei.php?resource=retailer-image`, used by rankings, route cards, and product detail price rows.
 - A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
@@ -216,6 +221,7 @@ The app includes a lightweight update checker:
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
 - The UI reads `api/update-status.php` and shows the last check time near the top of the app.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.
+- Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
 For a cron job:
 
