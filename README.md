@@ -36,6 +36,8 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Προαιρετικά, ο χρήστης μπορεί να πατήσει «Χρήση τοποθεσίας» για να δει κοντινά υποκαταστήματα και αποστάσεις τύπου `57 μ. μακριά` δίπλα στις αλυσίδες. Η τοποθεσία ζητείται από τον browser μόνο μετά από ενέργεια του χρήστη, το app τη στέλνει στο δικό του `api/branches.php` endpoint με `no-store` cache, και το endpoint αναζητά supermarket στο OpenStreetMap/Overpass. Οι αποστάσεις είναι ευθεία γραμμή και βοηθητικές, όχι πλοήγηση με διαδρομή/κίνηση.
 
+Με ενεργή την τοποθεσία, το πλάνο δεν δείχνει μόνο ποια αλυσίδα είναι φθηνότερη. Δείχνει και αν υπάρχει κοντινό υποκατάστημα για την αλυσίδα που σε ενδιαφέρει, ώστε να μπορείς να αποφασίσεις αν αξίζει μία, δύο ή περισσότερες στάσεις. Ο χρήστης μπορεί να αλλάξει ακτίνα αναζήτησης (`2χλμ.`, `5χλμ.`, `10χλμ.`), να δει κοντινά υποκαταστήματα ανά αλυσίδα, και να ανοίξει σύνδεσμο χάρτη.
+
 Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
 Σημαντική λεπτομέρεια: το block δεν φαίνεται να είναι θέμα συσκευής ή MAC address. Ένας δημόσιος API server συνήθως δεν βλέπει MAC addresses. Ακόμα και συσκευές στο ίδιο τοπικό δίκτυο μπορούν να φαίνονται διαφορετικές προς το upstream λόγω διαφορετικού public egress IP, VPN/split tunnel, IPv4/IPv6 διαδρομής, CDN/WAF κανόνων ή TLS/client fingerprint. Γι' αυτό το refresh script υποστηρίζει trusted SSH runner: το κατέβασμα γίνεται από περιβάλλον που επιτρέπεται, ενώ τα deployment credentials μένουν τοπικά.
@@ -63,6 +65,33 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
 - Provide scheduler-friendly update and snapshot refresh scripts.
+
+## Nearby Branches and Location
+
+The app can optionally include proximity in the buying decision. This is useful when
+the cheapest basket is split across multiple chains, but the user also wants to know
+whether those chains have realistic nearby branches.
+
+How it works:
+
+- The user clicks `Χρήση τοποθεσίας`; the app does not request location on page load.
+- The browser asks for geolocation permission.
+- The user can choose a branch search radius of `2χλμ.`, `5χλμ.`, or `10χλμ.`.
+- The app sends the approved latitude, longitude, and radius to the same-origin
+  `api/branches.php` endpoint.
+- `api/branches.php` uses `Cache-Control: no-store` and queries OpenStreetMap
+  Overpass for nearby `shop=supermarket` places.
+- The frontend matches nearby stores to supported chains by retailer name, brand,
+  operator, and known Greek/Latin aliases.
+- Rankings and multi-stop plans show nearest-branch labels like `57 μ. μακριά`.
+- Selecting a chain shows nearby branches for that chain with Google Maps links.
+
+Important limitations:
+
+- Distances are straight-line estimates, not driving/walking route distance.
+- Branch data comes from OpenStreetMap, so coverage and naming can vary by area.
+- Proximity is a decision aid; the price ranking remains based on the PosoKanei
+  product catalogue and basket calculation.
 
 ## Live Target
 
