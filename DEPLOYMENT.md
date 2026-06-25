@@ -83,16 +83,17 @@ proxy network that the upstream accepts.
 
 `update-status.php` samples catalog stats and representative product searches
 when the upstream is reachable. When the upstream is blocked, it reads
-`../data/catalog.json` and reports `status: "snapshot"` plus the generated
-timestamp so the UI can show the actual deployed data freshness.
+`../data/catalog.json` and reports `status: "snapshot"` plus the script-built
+snapshot timestamp so the UI can show the actual deployed data freshness.
 
 `branches.php` accepts browser-approved coordinates with a POST request, sets
 `Cache-Control: no-store`, and queries OpenStreetMap/Overpass for nearby
 `shop=supermarket` locations. It supports the optional proximity UI and is not
 part of the PosoKanei product/price refresh path.
 
-`data/catalog.json` is a generated same-origin catalogue snapshot.
-`data/catalog-meta.json` is a smaller generated metadata file for stats,
+`data/catalog.json` is a same-origin catalogue snapshot built by the refresh
+script from PosoKanei API responses; it is not AI-generated.
+`data/catalog-meta.json` is a smaller script-built metadata file for stats,
 retailers, and categories. The PHP API uses both as a fallback when the upstream
 PosoKanei API rejects server-side requests, so the frontend does not need to
 download the full catalogue on first load.

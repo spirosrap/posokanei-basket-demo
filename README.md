@@ -202,7 +202,7 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - A same-origin PHP proxy in `public/api/posokanei.php`.
 - A cached update-status endpoint in `public/api/update-status.php`.
 - A live catalog adapter in `src/posokaneiApi.js`.
-- A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`.
+- A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`. This snapshot is script-built from PosoKanei API responses; it is not AI-generated.
 - Snapshot stats are reconciled against the actual `catalog.json` product count so stale metadata does not show a different catalogue size from search results.
 - A product-image proxy mode in `public/api/posokanei.php?resource=image`, used by thumbnails and the detail drawer.
 - A retailer-logo proxy mode in `public/api/posokanei.php?resource=retailer-image`, used by rankings, route cards, and product detail price rows.
@@ -215,7 +215,7 @@ Current production note, checked on 2026-06-23:
 - `https://api.posokanei.gov.gr/meta/stats` returns `200` from allowed development/refresh environments.
 - `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `200` with `source: "snapshot"` because the PHP endpoint now falls back to the refreshed catalogue when upstream rejects the Plesk server request.
 - Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
-- The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync, and displays an amber notice with the latest catalogue update time.
+- The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync from PosoKanei API data, and displays an amber notice with the latest catalogue update time.
 - If a scheduled refresh attempt fails, `data/refresh-status.json` records the failed attempt time and reason. The UI then shows both the last successful catalogue update and the latest failed attempt, so stale data is visible instead of silent.
 - The refresh script can also fetch through an SSH runner by setting `POSOKANEI_REFRESH_HOST`. This is useful when the deployment server or primary machine is blocked but another trusted environment can reach the public API.
 - `data/catalog-meta.json` describes the last successful snapshot. `data/refresh-status.json` describes the last refresh attempt. Those timestamps can differ, and the UI is designed to make that distinction visible.
@@ -257,11 +257,11 @@ The app includes a lightweight update checker:
 
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
-- `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json`, a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
-- `npm run live:refresh` builds a fresh snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads both to the live FTP path, and verifies the public `data/catalog.json` timestamp.
+- `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json` from PosoKanei API responses, creating a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
+- `npm run live:refresh` builds a fresh script-created snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads the data files to the live FTP path, and verifies the public `catalog`, `metadata`, and `refresh-status` timestamps.
 - When `npm run live:refresh` fails because the upstream API returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
-- The UI reads `api/update-status.php` and shows the last check time near the top of the app.
+- The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
@@ -322,10 +322,10 @@ curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/po
 ## Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest generated `data/catalog.json` snapshot and shows that state in the UI.
+- As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest script-built `data/catalog.json` snapshot from PosoKanei API data and shows that state in the UI. This means generated by the refresh script, not AI-generated.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
-- Multi-stop plans optimize product price only; they do not include travel time, distance, parking, delivery fees, or user location.
+- Multi-stop plans optimize product price only; optional branch proximity is shown as context, but the optimizer does not yet include travel time, parking, delivery fees, or route distance.
 - It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 
