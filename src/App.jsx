@@ -544,6 +544,7 @@ function Header({ health, basketCount }) {
 
 function AppIntro({ health, updateStatus }) {
   const refreshFailed = updateStatus?.refreshStatus === "failed";
+  const showIntroTimestamp = health.source !== "snapshot";
   return (
     <section className="app-intro" aria-label="Σκοπός εφαρμογής">
       <div>
@@ -563,7 +564,7 @@ function AppIntro({ health, updateStatus }) {
               ? "Live τιμές προϊόντων"
               : "Αναμονή live τιμών"}
         </span>
-        <span>{formatUpdateStatus(updateStatus)}</span>
+        {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus)}</span> : null}
       </div>
     </section>
   );
@@ -572,7 +573,7 @@ function AppIntro({ health, updateStatus }) {
 function DataFreshnessNotice({ health, updateStatus }) {
   if (health.source !== "snapshot") return null;
   const snapshotTime = formatDataTime(
-    updateStatus?.lastSuccessfulRefreshAt || updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt,
+    updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt || updateStatus?.lastSuccessfulRefreshAt,
   );
   const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt);
   const refreshFailed = updateStatus?.refreshStatus === "failed";
@@ -591,8 +592,8 @@ function DataFreshnessNotice({ health, updateStatus }) {
         </strong>
         <span>
           Το demo δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον
-          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία επιτυχής
-          ενημέρωση: {snapshotTime}.
+          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση
+          καταλόγου: {snapshotTime}.
           {refreshFailed
             ? ` Τελευταία προσπάθεια: ${refreshAttemptTime} (${friendlyRefreshError(
                 updateStatus?.refreshError,

@@ -357,7 +357,7 @@ export async function fetchUpdateStatus() {
     refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
     refreshError: raw.refresh_error || raw.refreshError || "",
     lastSuccessfulRefreshAt:
-      raw.last_successful_refresh_at || raw.lastSuccessfulRefreshAt || raw.snapshot_generated_at || "",
+      raw.snapshot_generated_at || raw.snapshotGeneratedAt || raw.last_successful_refresh_at || raw.lastSuccessfulRefreshAt || "",
   };
 }
 

@@ -33,6 +33,9 @@ const publicCatalogUrl =
   `https://${ftpHost}/${ftpRemoteDir}/data/catalog.json`;
 const publicMetaUrl =
   process.env.POSOKANEI_PUBLIC_META_URL || publicCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
+const publicRefreshStatusUrl =
+  process.env.POSOKANEI_PUBLIC_REFRESH_STATUS_URL ||
+  publicCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
 
 try {
   await refreshCatalog();
@@ -84,7 +87,7 @@ async function refreshCatalog() {
       user: ftpUser,
       password,
     });
-    await verifyPublicSnapshot(snapshot.generated_at);
+    await verifyPublicRefreshFiles(snapshot.generated_at);
   } else {
     console.log("Upload skipped because --no-upload was passed.");
   }
@@ -271,20 +274,41 @@ async function uploadFile(filePath, url, credentials) {
   console.log(`Uploaded fresh catalogue to ${url.replace(/^ftp:\/\//, "ftp://***@")}`);
 }
 
-async function verifyPublicSnapshot(expectedGeneratedAt) {
-  const response = await fetch(`${publicCatalogUrl}?v=${Date.now()}`, {
+async function fetchPublicJson(url) {
+  const response = await fetch(`${url}?v=${Date.now()}`, {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(`Public snapshot verification returned HTTP ${response.status}.`);
+    throw new Error(`${url} verification returned HTTP ${response.status}.`);
   }
-  const publicSnapshot = await response.json();
+  return response.json();
+}
+
+async function verifyPublicRefreshFiles(expectedGeneratedAt) {
+  const publicSnapshot = await fetchPublicJson(publicCatalogUrl);
   if (publicSnapshot.generated_at !== expectedGeneratedAt) {
     throw new Error(
       `Public snapshot verification mismatch: expected ${expectedGeneratedAt}, got ${publicSnapshot.generated_at}.`,
     );
   }
+
+  const publicMeta = await fetchPublicJson(publicMetaUrl);
+  if (publicMeta.generated_at !== expectedGeneratedAt) {
+    throw new Error(
+      `Public metadata verification mismatch: expected ${expectedGeneratedAt}, got ${publicMeta.generated_at}.`,
+    );
+  }
+
+  const publicRefreshStatus = await fetchPublicJson(publicRefreshStatusUrl);
+  if (publicRefreshStatus.generated_at !== expectedGeneratedAt) {
+    throw new Error(
+      `Public refresh-status verification mismatch: expected ${expectedGeneratedAt}, got ${publicRefreshStatus.generated_at}.`,
+    );
+  }
+
   console.log(`Verified public catalogue at ${publicCatalogUrl}`);
+  console.log(`Verified public metadata at ${publicMetaUrl}`);
+  console.log(`Verified public refresh status at ${publicRefreshStatusUrl}`);
 }
 
 function run(command, args, options = {}) {
