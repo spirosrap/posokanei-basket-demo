@@ -1099,6 +1099,7 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
           <h2>{product.name}</h2>
           <p>{product.brand || "Χωρίς brand"} · {product.unitQuantity || product.unit}</p>
         </div>
+        <ProductPreviewImage product={product} />
         <div className="drawer-stats">
           <div>
             <small>Καλύτερη τιμή</small>
@@ -1130,6 +1131,29 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
         </button>
       </div>
     </aside>
+  );
+}
+
+function ProductPreviewImage({ product }) {
+  const [failedImageUrl, setFailedImageUrl] = useState("");
+  const imageUrl = proxiedProductImageUrl(product);
+  const showImage = imageUrl && failedImageUrl !== imageUrl;
+
+  return (
+    <div className="drawer-image-frame" aria-label={`Εικόνα προϊόντος: ${product.name}`}>
+      {showImage ? (
+        <img
+          src={imageUrl}
+          alt=""
+          decoding="async"
+          onError={() => setFailedImageUrl(imageUrl)}
+        />
+      ) : (
+        <span style={{ "--thumb": product.tint }} aria-hidden="true">
+          {product.tile}
+        </span>
+      )}
+    </div>
   );
 }
 

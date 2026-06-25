@@ -1027,11 +1027,43 @@ button {
   line-height: 1.55;
 }
 
+.drawer-image-frame {
+  display: grid;
+  height: clamp(190px, 32vh, 300px);
+  margin: 16px 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.drawer-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px;
+}
+
+.drawer-image-frame span {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--thumb, #e0f2fe);
+  color: rgba(23, 32, 51, 0.75);
+  font-size: 32px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .drawer-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin: 16px 0;
+  margin: 0 0 16px;
 }
 
 .drawer-stats > div {
@@ -1191,5 +1223,9 @@ button {
     right: 10px;
     bottom: 10px;
     width: calc(100vw - 20px);
+  }
+
+  .drawer-image-frame {
+    height: clamp(170px, 28vh, 250px);
   }
 }
