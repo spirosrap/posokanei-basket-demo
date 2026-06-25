@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
+  Github,
   Info,
   Minus,
   PackageSearch,
@@ -45,6 +46,7 @@ import {
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
+const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
 const IMAGE_PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
   : "./api/posokanei.php";
@@ -436,6 +438,17 @@ function Header({ health, basketCount }) {
       </a>
 
       <div className="topbar-actions">
+        <a
+          className="repo-link"
+          href={REPOSITORY_URL}
+          target="_blank"
+          rel="noreferrer"
+          title="Άνοιγμα κώδικα στο GitHub"
+          aria-label="Άνοιγμα του αποθετηρίου στο GitHub"
+        >
+          <Github size={16} aria-hidden="true" />
+          <span>GitHub</span>
+        </a>
         <div
           className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
           title="Κατάσταση API PosoKanei"

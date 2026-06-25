@@ -101,6 +101,7 @@ button {
   flex-wrap: wrap;
 }
 
+.repo-link,
 .source-status,
 .basket-pill {
   display: inline-flex;
@@ -112,6 +113,19 @@ button {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.repo-link {
+  gap: 7px;
+  padding: 0 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.repo-link:hover,
+.repo-link:focus-visible {
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--blue);
 }
 
 .source-status {
