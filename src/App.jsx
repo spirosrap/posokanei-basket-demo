@@ -49,6 +49,14 @@ const IMAGE_PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
   : "./api/posokanei.php";
 
+const RETAILER_LOGO_FALLBACKS = {
+  ab_vasilopoulos: ["https://static.ab.gr/static/next/images/logo_header_ab_gr.svg"],
+  galaxias: ["https://el.wikipedia.org/wiki/Special:Redirect/file/Galaxias_Logo.png"],
+  kritikos: ["https://www.kritikos-sm.gr/assets/kritikos/logo.svg"],
+  sklavenitis: ["https://upload.wikimedia.org/wikipedia/commons/c/c8/Sklavenitis_Logo.svg"],
+  synka: ["https://www.synka-sm.gr/wp-content/uploads/2026/02/logopng.png"],
+};
+
 const basketsMatch = (basket, referenceBasket) => {
   if (!Array.isArray(basket) || basket.length !== referenceBasket.length) return false;
   const quantities = new Map(basket.map((entry) => [entry.productId, entry.quantity]));
@@ -965,23 +973,18 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
 function RetailerStack({ groups }) {
   if (groups.length === 1) {
     const group = groups[0];
-    return (
-      <span className="retailer-logo large" style={{ "--retailer": group.retailer.color }}>
-        {group.retailer.shortName}
-      </span>
-    );
+    return <RetailerLogo retailer={group.retailer} className="large" />;
   }
 
   return (
     <span className="retailer-stack" aria-hidden="true">
       {groups.slice(0, 4).map((group) => (
-        <span
+        <RetailerLogo
           key={group.retailer.id}
-          className="retailer-logo mini"
-          style={{ "--retailer": group.retailer.color }}
-        >
-          {group.retailer.shortName}
-        </span>
+          retailer={group.retailer}
+          className="mini"
+          ariaHidden
+        />
       ))}
     </span>
   );
@@ -998,9 +1001,7 @@ function VisitPlanBreakdown({ plan }) {
         {plan.groups.map((group) => (
           <article key={group.retailer.id} className="route-card">
             <div className="route-store-top">
-              <span className="retailer-logo" style={{ "--retailer": group.retailer.color }}>
-                {group.retailer.shortName}
-              </span>
+              <RetailerLogo retailer={group.retailer} />
               <div>
                 <strong>{group.retailer.name}</strong>
                 <small>
@@ -1042,9 +1043,7 @@ function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
   return (
     <article className={cardClass}>
       <div className="rank-top">
-        <span className="retailer-logo" style={{ "--retailer": row.retailer.color }}>
-          {row.retailer.shortName}
-        </span>
+        <RetailerLogo retailer={row.retailer} />
         <div>
           <strong>{row.retailer.name}</strong>
           <small>
@@ -1118,7 +1117,7 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
             const price = getProductPrice(product, retailer.id);
             return (
               <div key={retailer.id} className="price-row">
-                <span className="retailer-dot" style={{ "--retailer": retailer.color }} />
+                <RetailerLogo retailer={retailer} className="tiny" ariaHidden />
                 <span>{retailer.name}</span>
                 <strong>{price == null ? "-" : formatEuro(price)}</strong>
               </div>
@@ -1131,6 +1130,45 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
         </button>
       </div>
     </aside>
+  );
+}
+
+function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
+  const sources = useMemo(() => retailerLogoSources(retailer), [retailer]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const currentSource = sources[sourceIndex] || "";
+  const classes = [
+    "retailer-logo",
+    className,
+    currentSource ? "has-logo" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [retailer?.id, retailer?.logoUrl]);
+
+  return (
+    <span
+      className={classes}
+      style={{ "--retailer": retailer?.color }}
+      title={retailer?.name}
+      aria-hidden={ariaHidden ? "true" : undefined}
+      aria-label={ariaHidden ? undefined : retailer?.name}
+    >
+      {currentSource ? (
+        <img
+          src={currentSource}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setSourceIndex((index) => index + 1)}
+        />
+      ) : (
+        <span className="retailer-fallback">{retailer?.shortName}</span>
+      )}
+    </span>
   );
 }
 
@@ -1204,6 +1242,26 @@ function proxiedProductImageUrl(product) {
   }
 
   return proxyUrl.toString();
+}
+
+function proxiedRetailerLogoUrl(retailer) {
+  const logoUrl = retailer?.logoUrl || "";
+  if (!logoUrl) return "";
+
+  const match = logoUrl.match(/\/images\/retailer\/([^/?#]+)/i);
+  if (!match) return logoUrl;
+
+  const proxyUrl = new URL(IMAGE_PROXY_BASE, window.location.href);
+  proxyUrl.searchParams.set("resource", "retailer-image");
+  proxyUrl.searchParams.set("id", decodeURIComponent(match[1]));
+  return proxyUrl.toString();
+}
+
+function retailerLogoSources(retailer) {
+  return [
+    proxiedRetailerLogoUrl(retailer),
+    ...(RETAILER_LOGO_FALLBACKS[retailer?.id] || []),
+  ].filter(Boolean);
 }
 
 function PanelTitle({ id, icon, title, action }) {

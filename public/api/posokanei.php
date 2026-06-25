@@ -5,8 +5,8 @@ const POSOKANEI_API = 'https://api.posokanei.gov.gr';
 
 $resource = $_GET['resource'] ?? 'stats';
 
-if ($resource === 'image') {
-    forward_image();
+if ($resource === 'image' || $resource === 'retailer-image') {
+    forward_image($resource === 'retailer-image' ? 'retailer' : 'product');
     return;
 }
 
@@ -102,8 +102,9 @@ function forward_json(
     echo $response;
 }
 
-function forward_image(): void
+function forward_image(string $kind = 'product'): void
 {
+    $kind = in_array($kind, ['product', 'retailer'], true) ? $kind : 'product';
     $id = clean_string($_GET['id'] ?? '', 160);
     $version = clean_string($_GET['v'] ?? '', 80);
 
@@ -115,7 +116,7 @@ function forward_image(): void
     }
 
     $version = preg_replace('/[^a-zA-Z0-9._-]/', '', $version);
-    $sourceUrl = POSOKANEI_API . '/images/product/' . rawurlencode($id);
+    $sourceUrl = POSOKANEI_API . '/images/' . $kind . '/' . rawurlencode($id);
     if ($version !== '') {
         $sourceUrl .= '?v=' . rawurlencode($version);
     }
@@ -129,18 +130,18 @@ function forward_image(): void
     ]);
 
     if (is_valid_image_response($direct)) {
-        emit_image($direct, 'posokanei');
+        emit_image($direct, 'posokanei', $kind);
         return;
     }
 
-    $cacheSource = 'api.posokanei.gov.gr/images/product/' . rawurlencode($id);
+    $cacheSource = 'api.posokanei.gov.gr/images/' . $kind . '/' . rawurlencode($id);
     if ($version !== '') {
         $cacheSource .= '?v=' . rawurlencode($version);
     }
     $cacheUrl = 'https://images.weserv.nl/?' . http_build_query([
         'url' => $cacheSource,
-        'w' => 160,
-        'h' => 160,
+        'w' => $kind === 'retailer' ? 240 : 160,
+        'h' => $kind === 'retailer' ? 120 : 160,
         'fit' => 'contain',
         'output' => 'webp',
     ]);
@@ -150,7 +151,7 @@ function forward_image(): void
     ]);
 
     if (is_valid_image_response($cached)) {
-        emit_image($cached, 'image-cache');
+        emit_image($cached, 'image-cache', $kind);
         return;
     }
 
@@ -158,6 +159,7 @@ function forward_image(): void
     header('Content-Type: image/svg+xml; charset=utf-8');
     header('Cache-Control: public, max-age=300, stale-while-revalidate=3600');
     header('X-Posokanei-Image-Source: unavailable');
+    header('X-Posokanei-Image-Kind: ' . $kind);
     echo placeholder_svg(strtoupper(substr($id, 0, 2)));
 }
 
@@ -195,13 +197,14 @@ function is_valid_image_response(array $response): bool
     return strlen((string) ($response['body'] ?? '')) > 100;
 }
 
-function emit_image(array $response, string $source): void
+function emit_image(array $response, string $source, string $kind = 'product'): void
 {
     http_response_code(200);
     header('Content-Type: ' . (string) $response['content_type']);
     header('Cache-Control: public, max-age=86400, stale-while-revalidate=604800');
     header('Access-Control-Allow-Origin: *');
     header('X-Posokanei-Image-Source: ' . $source);
+    header('X-Posokanei-Image-Kind: ' . $kind);
     echo $response['body'];
 }
 

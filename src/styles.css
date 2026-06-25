@@ -731,9 +731,30 @@ button {
   place-items: center;
   border-radius: 7px;
   background: var(--retailer);
+  border: 1px solid transparent;
   color: #ffffff;
   font-size: 13px;
   font-weight: 950;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.retailer-logo.has-logo {
+  background: #ffffff;
+  border-color: var(--line);
+  color: var(--retailer);
+}
+
+.retailer-logo img {
+  display: block;
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+}
+
+.retailer-fallback {
+  display: grid;
+  place-items: center;
 }
 
 .retailer-logo.large {
@@ -748,6 +769,22 @@ button {
   border: 2px solid #ffffff;
   font-size: 10px;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.retailer-logo.mini.has-logo {
+  border-color: #ffffff;
+}
+
+.retailer-logo.tiny {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 8px;
+}
+
+.retailer-logo.tiny img {
+  width: 86%;
+  height: 86%;
 }
 
 .retailer-stack {
@@ -818,9 +855,9 @@ button {
 }
 
 .recommendation-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: flex-start;
   gap: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -830,19 +867,26 @@ button {
 }
 
 .recommendation-card.empty {
+  grid-template-columns: minmax(0, 1fr);
   justify-content: flex-start;
   background: #f8fafc;
 }
 
 .recommendation-card.warning {
+  grid-template-columns: minmax(0, 1fr);
   justify-content: flex-start;
   background: var(--amber-soft);
 }
 
 .recommendation-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.recommendation-main > div {
   min-width: 0;
 }
 
@@ -862,8 +906,8 @@ button {
 }
 
 .recommendation-total {
-  flex: 0 0 auto;
   min-width: 112px;
+  justify-self: end;
   text-align: right;
 }
 
@@ -1087,7 +1131,7 @@ button {
 
 .price-row {
   display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   min-height: 36px;
@@ -1095,13 +1139,6 @@ button {
   border-radius: 7px;
   padding: 0 10px;
   font-size: 13px;
-}
-
-.retailer-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--retailer);
 }
 
 .primary-action {
@@ -1210,7 +1247,7 @@ button {
 
   .recommendation-card {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .recommendation-total {
