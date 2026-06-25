@@ -8,7 +8,9 @@ import {
   ClipboardList,
   Github,
   Info,
+  MapPin,
   Minus,
+  Navigation,
   PackageSearch,
   Plus,
   RefreshCw,
@@ -43,6 +45,13 @@ import {
   getBestProductPrice,
   getProductPrice,
 } from "./pricing";
+import {
+  buildRetailerProximity,
+  fetchNearbySupermarkets,
+  formatDistance,
+  getBrowserLocation,
+  mapsSearchUrl,
+} from "./locationStores";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -140,6 +149,14 @@ function App() {
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [maxChains, setMaxChains] = useState(() => (shouldStartWithDemoBasket() ? 4 : 1));
+  const [locationRadiusKm, setLocationRadiusKm] = useState(5);
+  const [locationState, setLocationState] = useState({
+    status: "idle",
+    position: null,
+    stores: [],
+    checkedAt: "",
+    error: "",
+  });
   const refreshedDemoProducts = useRef(false);
 
   useEffect(() => {
@@ -237,6 +254,10 @@ function App() {
   }, [liveCategories, liveMeta.activeProducts, liveMeta.total]);
 
   const activeRetailers = liveRetailers;
+  const retailerProximity = useMemo(
+    () => buildRetailerProximity(activeRetailers, locationState.stores),
+    [activeRetailers, locationState.stores],
+  );
 
   const productMap = useMemo(
     () => new Map(allProducts.map((product) => [product.id, product])),
@@ -358,6 +379,56 @@ function App() {
       .catch(() => setLiveState("error"));
   };
 
+  const loadNearbyStores = async (radiusKm = locationRadiusKm, knownPosition = null) => {
+    setLocationState((current) => ({
+      ...current,
+      status: knownPosition ? "loading" : "locating",
+      error: "",
+    }));
+
+    try {
+      const position = knownPosition || (await getBrowserLocation());
+      setLocationState((current) => ({
+        ...current,
+        position,
+        status: "loading",
+        error: "",
+      }));
+      const stores = await fetchNearbySupermarkets(position, radiusKm);
+      setLocationState({
+        status: "ready",
+        position,
+        stores,
+        checkedAt: new Date().toISOString(),
+        error: "",
+      });
+    } catch (error) {
+      const message = String(error?.message || error);
+      setLocationState((current) => ({
+        ...current,
+        status: message === "geolocation_denied" ? "denied" : "error",
+        error: message,
+      }));
+    }
+  };
+
+  const changeLocationRadius = (nextRadiusKm) => {
+    setLocationRadiusKm(nextRadiusKm);
+    if (locationState.position) {
+      void loadNearbyStores(nextRadiusKm, locationState.position);
+    }
+  };
+
+  const clearLocation = () => {
+    setLocationState({
+      status: "idle",
+      position: null,
+      stores: [],
+      checkedAt: "",
+      error: "",
+    });
+  };
+
   return (
     <div className="app-shell">
       <Header
@@ -407,6 +478,12 @@ function App() {
           maxChains={maxChains}
           setMaxChains={setMaxChains}
           basketSize={basket.length}
+          locationState={locationState}
+          locationRadiusKm={locationRadiusKm}
+          retailerProximity={retailerProximity}
+          onRequestLocation={() => loadNearbyStores()}
+          onChangeLocationRadius={changeLocationRadius}
+          onClearLocation={clearLocation}
         />
       </main>
 
@@ -827,11 +904,31 @@ function RankingsPanel({
   maxChains,
   setMaxChains,
   basketSize,
+  locationState,
+  locationRadiusKm,
+  retailerProximity,
+  onRequestLocation,
+  onChangeLocationRadius,
+  onClearLocation,
 }) {
   const completeRankings = rankings.filter((row) => row.isComplete);
   const partialRankings = rankings.filter((row) => !row.isComplete);
   const maxTotal = Math.max(...completeRankings.map((row) => row.total), 0);
   const oneStopTotal = bestCompleteRanking?.total ?? null;
+  const locationReady = locationState.status === "ready";
+  const [selectedRetailerId, setSelectedRetailerId] = useState("");
+  const defaultRetailerId =
+    visitPlan?.groups?.[0]?.retailer.id ||
+    bestCompleteRanking?.retailer.id ||
+    completeRankings[0]?.retailer.id ||
+    rankings[0]?.retailer.id ||
+    "";
+  const effectiveRetailerId = selectedRetailerId || defaultRetailerId;
+  const selectedRetailer =
+    rankings.find((row) => row.retailer.id === effectiveRetailerId)?.retailer ||
+    visitPlan?.groups?.find((group) => group.retailer.id === effectiveRetailerId)?.retailer ||
+    null;
+
   return (
     <section className="panel rankings-panel" aria-labelledby="ranking-title">
       <PanelTitle
@@ -843,6 +940,14 @@ function RankingsPanel({
 
       <ChainLimitControl maxChains={maxChains} setMaxChains={setMaxChains} />
 
+      <LocationControl
+        locationState={locationState}
+        radiusKm={locationRadiusKm}
+        onRequest={onRequestLocation}
+        onChangeRadius={onChangeLocationRadius}
+        onClear={onClearLocation}
+      />
+
       <RecommendationCard
         plan={visitPlan}
         basketSize={basketSize}
@@ -850,7 +955,23 @@ function RankingsPanel({
         oneStopTotal={oneStopTotal}
       />
 
-      {visitPlan?.isComplete ? <VisitPlanBreakdown plan={visitPlan} /> : null}
+      {locationReady ? (
+        <NearbyBranchesPanel
+          retailer={selectedRetailer}
+          proximity={selectedRetailer ? retailerProximity[selectedRetailer.id] : null}
+          radiusKm={locationRadiusKm}
+        />
+      ) : null}
+
+      {visitPlan?.isComplete ? (
+        <VisitPlanBreakdown
+          plan={visitPlan}
+          locationReady={locationReady}
+          retailerProximity={retailerProximity}
+          selectedRetailerId={effectiveRetailerId}
+          onSelectRetailer={setSelectedRetailerId}
+        />
+      ) : null}
 
       {completeRankings.length ? (
         <div className="rank-group">
@@ -866,6 +987,10 @@ function RankingsPanel({
                 maxTotal={maxTotal}
                 highlighted={index === 0}
                 basketSize={basketSize}
+                locationReady={locationReady}
+                proximity={retailerProximity[row.retailer.id]}
+                selected={effectiveRetailerId === row.retailer.id}
+                onSelectRetailer={() => setSelectedRetailerId(row.retailer.id)}
               />
             ))}
           </div>
@@ -886,12 +1011,56 @@ function RankingsPanel({
                 maxTotal={maxTotal}
                 highlighted={false}
                 basketSize={basketSize}
+                locationReady={locationReady}
+                proximity={retailerProximity[row.retailer.id]}
+                selected={effectiveRetailerId === row.retailer.id}
+                onSelectRetailer={() => setSelectedRetailerId(row.retailer.id)}
               />
             ))}
           </div>
         </div>
       ) : null}
     </section>
+  );
+}
+
+function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, onClear }) {
+  const busy = locationState.status === "locating" || locationState.status === "loading";
+  const hasLocation = Boolean(locationState.position);
+
+  return (
+    <div className={`location-box ${locationState.status}`}>
+      <div className="location-box-top">
+        <span className="rank-group-title">
+          <MapPin size={15} />
+          <span>Κοντινά supermarket</span>
+        </span>
+        {hasLocation ? (
+          <button type="button" className="quiet-button" onClick={onClear}>
+            Καθαρισμός
+          </button>
+        ) : null}
+      </div>
+      <div className="location-actions">
+        <button type="button" className="text-button" onClick={onRequest} disabled={busy}>
+          <Navigation size={16} />
+          {busy ? "Εντοπισμός..." : hasLocation ? "Ανανέωση" : "Χρήση τοποθεσίας"}
+        </button>
+        <div className="radius-buttons" aria-label="Ακτίνα αναζήτησης">
+          {[2, 5, 10].map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={radiusKm === value ? "active" : ""}
+              onClick={() => onChangeRadius(value)}
+            >
+              {value}χλμ.
+            </button>
+          ))}
+        </div>
+      </div>
+      <p>{locationStatusText(locationState, radiusKm)}</p>
+    </div>
   );
 }
 
@@ -1003,7 +1172,13 @@ function RetailerStack({ groups }) {
   );
 }
 
-function VisitPlanBreakdown({ plan }) {
+function VisitPlanBreakdown({
+  plan,
+  locationReady,
+  retailerProximity,
+  selectedRetailerId,
+  onSelectRetailer,
+}) {
   return (
     <div className="route-group">
       <div className="rank-group-title">
@@ -1021,7 +1196,25 @@ function VisitPlanBreakdown({ plan }) {
                   {formatProductCount(group.items.length)} · {formatEuro(group.total)}
                 </small>
               </div>
+              {locationReady ? (
+                <button
+                  type="button"
+                  className={
+                    selectedRetailerId === group.retailer.id
+                      ? "branch-select active"
+                      : "branch-select"
+                  }
+                  onClick={() => onSelectRetailer(group.retailer.id)}
+                >
+                  Υποκαταστήματα
+                </button>
+              ) : null}
             </div>
+            <StoreDistance
+              locationReady={locationReady}
+              proximity={retailerProximity[group.retailer.id]}
+              onSelectBranches={() => onSelectRetailer(group.retailer.id)}
+            />
             <div className="route-items">
               {group.items.map((item) => (
                 <div key={item.product.id} className="route-item">
@@ -1039,7 +1232,88 @@ function VisitPlanBreakdown({ plan }) {
   );
 }
 
-function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
+function NearbyBranchesPanel({ retailer, proximity, radiusKm }) {
+  if (!retailer) return null;
+
+  return (
+    <div className="branches-panel">
+      <div className="rank-group-title">
+        <MapPin size={15} />
+        <span>Υποκαταστήματα: {retailer.name}</span>
+      </div>
+      {!proximity?.stores?.length ? (
+        <div className="branch-empty">
+          Δεν βρέθηκε κοντινό υποκατάστημα στο OpenStreetMap σε ακτίνα {radiusKm}χλμ.
+        </div>
+      ) : (
+        <div className="branch-list">
+          {proximity.stores.map((store) => (
+            <article key={store.id} className="branch-row">
+              <span className="branch-distance">{formatDistance(store.distanceMeters)} μακριά</span>
+              <div>
+                <strong>{store.name}</strong>
+                <small>
+                  {store.address || "Τοποθεσία από OpenStreetMap"}
+                  {store.openingHours ? ` · ${store.openingHours}` : ""}
+                </small>
+              </div>
+              <a href={mapsSearchUrl(store)} target="_blank" rel="noreferrer">
+                Χάρτης
+              </a>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StoreDistance({ locationReady, proximity, onSelectBranches }) {
+  if (!locationReady) return null;
+  const store = proximity?.nearest;
+  if (!store) {
+    return (
+      <div className="nearby-note missing">
+        <MapPin size={14} />
+        <span>Δεν βρέθηκε κοντινό υποκατάστημα στο OpenStreetMap.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nearby-note">
+      <MapPin size={14} />
+      <span>
+        <strong>{formatDistance(store.distanceMeters)} μακριά</strong>
+        <small>
+          {store.name}
+          {store.address ? ` · ${store.address}` : ""}
+        </small>
+      </span>
+      <div className="nearby-actions">
+        <a href={mapsSearchUrl(store)} target="_blank" rel="noreferrer">
+          Χάρτης
+        </a>
+        {onSelectBranches ? (
+          <button type="button" onClick={onSelectBranches}>
+            Όλα
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function RetailerRank({
+  row,
+  maxTotal,
+  highlighted,
+  basketSize,
+  locationReady,
+  proximity,
+  selected,
+  onSelectRetailer,
+}) {
   const percentage = maxTotal ? Math.max(10, (row.total / maxTotal) * 100) : 0;
   const missingNames = row.items
     .filter((item) => item.price == null)
@@ -1048,6 +1322,7 @@ function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
   const cardClass = [
     "rank-card",
     highlighted ? "recommended" : "",
+    selected ? "selected" : "",
     row.isComplete ? "" : "incomplete",
   ]
     .filter(Boolean)
@@ -1087,6 +1362,11 @@ function RetailerRank({ row, maxTotal, highlighted, basketSize }) {
           {missingNames.length > 2 ? ` +${missingNames.length - 2}` : ""}
         </div>
       ) : null}
+      <StoreDistance
+        locationReady={locationReady}
+        proximity={proximity}
+        onSelectBranches={onSelectRetailer}
+      />
       <div className="coverage-track" aria-hidden="true">
         <span style={{ width: `${row.isComplete ? percentage : 100}%` }} />
       </div>
@@ -1313,6 +1593,27 @@ function formatProductCount(count) {
 
 function formatStopLimit(count) {
   return count === 1 ? "έως 1 στάση" : `έως ${count} στάσεις`;
+}
+
+function locationStatusText(locationState, radiusKm) {
+  switch (locationState.status) {
+    case "locating":
+      return "Ο browser ζητά άδεια τοποθεσίας.";
+    case "loading":
+      return "Αναζήτηση κοντινών supermarket στο OpenStreetMap.";
+    case "ready": {
+      const accuracy = locationState.position?.accuracyMeters
+        ? ` · ακρίβεια περίπου ${formatDistance(locationState.position.accuracyMeters)}`
+        : "";
+      return `${locationState.stores.length.toLocaleString("el-GR")} supermarket σε ακτίνα ${radiusKm}χλμ.${accuracy}`;
+    }
+    case "denied":
+      return "Η άδεια τοποθεσίας απορρίφθηκε από τον browser.";
+    case "error":
+      return "Δεν ήταν δυνατός ο εντοπισμός κοντινών supermarket.";
+    default:
+      return "Προαιρετικό: απόσταση κοντινών καταστημάτων μέσω browser location.";
+  }
 }
 
 function formatUpdateStatus(updateStatus) {

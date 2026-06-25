@@ -34,6 +34,8 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Τα λογότυπα των αλυσίδων διαβάζονται από τα retailer metadata του PosoKanei και περνούν από το ίδιο same-origin proxy, ώστε το πλάνο να δείχνει πραγματικά supermarket logos αντί για αρχικά γραμμάτων. Για λίγες αλυσίδες υπάρχουν fallback logo URLs από επίσημες ή δημόσιες πηγές, αν η upstream εικόνα δεν φορτώσει.
 
+Προαιρετικά, ο χρήστης μπορεί να πατήσει «Χρήση τοποθεσίας» για να δει κοντινά υποκαταστήματα και αποστάσεις τύπου `57 μ. μακριά` δίπλα στις αλυσίδες. Η τοποθεσία ζητείται από τον browser μόνο μετά από ενέργεια του χρήστη, το app τη στέλνει στο δικό του `api/branches.php` endpoint με `no-store` cache, και το endpoint αναζητά supermarket στο OpenStreetMap/Overpass. Οι αποστάσεις είναι ευθεία γραμμή και βοηθητικές, όχι πλοήγηση με διαδρομή/κίνηση.
+
 Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
 Σημαντική λεπτομέρεια: το block δεν φαίνεται να είναι θέμα συσκευής ή MAC address. Ένας δημόσιος API server συνήθως δεν βλέπει MAC addresses. Ακόμα και συσκευές στο ίδιο τοπικό δίκτυο μπορούν να φαίνονται διαφορετικές προς το upstream λόγω διαφορετικού public egress IP, VPN/split tunnel, IPv4/IPv6 διαδρομής, CDN/WAF κανόνων ή TLS/client fingerprint. Γι' αυτό το refresh script υποστηρίζει trusted SSH runner: το κατέβασμα γίνεται από περιβάλλον που επιτρέπεται, ενώ τα deployment credentials μένουν τοπικά.
@@ -54,6 +56,9 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
 - Load official product photos through a same-origin image proxy with fallback handling.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
+- Optionally request browser location and show nearby supermarket branches.
+- Show nearest-branch distance labels, such as `57 μ. μακριά`, next to chains when location is enabled.
+- Show a selected chain's nearby branch list with map links.
 - Link from the app header to the public GitHub repository.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
@@ -67,7 +72,7 @@ The app is built to run as a subpath deployment:
 https://agenticspiros.com/demo/posokanei-basket/
 ```
 
-The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog and product images use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin catalog, image proxy, and update-status calls.
+The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog, product images, retailer logos, update status, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin proxy calls.
 
 ## Screenshots
 
@@ -137,6 +142,8 @@ Browser QA covers:
 - Large product image in the detail drawer.
 - Basket and catalog product thumbnails through the image proxy.
 - Supermarket chain logos in desktop, mobile, and product-detail views.
+- Optional location control in desktop and mobile layouts.
+- Fake-geolocation QA for nearest-branch labels and selected-chain branch lists.
 - Loading the official catalog.
 - Live search for `γάλα`, including product photos.
 - Adding an official live product to the basket and recalculating the plan.
@@ -170,6 +177,7 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 - Snapshot stats are reconciled against the actual `catalog.json` product count so stale metadata does not show a different catalogue size from search results.
 - A product-image proxy mode in `public/api/posokanei.php?resource=image`, used by thumbnails and the detail drawer.
 - A retailer-logo proxy mode in `public/api/posokanei.php?resource=retailer-image`, used by rankings, route cards, and product detail price rows.
+- A nearby-branch endpoint in `public/api/branches.php`, which accepts browser-approved coordinates and queries OpenStreetMap/Overpass for nearby `shop=supermarket` locations.
 - A visible catalog and update-check status in the UI.
 - Graceful fallback/status when the live proxy or upstream API fails.
 
