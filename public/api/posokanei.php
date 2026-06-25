@@ -1,13 +1,19 @@
 <?php
 declare(strict_types=1);
 
+const POSOKANEI_API = 'https://api.posokanei.gov.gr';
+
+$resource = $_GET['resource'] ?? 'stats';
+
+if ($resource === 'image') {
+    forward_image();
+    return;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=60, stale-while-revalidate=300');
 header('Access-Control-Allow-Origin: *');
 
-const POSOKANEI_API = 'https://api.posokanei.gov.gr';
-
-$resource = $_GET['resource'] ?? 'stats';
 $method = 'GET';
 $path = '';
 $query = [];
@@ -94,6 +100,115 @@ function forward_json(
 
     http_response_code($status);
     echo $response;
+}
+
+function forward_image(): void
+{
+    $id = clean_string($_GET['id'] ?? '', 160);
+    $version = clean_string($_GET['v'] ?? '', 80);
+
+    if ($id === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $id)) {
+        http_response_code(400);
+        header('Content-Type: image/svg+xml; charset=utf-8');
+        echo placeholder_svg('??');
+        return;
+    }
+
+    $version = preg_replace('/[^a-zA-Z0-9._-]/', '', $version);
+    $sourceUrl = POSOKANEI_API . '/images/product/' . rawurlencode($id);
+    if ($version !== '') {
+        $sourceUrl .= '?v=' . rawurlencode($version);
+    }
+
+    $direct = fetch_image($sourceUrl, [
+        'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept-Language: el-GR,el;q=0.9,en;q=0.8',
+        'Origin: https://posokanei.gov.gr',
+        'Referer: https://posokanei.gov.gr/',
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15 agenticspiros-posokanei-basket-demo/1.0',
+    ]);
+
+    if (is_valid_image_response($direct)) {
+        emit_image($direct, 'posokanei');
+        return;
+    }
+
+    $cacheSource = 'api.posokanei.gov.gr/images/product/' . rawurlencode($id);
+    if ($version !== '') {
+        $cacheSource .= '?v=' . rawurlencode($version);
+    }
+    $cacheUrl = 'https://images.weserv.nl/?' . http_build_query([
+        'url' => $cacheSource,
+        'w' => 160,
+        'h' => 160,
+        'fit' => 'contain',
+        'output' => 'webp',
+    ]);
+    $cached = fetch_image($cacheUrl, [
+        'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15 agenticspiros-posokanei-basket-demo/1.0',
+    ]);
+
+    if (is_valid_image_response($cached)) {
+        emit_image($cached, 'image-cache');
+        return;
+    }
+
+    http_response_code(502);
+    header('Content-Type: image/svg+xml; charset=utf-8');
+    header('Cache-Control: public, max-age=300, stale-while-revalidate=3600');
+    header('X-Posokanei-Image-Source: unavailable');
+    echo placeholder_svg(strtoupper(substr($id, 0, 2)));
+}
+
+function fetch_image(string $url, array $headers): array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_TIMEOUT => 18,
+        CURLOPT_HTTPHEADER => $headers,
+    ]);
+
+    $body = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    return [
+        'body' => $body,
+        'status' => $status,
+        'content_type' => $contentType,
+        'error' => $error,
+    ];
+}
+
+function is_valid_image_response(array $response): bool
+{
+    if (($response['body'] ?? false) === false) return false;
+    if (($response['status'] ?? 0) < 200 || ($response['status'] ?? 0) >= 300) return false;
+    if (!str_starts_with(strtolower((string) ($response['content_type'] ?? '')), 'image/')) return false;
+    return strlen((string) ($response['body'] ?? '')) > 100;
+}
+
+function emit_image(array $response, string $source): void
+{
+    http_response_code(200);
+    header('Content-Type: ' . (string) $response['content_type']);
+    header('Cache-Control: public, max-age=86400, stale-while-revalidate=604800');
+    header('Access-Control-Allow-Origin: *');
+    header('X-Posokanei-Image-Source: ' . $source);
+    echo $response['body'];
+}
+
+function placeholder_svg(string $label): string
+{
+    $label = htmlspecialchars(substr($label, 0, 2), ENT_QUOTES, 'UTF-8');
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Product image unavailable"><rect width="160" height="160" rx="18" fill="#e0f2fe"/><text x="80" y="89" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#475569">' . $label . '</text></svg>';
 }
 
 function emit_snapshot_json(string $resource, array $request): bool

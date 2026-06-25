@@ -45,6 +45,9 @@ import {
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
+const IMAGE_PROXY_BASE = import.meta.env.DEV
+  ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
+  : "./api/posokanei.php";
 
 const basketsMatch = (basket, referenceBasket) => {
   if (!Array.isArray(basket) || basket.length !== referenceBasket.length) return false;
@@ -1132,13 +1135,14 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
 
 function ProductThumb({ product, compact = false }) {
   const [failedImageUrl, setFailedImageUrl] = useState("");
-  const imageUrl = product.imageUrl || "";
+  const imageUrl = proxiedProductImageUrl(product);
   if (imageUrl && failedImageUrl !== imageUrl) {
     return (
-      <span className={compact ? "product-thumb compact" : "product-thumb"}>
+      <span className={compact ? "product-thumb compact has-image" : "product-thumb has-image"}>
         <img
           src={imageUrl}
           alt=""
+          decoding="async"
           loading="lazy"
           onError={() => setFailedImageUrl(imageUrl)}
         />
@@ -1154,6 +1158,28 @@ function ProductThumb({ product, compact = false }) {
       {product.tile}
     </span>
   );
+}
+
+function proxiedProductImageUrl(product) {
+  const imageUrl = product?.imageUrl || "";
+  if (!imageUrl) return "";
+
+  const match = imageUrl.match(/\/images\/product\/([^/?#]+)/i);
+  if (!match) return imageUrl;
+
+  const proxyUrl = new URL(IMAGE_PROXY_BASE, window.location.href);
+  proxyUrl.searchParams.set("resource", "image");
+  proxyUrl.searchParams.set("id", decodeURIComponent(match[1]));
+
+  try {
+    const sourceUrl = new URL(imageUrl);
+    const version = sourceUrl.searchParams.get("v");
+    if (version) proxyUrl.searchParams.set("v", version);
+  } catch {
+    // Keep the image usable even if an upstream catalog emits a partial URL.
+  }
+
+  return proxyUrl.toString();
 }
 
 function PanelTitle({ id, icon, title, action }) {
