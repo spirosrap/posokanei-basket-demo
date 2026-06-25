@@ -33,6 +33,7 @@ import {
   DEFAULT_DEMO_BASKET,
   DEFAULT_DEMO_PRODUCT_IDS,
   DEFAULT_DEMO_PRODUCTS,
+  LEGACY_DEMO_BASKETS,
 } from "./demoBasket";
 import {
   calculateRankings,
@@ -51,12 +52,16 @@ const basketsMatch = (basket, referenceBasket) => {
   return referenceBasket.every((entry) => quantities.get(entry.productId) === entry.quantity);
 };
 
+const isKnownDemoBasket = (basket) =>
+  basketsMatch(basket, DEFAULT_DEMO_BASKET) ||
+  LEGACY_DEMO_BASKETS.some((legacyBasket) => basketsMatch(basket, legacyBasket));
+
 const shouldStartWithDemoBasket = () => {
   try {
     const stored = localStorage.getItem(BASKET_KEY);
     if (stored === null) return true;
     const parsed = JSON.parse(stored);
-    return !Array.isArray(parsed) || parsed.length === 0 || basketsMatch(parsed, DEFAULT_DEMO_BASKET);
+    return !Array.isArray(parsed) || parsed.length === 0 || isKnownDemoBasket(parsed);
   } catch {
     return true;
   }
@@ -84,6 +89,7 @@ const savedBasket = () => {
     if (stored === null) return DEFAULT_DEMO_BASKET;
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_DEMO_BASKET;
+    if (isKnownDemoBasket(parsed)) return DEFAULT_DEMO_BASKET;
     return parsed;
   } catch {
     return DEFAULT_DEMO_BASKET;
