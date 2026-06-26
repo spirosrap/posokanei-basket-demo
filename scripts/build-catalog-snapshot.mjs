@@ -5,6 +5,9 @@ import { dirname, resolve } from "node:path";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
+const FETCH_ATTEMPTS = Number(process.env.POSOKANEI_FETCH_ATTEMPTS || 4);
+const RETRY_BASE_DELAY_MS = Number(process.env.POSOKANEI_RETRY_BASE_DELAY_MS || 1200);
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const outputPath = resolve(process.env.POSOKANEI_SNAPSHOT_OUT || "public/data/catalog.json");
 const metaOutputPath = resolve(
   process.env.POSOKANEI_META_OUT ||
@@ -12,20 +15,49 @@ const metaOutputPath = resolve(
 );
 
 async function fetchJson(path, options = {}) {
-  const response = await fetch(`${API_ORIGIN}${path}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "agenticspiros-posokanei-snapshot/1.0",
-      ...options.headers,
-    },
-  });
+  let lastError;
 
-  if (!response.ok) {
-    throw new Error(`${path} returned HTTP ${response.status}`);
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(`${API_ORIGIN}${path}`, {
+        ...options,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "agenticspiros-posokanei-snapshot/1.0",
+          ...options.headers,
+        },
+      });
+
+      if (!response.ok) {
+        const error = new Error(`${path} returned HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      return response.json();
+    } catch (error) {
+      lastError = error;
+      const status = Number(error?.status || 0);
+      const retryable = !status || RETRYABLE_STATUSES.has(status);
+      if (!retryable || attempt >= FETCH_ATTEMPTS) {
+        throw error;
+      }
+
+      const delayMs = RETRY_BASE_DELAY_MS * attempt;
+      process.stderr.write(
+        `Retrying ${path} after ${error.message} (${attempt}/${FETCH_ATTEMPTS})\n`,
+      );
+      await sleep(delayMs);
+    }
   }
 
-  return response.json();
+  throw lastError || new Error(`${path} failed`);
+}
+
+function sleep(ms) {
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
 }
 
 async function fetchProducts() {
