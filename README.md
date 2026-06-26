@@ -26,7 +26,7 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
-Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
+Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα επιλέγεται από προϊόντα που υπάρχουν σε όλες τις βασικές ελληνικές αλυσίδες, ώστε να φαίνονται αρκετές επιλογές και στο σενάριο της μίας στάσης. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
 
 Ο κώδικας είναι δημόσιος στο GitHub: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo). Η εφαρμογή έχει και σύνδεσμο `GitHub` στην κορυφή της σελίδας, ώστε όποιος τη δοκιμάζει να μπορεί να δει άμεσα το repository.
 
@@ -45,7 +45,7 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 ## What It Does
 
 - Search or filter products by category or barcode.
-- Start with an illustrative example basket that can be cleared in one click.
+- Start with an illustrative example basket, chosen from products available across all major Greek chains, that can be cleared in one click.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
 - Rank supermarket chains by total basket price.
@@ -105,9 +105,9 @@ The production React build uses the absolute subpath base `/demo/posokanei-baske
 
 ## Screenshots
 
-Desktop, with a two-stop optimized basket:
+Desktop, with a four-stop optimized basket:
 
-![Desktop app with a two-stop plan](screenshots/desktop.png)
+![Desktop app with a four-stop plan](screenshots/desktop.png)
 
 Mobile:
 
