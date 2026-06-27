@@ -217,7 +217,7 @@ Current production note, checked on 2026-06-23:
 - Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
 - The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync from PosoKanei API data, and displays an amber notice with the latest catalogue update time.
 - If a scheduled refresh attempt fails, `data/refresh-status.json` records the failed attempt time and reason. The UI then shows both the last successful catalogue update and the latest failed attempt, so stale data is visible instead of silent.
-- The refresh script can also fetch through an SSH runner by setting `POSOKANEI_REFRESH_HOST`. This is useful when the deployment server or primary machine is blocked but another trusted environment can reach the public API.
+- The refresh script can also fetch through one SSH runner with `POSOKANEI_REFRESH_HOST`, or several fallback runners with `POSOKANEI_REFRESH_HOSTS=runner-a,runner-b`. This is useful when the deployment server or primary machine is blocked but another trusted environment can reach the public API.
 - `data/catalog-meta.json` describes the last successful snapshot. `data/refresh-status.json` describes the last refresh attempt. Those timestamps can differ, and the UI is designed to make that distinction visible.
 
 Why this can happen even on the same local network:
@@ -259,7 +259,8 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json` from PosoKanei API responses, creating a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - `npm run live:refresh` builds a fresh script-created snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads the data files to the live FTP path, and verifies the public `catalog`, `metadata`, and `refresh-status` timestamps.
-- When `npm run live:refresh` fails because the upstream API returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
+- When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
+- `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.

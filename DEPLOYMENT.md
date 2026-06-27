@@ -139,6 +139,11 @@ script copies the snapshot builder to that host, builds the catalogue there,
 pulls back `catalog.json` and `catalog-meta.json`, then uploads them locally.
 FTP credentials are not copied to the remote host.
 
+For resilience, set `POSOKANEI_REFRESH_HOSTS=runner-a,runner-b,runner-c` instead
+of a single host. The refresh script tries each SSH runner in order and uses the
+first one that successfully builds the snapshot. This avoids stale production
+data when one trusted runner is asleep, offline, or temporarily blocked.
+
 Install the hourly macOS LaunchAgent refresh:
 
 ```bash

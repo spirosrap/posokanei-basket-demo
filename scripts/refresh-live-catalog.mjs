@@ -27,6 +27,9 @@ const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
 const ftpUser = requiredEnv("FTP_USER");
 const keychainService = process.env.FTP_KEYCHAIN_SERVICE || "";
 const remoteRefreshHost = process.env.POSOKANEI_REFRESH_HOST || "";
+const remoteRefreshHosts = parseRefreshHosts(
+  process.env.POSOKANEI_REFRESH_HOSTS || remoteRefreshHost,
+);
 const minimumProducts = Number(process.env.POSOKANEI_MIN_PRODUCTS || 1000);
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
@@ -45,8 +48,8 @@ try {
 }
 
 async function refreshCatalog() {
-  if (remoteRefreshHost) {
-    await buildSnapshotOnRemoteHost(remoteRefreshHost);
+  if (remoteRefreshHosts.length) {
+    await buildSnapshotOnRemoteHosts(remoteRefreshHosts);
   } else {
     await runNodeScript("scripts/build-catalog-snapshot.mjs", {
       POSOKANEI_SNAPSHOT_OUT: snapshotPath,
@@ -91,6 +94,24 @@ async function refreshCatalog() {
   } else {
     console.log("Upload skipped because --no-upload was passed.");
   }
+}
+
+async function buildSnapshotOnRemoteHosts(hosts) {
+  let lastError;
+
+  for (const host of hosts) {
+    try {
+      console.log(`Building catalogue snapshot on ${host}...`);
+      await buildSnapshotOnRemoteHost(host);
+      console.log(`Catalogue snapshot built on ${host}.`);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(`Refresh runner ${host} failed: ${describeRefreshError(error)}`);
+    }
+  }
+
+  throw lastError || new Error("All refresh runners failed.");
 }
 
 async function buildSnapshotOnRemoteHost(host) {
@@ -206,6 +227,15 @@ function describeRefreshError(error) {
   if (httpMatch) {
     return `Upstream returned HTTP ${httpMatch[1]}`;
   }
+  if (/Connection timed out during banner exchange|UNKNOWN port 65535|ssh exited with 255/i.test(message)) {
+    return "Refresh runner SSH connection timed out.";
+  }
+  if (/UND_ERR_CONNECT_TIMEOUT|Connect Timeout Error/i.test(message)) {
+    return "Refresh runner could not connect to the upstream API.";
+  }
+  if (/fetch failed/i.test(message)) {
+    return "Refresh runner fetch failed.";
+  }
   return "Catalogue refresh failed.";
 }
 
@@ -231,6 +261,13 @@ function requiredEnv(name) {
     throw new Error(`${name} must be set in the environment or .env.local.`);
   }
   return value;
+}
+
+function parseRefreshHosts(value) {
+  return String(value || "")
+    .split(/[,\s]+/)
+    .map((host) => host.trim())
+    .filter(Boolean);
 }
 
 async function runNodeScript(script, extraEnv = {}) {
