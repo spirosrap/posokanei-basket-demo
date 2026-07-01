@@ -144,6 +144,10 @@ of a single host. The refresh script tries each SSH runner in order and uses the
 first one that successfully builds the snapshot. This avoids stale production
 data when one trusted runner is asleep, offline, or temporarily blocked.
 
+The snapshot builder sends a browser-like `User-Agent` by default because the
+upstream API can return `HTTP 403` to obvious automation client strings. Override
+it with `POSOKANEI_USER_AGENT` only when the upstream rules change.
+
 Install the hourly macOS LaunchAgent refresh:
 
 ```bash

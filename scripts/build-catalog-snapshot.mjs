@@ -8,6 +8,9 @@ const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
 const FETCH_ATTEMPTS = Number(process.env.POSOKANEI_FETCH_ATTEMPTS || 4);
 const RETRY_BASE_DELAY_MS = Number(process.env.POSOKANEI_RETRY_BASE_DELAY_MS || 1200);
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+const USER_AGENT =
+  process.env.POSOKANEI_USER_AGENT ||
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const outputPath = resolve(process.env.POSOKANEI_SNAPSHOT_OUT || "public/data/catalog.json");
 const metaOutputPath = resolve(
   process.env.POSOKANEI_META_OUT ||
@@ -23,7 +26,8 @@ async function fetchJson(path, options = {}) {
         ...options,
         headers: {
           Accept: "application/json",
-          "User-Agent": "agenticspiros-posokanei-snapshot/1.0",
+          "Accept-Language": "el-GR,el;q=0.9,en;q=0.8",
+          "User-Agent": USER_AGENT,
           ...options.headers,
         },
       });
