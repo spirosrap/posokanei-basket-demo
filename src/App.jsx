@@ -553,7 +553,10 @@ function DailyBargain({ pick, retailers, onSelect, onAdd }) {
           <small>{pick.evidence.bestRetailerName}</small>
         </span>
         <span className="daily-saving">
-          έως {formatEuro(pick.evidence.savingsVsHighest)} φθηνότερα
+          <b>{Math.round(pick.evidence.savingsPercentVsHighest)}% φθηνότερα</b>
+          <small>
+            {formatEuro(pick.evidence.savingsVsHighest)} κάτω από την υψηλότερη τιμή
+          </small>
         </span>
       </div>
 
