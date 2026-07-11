@@ -103,6 +103,12 @@ success it stores the new catalogue timestamp; on upstream failure it stores the
 failed attempt time and a short error such as `Upstream returned HTTP 403`.
 `update-status.php` merges this into the UI status response.
 
+`data/daily-bargain.json` contains the public daily suggestion. It is generated
+on the Mac from public catalogue facts using `gpt-5.6-sol` with `high` reasoning,
+then uploaded like the other static data files. The displayed price, retailer,
+and savings are computed and validated by code; AI only selects a verified
+candidate and writes the Greek editorial text.
+
 Scheduled update check:
 
 ```bash
@@ -123,11 +129,38 @@ reach the upstream API:
 npm run live:refresh
 ```
 
+Build and deploy the complete static app, PHP endpoints, and data directory:
+
+```bash
+npm run build
+npm run live:deploy
+```
+
+`live:deploy` parses `.env.local` without sourcing it as shell code and reads the
+FTP password from either `FTP_PASS` or the configured macOS Keychain item.
+
 The script writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
-uploads both under `demo/posokanei-basket/data/`, and verifies the public
-catalogue timestamp. Configure FTP and public URL settings with environment
+updates `dist/data/daily-bargain.json` once per Athens calendar day, uploads the
+data files under `demo/posokanei-basket/data/`, and verifies the public catalogue
+and suggestion timestamps. Configure FTP and public URL settings with environment
 variables or `.env.local` based on `.env.example`. Use either `FTP_PASS` or
 `FTP_KEYCHAIN_SERVICE` for FTP authentication.
+
+Keep `OPENAI_API_KEY` only in the private environment of the Mac running the
+LaunchAgent. The key is not required on Plesk and must never be copied into
+`public/`, `dist/`, FTP, or the repository. Only public product data is sent in
+the once-daily model request, with `store: false`; user baskets and locations are
+not part of this pipeline.
+
+Manual daily suggestion generation:
+
+```bash
+npm run bargain:daily
+npm run bargain:daily -- --force
+```
+
+The first command is date-guarded. The second is intended for an explicit manual
+replacement of the current day's suggestion.
 
 When the upstream blocks refresh requests, the script exits non-zero but still
 uploads `data/refresh-status.json` so production can show the failed refresh

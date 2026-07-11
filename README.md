@@ -28,6 +28,10 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα είναι πιο ρεαλιστικό εβδομαδιαίο καλάθι ελληνικής οικογένειας, με γάλα, γιαούρτι, τυριά, αυγά, κοτόπουλο, ζυμαρικά, όσπρια, χυμούς, νερά, καθαριστικά και χαρτικά. Τα προϊόντα έχουν επιλεγεί ώστε να υπάρχουν αρκετές πλήρεις επιλογές και στο σενάριο της μίας στάσης, αλλά και να φαίνεται καθαρά πότε συμφέρει να μοιραστεί η λίστα σε δύο, τρεις ή τέσσερις αλυσίδες. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
 
+Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει ένα από τα ήδη επαληθευμένα υποψήφια προϊόντα και γράφει μία σύντομη ελληνική αιτιολόγηση. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών.
+
+Η παραγωγή γίνεται μία φορά την ημέρα στο Mac που εκτελεί ήδη τον συγχρονισμό του καταλόγου. Στον Plesk ανεβαίνει μόνο το δημόσιο `data/daily-bargain.json`, μαζί με το όνομα, την εικόνα, τις επαληθευμένες τιμές και το κείμενο της πρότασης. Το `OPENAI_API_KEY` μένει στο ιδιωτικό περιβάλλον του Mac, δεν περιλαμβάνεται στο repository ή στο build και δεν στέλνεται ποτέ στον browser ή στον web server.
+
 Ο κώδικας είναι δημόσιος στο GitHub: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo). Η εφαρμογή έχει και σύνδεσμο `GitHub` στην κορυφή της σελίδας, ώστε όποιος τη δοκιμάζει να μπορεί να δει άμεσα το repository.
 
 Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο. Οι φωτογραφίες προϊόντων περνούν επίσης από same-origin proxy, για να εμφανίζονται σταθερά σε Safari και σε browsers που μπλοκάρουν ή απορρίπτουν τα direct image requests.
@@ -64,7 +68,38 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 - Link from the app header to the public GitHub repository.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
+- Publish one daily AI-assisted bargain with the exact product image, verified chain price, price spread, details, and add-to-basket action.
 - Provide scheduler-friendly update and snapshot refresh scripts.
+
+## Daily AI Bargain
+
+The daily suggestion is intentionally split into deterministic price analysis and
+a small editorial AI step:
+
+- `scripts/generate-daily-bargain.mjs` reads the latest public PosoKanei snapshot.
+- Code filters products with images and prices from at least five chains, rejects
+  implausible extremes, calculates the cheapest, median, and highest current price,
+  and sends only 30 compact public candidates to the model.
+- `gpt-5.6-sol` with `high` reasoning and the default/standard service tier selects
+  one candidate and writes a short Greek headline and explanation using Structured
+  Outputs. The request uses `store: false`.
+- The script validates the returned product ID against the candidate list and joins
+  the model text with code-computed price evidence. The model cannot supply or
+  modify the displayed prices or savings.
+- The existing hourly LaunchAgent calls the generator after a successful catalogue
+  refresh. A date guard in the `Europe/Athens` time zone limits successful generation
+  to once per day. If the AI call fails, catalogue updates continue and the previous
+  successful suggestion remains published.
+- The OpenAI key stays in the Mac's private environment. Plesk and the browser receive
+  only `data/daily-bargain.json`; no user basket, location, browser data, or personal
+  information is sent to OpenAI.
+
+Run or force the generator locally:
+
+```bash
+npm run bargain:daily
+npm run bargain:daily -- --force
+```
 
 ## Nearby Branches and Location
 
@@ -259,6 +294,7 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json` from PosoKanei API responses, creating a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - `npm run live:refresh` builds a fresh script-created snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads the data files to the live FTP path, and verifies the public `catalog`, `metadata`, and `refresh-status` timestamps.
+- After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - The snapshot builder uses a browser-like request header by default because the upstream API can reject obvious automation `User-Agent` values with `HTTP 403`. `POSOKANEI_USER_AGENT` can override that header if the upstream rules change again.
@@ -288,6 +324,11 @@ npm run live:refresh
 
 The refresh script reads deployment settings from environment variables or `.env.local`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for FTP authentication.
 
+Daily bargain generation additionally reads `OPENAI_API_KEY` from the private local
+shell/LaunchAgent environment. It defaults to `OPENAI_BARGAIN_MODEL=gpt-5.6-sol`,
+`OPENAI_BARGAIN_REASONING=high`, and `POSOKANEI_BARGAIN_TIME_ZONE=Europe/Athens`.
+Do not put the key in Plesk, `public/`, `dist/`, committed files, or browser code.
+
 If the current machine cannot reach `api.posokanei.gov.gr`, set `POSOKANEI_REFRESH_HOST` to a trusted SSH host that can reach it. The remote host only builds `catalog.json` and `catalog-meta.json`; upload credentials stay local.
 
 To install the hourly refresh job on macOS:
@@ -315,10 +356,7 @@ Short version:
 
 ```bash
 npm run build
-curl --ftp-create-dirs -T dist/index.html ftp://agenticspiros.com/demo/posokanei-basket/index.html
-curl --ftp-create-dirs -T dist/api/posokanei.php ftp://agenticspiros.com/demo/posokanei-basket/api/posokanei.php
-curl --ftp-create-dirs -T dist/api/update-status.php ftp://agenticspiros.com/demo/posokanei-basket/api/update-status.php
-curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/posokanei-basket/data/catalog.json
+npm run live:deploy
 ```
 
 ## Limitations
@@ -329,6 +367,7 @@ curl --ftp-create-dirs -T dist/data/catalog.json ftp://agenticspiros.com/demo/po
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price only; optional branch proximity is shown as context, but the optimizer does not yet include travel time, parking, delivery fees, or route distance.
 - It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.
+- The daily bargain compares current prices across chains; without historical price data it must not be interpreted as proof of a previous-price discount.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 
 ## License

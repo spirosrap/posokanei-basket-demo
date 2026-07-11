@@ -24,8 +24,10 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",
+    "bargain:daily": "node scripts/generate-daily-bargain.mjs",
     "catalog:snapshot": "node scripts/build-catalog-snapshot.mjs",
     "live:install-refresh": "node scripts/install-live-refresh-launchd.mjs",
+    "live:deploy": "node scripts/deploy-live.mjs",
     "live:refresh": "node scripts/refresh-live-catalog.mjs",
     "check:updates": "node scripts/check-posokanei-updates.mjs"
   },

@@ -26,6 +26,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCategories,
+  fetchDailyBargain,
   fetchHealth,
   fetchProducts,
   fetchProductsByIds,
@@ -136,6 +137,7 @@ function App() {
   const [categoryId, setCategoryId] = useState("all");
   const [health, setHealth] = useState({ state: "checking", label: "Σύνδεση με κατάλογο" });
   const [updateStatus, setUpdateStatus] = useState(null);
+  const [dailyBargain, setDailyBargain] = useState(null);
   const [liveProducts, setLiveProducts] = useState([]);
   const [liveRetailers, setLiveRetailers] = useState([]);
   const [liveCategories, setLiveCategories] = useState([]);
@@ -200,6 +202,20 @@ function App() {
       .catch(() => {
         if (!cancelled) setHealth({ state: "offline", label: "Ο κατάλογος δεν απαντά" });
       });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchDailyBargain()
+      .then((pick) => {
+        if (cancelled) return;
+        setDailyBargain(pick);
+        setLiveBasketProducts((current) => mergeCatalogProducts(current, [pick.product]));
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -439,6 +455,15 @@ function App() {
       <AppIntro health={health} updateStatus={updateStatus} />
       <DataFreshnessNotice health={health} updateStatus={updateStatus} />
 
+      {dailyBargain ? (
+        <DailyBargain
+          pick={dailyBargain}
+          retailers={activeRetailers}
+          onSelect={() => setSelectedProduct(dailyBargain.product)}
+          onAdd={() => addToBasket(dailyBargain.product)}
+        />
+      ) : null}
+
       <main className="workspace" aria-label="Εφαρμογή σύγκρισης καλαθιού">
         <SearchPanel
           query={query}
@@ -496,6 +521,53 @@ function App() {
         />
       ) : null}
     </div>
+  );
+}
+
+function DailyBargain({ pick, retailers, onSelect, onAdd }) {
+  const retailer = retailers.find((item) => item.id === pick.evidence.bestRetailerId);
+  const updated = formatDataTime(pick.generatedAt);
+  return (
+    <section className="daily-bargain" aria-labelledby="daily-bargain-title">
+      <button type="button" className="daily-bargain-product" onClick={onSelect}>
+        <ProductThumb product={pick.product} />
+        <span className="daily-bargain-copy">
+          <small className="daily-bargain-label">
+            <Sparkles size={14} aria-hidden="true" />
+            Η ευκαιρία της ημέρας
+          </small>
+          <strong id="daily-bargain-title">{pick.headline}</strong>
+          <span>{pick.product.name}</span>
+        </span>
+      </button>
+
+      <div className="daily-bargain-reason">
+        <p>{pick.reason}</p>
+        <small>Επιλογή με AI από δημόσια στοιχεία τιμών · {updated}</small>
+      </div>
+
+      <div className="daily-bargain-price">
+        {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
+        <span>
+          <strong>{formatEuro(pick.evidence.bestPrice)}</strong>
+          <small>{pick.evidence.bestRetailerName}</small>
+        </span>
+        <span className="daily-saving">
+          έως {formatEuro(pick.evidence.savingsVsHighest)} φθηνότερα
+        </span>
+      </div>
+
+      <div className="daily-bargain-actions">
+        <button type="button" className="text-button" onClick={onSelect}>
+          <Info size={16} />
+          Λεπτομέρειες
+        </button>
+        <button type="button" className="text-button primary-button" onClick={onAdd}>
+          <Plus size={17} />
+          Στο καλάθι
+        </button>
+      </div>
+    </section>
   );
 }
 

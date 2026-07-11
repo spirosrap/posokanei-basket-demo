@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "date": "2026-07-11",
+  "generated_at": "2026-07-11T13:50:32.850Z",
+  "catalog_generated_at": "2026-07-11T13:30:44.719Z",
+  "model": "gpt-5.6-sol",
+  "reasoning_effort": "high",
+  "product_id": "c5ec04d5b722498ba7797268ba7188d1",
+  "headline": "Cornetto Classico 6 τεμάχια: επιλογή ημέρας",
+  "reason": "Στη Lidl κοστίζει 3€, δηλαδή 6,37€ λιγότερο από την υψηλότερη τιμή των 9,37€ (68%), σε σύγκριση 8 αλυσίδων.",
+  "evidence": {
+    "best_price": 3,
+    "best_retailer_id": "lidl",
+    "best_retailer_name": "Lidl",
+    "median_price": 9.1,
+    "highest_price": 9.37,
+    "savings_vs_highest": 6.37,
+    "savings_percent_vs_highest": 68,
+    "retailer_count": 8
+  },
+  "product": {
+    "id": "c5ec04d5b722498ba7797268ba7188d1",
+    "name": "CORNETTO Παγωτό Χωνάκι Classico 6τεμ 360g (540ml)",
+    "brand": "Cornetto",
+    "images": [],
+    "category": "Παγωτά",
+    "category_ids": [
+      "fb7311d1172f411dba075194a4120689",
+      "b2a17c2ad4235ea8574d60276393ddb0",
+      "b2a17c2ad4235ea8574d6027636c8a38"
+    ],
+    "subcategory": "Κατεψυγμένα Τρόφιμα",
+    "description": "Ο αγαπημένος πύραυλος Cornetto σε συσκευασία για όλη την οικογένεια! Απόλαυση...επί 6, με βελούδινη βανίλια και υπέροχα κομμάτια φουντουκιού, σε τραγανό χωνάκι μπισκότου με απολαυστικό σοκολατένιο τελείωμα.",
+    "image_url": "https://api.posokanei.gov.gr/images/product/c5ec04d5b722498ba7797268ba7188d1?v=6a1733d2327dc2d6160b1644",
+    "has_image": true,
+    "updated_at": "2026-07-11T09:41:52.300000",
+    "image_version": "6a1733d2327dc2d6160b1644",
+    "unit": "pcs",
+    "unit_quantity": 6,
+    "private_label": false,
+    "price_stats": {
+      "min_price": 3,
+      "max_price": 9.37,
+      "avg_price": 7.19,
+      "retailer_count": 8,
+      "min_unit_price": 0.5,
+      "last_computed": null
+    },
+    "retailers": [
+      "halkiadakis",
+      "masoutis",
+      "mymarket"
+    ],
+    "retailer_prices": [
+      {
+        "retailer": "lidl",
+        "retailer_display_name": "Lidl",
+        "retailer_name": "",
+        "price": 3,
+        "price_normalized": 0.5,
+        "is_discount": true,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "sklavenitis",
+        "retailer_display_name": "Σκλαβενίτης",
+        "retailer_name": "",
+        "price": 3,
+        "price_normalized": 0.5,
+        "is_discount": true,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "galaxias",
+        "retailer_display_name": "Γαλαξίας",
+        "retailer_name": "",
+        "price": 5.78,
+        "price_normalized": 0.96,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "masoutis",
+        "retailer_display_name": "Μασούτης",
+        "retailer_name": "",
+        "price": 8.95,
+        "price_normalized": 1.49,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "halkiadakis",
+        "retailer_display_name": "Χαλκιαδάκης",
+        "retailer_name": "",
+        "price": 9.1,
+        "price_normalized": 1.52,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "mymarket",
+        "retailer_display_name": "My Market",
+        "retailer_name": "",
+        "price": 9.1,
+        "price_normalized": 1.52,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "ab_vasilopoulos",
+        "retailer_display_name": "ΑΒ Βασιλόπουλος",
+        "retailer_name": "",
+        "price": 9.25,
+        "price_normalized": 1.54,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "synka",
+        "retailer_display_name": "Synka",
+        "retailer_name": "",
+        "price": 9.37,
+        "price_normalized": 1.56,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-11T00:00:00",
+        "country": "GR"
+      }
+    ],
+    "available_countries": [
+      "GR"
+    ],
+    "is_international": false
+  }
+}

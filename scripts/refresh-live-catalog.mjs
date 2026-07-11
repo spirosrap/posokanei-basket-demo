@@ -21,6 +21,10 @@ const refreshStatusPath = resolve(
   projectRoot,
   process.env.POSOKANEI_REFRESH_STATUS_OUT || "dist/data/refresh-status.json",
 );
+const dailyBargainPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_BARGAIN_OUT || "dist/data/daily-bargain.json",
+);
 const uploadEnabled = !process.argv.includes("--no-upload");
 const ftpHost = requiredEnv("FTP_HOST");
 const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
@@ -39,6 +43,9 @@ const publicMetaUrl =
 const publicRefreshStatusUrl =
   process.env.POSOKANEI_PUBLIC_REFRESH_STATUS_URL ||
   publicCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
+const publicDailyBargainUrl =
+  process.env.POSOKANEI_PUBLIC_BARGAIN_URL ||
+  publicCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
 
 try {
   await refreshCatalog();
@@ -69,6 +76,15 @@ async function refreshCatalog() {
     `Snapshot ready: ${productCount.toLocaleString("en-US")} products generated_at=${snapshot.generated_at}`,
   );
 
+  try {
+    await runNodeScript("scripts/generate-daily-bargain.mjs", {
+      POSOKANEI_BARGAIN_CATALOG: snapshotPath,
+      POSOKANEI_BARGAIN_OUT: dailyBargainPath,
+    });
+  } catch (error) {
+    console.error(`Daily bargain generation failed; keeping the previous pick: ${error.message}`);
+  }
+
   await writeRefreshStatus({
     status: "ok",
     checked_at: new Date().toISOString(),
@@ -90,6 +106,12 @@ async function refreshCatalog() {
       user: ftpUser,
       password,
     });
+    if (existsSync(dailyBargainPath)) {
+      await uploadFile(dailyBargainPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/daily-bargain.json`, {
+        user: ftpUser,
+        password,
+      });
+    }
     await verifyPublicRefreshFiles(snapshot.generated_at);
   } else {
     console.log("Upload skipped because --no-upload was passed.");
@@ -346,6 +368,14 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt) {
   console.log(`Verified public catalogue at ${publicCatalogUrl}`);
   console.log(`Verified public metadata at ${publicMetaUrl}`);
   console.log(`Verified public refresh status at ${publicRefreshStatusUrl}`);
+  if (existsSync(dailyBargainPath)) {
+    const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));
+    const publicDailyBargain = await fetchPublicJson(publicDailyBargainUrl);
+    if (publicDailyBargain.generated_at !== localDailyBargain.generated_at) {
+      throw new Error("Public daily-bargain verification mismatch.");
+    }
+    console.log(`Verified public daily bargain at ${publicDailyBargainUrl}`);
+  }
 }
 
 function run(command, args, options = {}) {

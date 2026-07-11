@@ -6,6 +6,7 @@ const UPDATE_STATUS_URL = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php"
   : "./api/update-status.php";
 const CATALOG_SNAPSHOT_URL = "./data/catalog.json";
+const DAILY_BARGAIN_URL = "./data/daily-bargain.json";
 
 const PAGE_SIZE = 30;
 const RETAILER_COLORS = [
@@ -358,6 +359,31 @@ export async function fetchUpdateStatus() {
     refreshError: raw.refresh_error || raw.refreshError || "",
     lastSuccessfulRefreshAt:
       raw.snapshot_generated_at || raw.snapshotGeneratedAt || raw.last_successful_refresh_at || raw.lastSuccessfulRefreshAt || "",
+  };
+}
+
+export async function fetchDailyBargain() {
+  const raw = await fetchDirectJson(`${DAILY_BARGAIN_URL}?v=${Date.now()}`, 9000);
+  if (!raw?.product_id || !raw?.product || !raw?.evidence) {
+    throw new Error("Daily bargain data is incomplete.");
+  }
+  return {
+    date: raw.date || "",
+    generatedAt: raw.generated_at || "",
+    catalogGeneratedAt: raw.catalog_generated_at || "",
+    headline: raw.headline || "Η ευκαιρία της ημέρας",
+    reason: raw.reason || "",
+    evidence: {
+      bestPrice: Number(raw.evidence.best_price),
+      bestRetailerId: raw.evidence.best_retailer_id || "",
+      bestRetailerName: raw.evidence.best_retailer_name || "",
+      medianPrice: Number(raw.evidence.median_price),
+      highestPrice: Number(raw.evidence.highest_price),
+      savingsVsHighest: Number(raw.evidence.savings_vs_highest),
+      savingsPercentVsHighest: Number(raw.evidence.savings_percent_vs_highest),
+      retailerCount: Number(raw.evidence.retailer_count),
+    },
+    product: normalizeProduct(raw.product, "snapshot"),
   };
 }
 
