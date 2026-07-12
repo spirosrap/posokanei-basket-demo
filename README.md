@@ -1,20 +1,16 @@
 # Καλάθι Τιμών Supermarket
 
-A React app for building a supermarket basket from the PosoKanei catalog and ranking Greek supermarket chains by the total cost of the selected groceries.
-
-The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. The workflow is basket-first: choose the exact products you want, adjust quantities, decide whether you can make `1`, `2`, `3`, or `4` supermarket stops, then see the cheapest complete plan.
-
-This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
-
-Live app: [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
-
-Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
-
-![Desktop screenshot showing the starter basket and supermarket stop comparison](screenshots/desktop.png)
-
 ## Ελληνικά
 
+**Ζωντανή εφαρμογή:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
+
+**Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
+
+> Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
+
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
+
+![Η αρχική σελίδα με το καλάθι παραδείγματος και τη σύγκριση supermarket](screenshots/desktop.png)
 
 Η βασική ιδέα είναι απλή:
 
@@ -52,7 +48,19 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Ο συγχρονισμός του καταλόγου είναι πλέον ανθεκτικός σε διακοπές κατά το ανέβασμα. Το νέο μεγάλο αρχείο ανεβαίνει πρώτα με προσωρινό όνομα και αντικαθιστά τον προηγούμενο κατάλογο μόνο όταν έχει ολοκληρωθεί ολόκληρη η μεταφορά. Έτσι, όσο γίνεται η ωριαία ενημέρωση, οι επισκέπτες συνεχίζουν να βλέπουν τον τελευταίο πλήρη κατάλογο αντί για άδειο ή μισογραμμένο JSON. Αν υπάρξει προσωρινό σφάλμα δικτύου ή server, ο browser επαναλαμβάνει αυτόματα το request και μπορεί να ανακτήσει ξανά το snapshot μέσα στην ίδια συνεδρία, κάτι που καλύπτει και τα περιστασιακά blank/empty states του Safari.
 
-## What It Does
+## English
+
+**Live app:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
+
+**Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
+
+> This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
+
+This React app lets users build a supermarket basket from the PosoKanei catalogue and ranks Greek supermarket chains by the total price of the selected groceries.
+
+The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. The workflow is basket-first: choose the exact products and quantities, decide whether you can make `1`, `2`, `3`, or `4` supermarket stops, and see the cheapest complete buying plan.
+
+### What It Does
 
 - Search or filter products by category or barcode.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
@@ -77,7 +85,7 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 - Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
 
-## Daily Product Suggestion
+### Daily Product Suggestion
 
 The app publishes one prominent `Ευκαιρία της ημέρας` card each day. Its new
 `Περισσότερες ευκαιρίες` button opens the dedicated `/bargains/` view with the
@@ -120,7 +128,7 @@ npm run bargain:daily
 npm run bargain:daily -- --force
 ```
 
-## Nearby Branches and Location
+### Nearby Branches and Location
 
 The app can optionally include proximity in the buying decision. This is useful when
 the cheapest basket is split across multiple chains, but the user also wants to know
@@ -147,7 +155,7 @@ Important limitations:
 - Proximity is a decision aid; the price ranking remains based on the PosoKanei
   product catalogue and basket calculation.
 
-## Live Target
+### Live Target
 
 The app is built to run as a subpath deployment:
 
@@ -157,7 +165,7 @@ https://agenticspiros.com/demo/posokanei-basket/
 
 The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog, product images, retailer logos, update status, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin proxy calls.
 
-## Screenshots
+### Screenshots
 
 Desktop homepage, with the featured daily product and the new
 `Περισσότερες ευκαιρίες` entry point:
@@ -178,7 +186,7 @@ Product detail, with a larger image for checking the exact product:
 
 ![Product detail drawer with large product image and per-chain prices](screenshots/detail.png)
 
-## Local Development
+### Local Development
 
 Requirements:
 
@@ -198,7 +206,7 @@ Open:
 http://127.0.0.1:5173/
 ```
 
-## Build
+### Build
 
 ```bash
 npm run build
@@ -210,7 +218,7 @@ The static output is written to:
 dist/
 ```
 
-## Validation
+### Validation
 
 Core checks:
 
@@ -239,7 +247,7 @@ Browser QA covers:
 - Adding an official live product to the basket and recalculating the plan.
 - Update-status endpoint and scheduled-check script.
 
-## PosoKanei API Discovery
+### PosoKanei API Discovery
 
 The official PosoKanei web app is a Flutter application. Its compiled bundle references these backend routes:
 
@@ -288,7 +296,7 @@ Why this can happen even on the same local network:
 - WAF/CDN rules can also react differently to TLS/client fingerprints, for example macOS SecureTransport/LibreSSL versus Linux OpenSSL, even when the request path is the same.
 - The workaround intentionally keeps upload credentials local: the SSH runner only builds the catalogue JSON, then the local refresh script pulls those files back and uploads them.
 
-## Data Model
+### Data Model
 
 Products are normalized into this shape:
 
@@ -312,7 +320,7 @@ Products are normalized into this shape:
 
 Basket rankings are computed locally in `src/pricing.js`.
 
-## Resilient Catalogue Publishing
+### Resilient Catalogue Publishing
 
 Catalogue refreshes and complete deployments use atomic FTP publishing. Each
 file is uploaded under a unique temporary name and is renamed over the public
@@ -328,7 +336,7 @@ Safari or other browser session can recover on a later action. The hourly macOS
 LaunchAgent publishes refresh status last, retains the previous daily bargain if
 its optional AI step fails, and keeps all FTP/OpenAI credentials on the local Mac.
 
-## Product/Price Update Checks
+### Product/Price Update Checks
 
 The app includes a lightweight update checker:
 
@@ -391,7 +399,7 @@ curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php
 
 When Plesk is upstream-blocked, schedule `npm run live:refresh` on a machine, GitHub runner, or serverless worker that can reach `https://api.posokanei.gov.gr`.
 
-## Deployment
+### Deployment
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the Plesk/HostEurope upload path and
 static artifact notes.
@@ -403,7 +411,7 @@ npm run build
 npm run live:deploy
 ```
 
-## Limitations
+### Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
 - As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest script-built `data/catalog.json` snapshot from PosoKanei API data and shows that state in the UI. This means generated by the refresh script, not AI-generated.
@@ -414,6 +422,6 @@ npm run live:deploy
 - The daily bargain compares current prices across chains; without historical price data it must not be interpreted as proof of a previous-price discount.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 
-## License
+### License
 
 MIT
