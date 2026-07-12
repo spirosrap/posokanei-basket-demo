@@ -46,6 +46,8 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 Σημαντική λεπτομέρεια: το block δεν φαίνεται να είναι θέμα συσκευής ή MAC address. Ένας δημόσιος API server συνήθως δεν βλέπει MAC addresses. Ακόμα και συσκευές στο ίδιο τοπικό δίκτυο μπορούν να φαίνονται διαφορετικές προς το upstream λόγω διαφορετικού public egress IP, VPN/split tunnel, IPv4/IPv6 διαδρομής, CDN/WAF κανόνων ή TLS/client fingerprint. Γι' αυτό το refresh script υποστηρίζει trusted SSH runner: το κατέβασμα γίνεται από περιβάλλον που επιτρέπεται, ενώ τα deployment credentials μένουν τοπικά.
 
+Ο συγχρονισμός του καταλόγου είναι πλέον ανθεκτικός σε διακοπές κατά το ανέβασμα. Το νέο μεγάλο αρχείο ανεβαίνει πρώτα με προσωρινό όνομα και αντικαθιστά τον προηγούμενο κατάλογο μόνο όταν έχει ολοκληρωθεί ολόκληρη η μεταφορά. Έτσι, όσο γίνεται η ωριαία ενημέρωση, οι επισκέπτες συνεχίζουν να βλέπουν τον τελευταίο πλήρη κατάλογο αντί για άδειο ή μισογραμμένο JSON. Αν υπάρξει προσωρινό σφάλμα δικτύου ή server, ο browser επαναλαμβάνει αυτόματα το request και μπορεί να ανακτήσει ξανά το snapshot μέσα στην ίδια συνεδρία, κάτι που καλύπτει και τα περιστασιακά blank/empty states του Safari.
+
 ## What It Does
 
 - Search or filter products by category or barcode.
@@ -285,6 +287,22 @@ Products are normalized into this shape:
 ```
 
 Basket rankings are computed locally in `src/pricing.js`.
+
+## Resilient Catalogue Publishing
+
+Catalogue refreshes and complete deployments use atomic FTP publishing. Each
+file is uploaded under a unique temporary name and is renamed over the public
+destination only after the transfer succeeds. The previous complete catalogue
+therefore remains available throughout the roughly 18 MB upload, avoiding the
+temporary empty catalogue that can occur when PHP reads a partially written JSON
+file.
+
+The browser complements this with bounded retries for transient network, timeout,
+rate-limit, and server failures. The full snapshot fallback allows 45 seconds for
+slow transfers, and a failed snapshot promise is removed from memory so the same
+Safari or other browser session can recover on a later action. The hourly macOS
+LaunchAgent publishes refresh status last, retains the previous daily bargain if
+its optional AI step fails, and keeps all FTP/OpenAI credentials on the local Mac.
 
 ## Product/Price Update Checks
 
