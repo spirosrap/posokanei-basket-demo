@@ -5,6 +5,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -94,24 +95,13 @@ async function refreshCatalog() {
 
   if (uploadEnabled) {
     const password = process.env.FTP_PASS || (await readKeychainPassword());
-    await uploadFile(snapshotPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/catalog.json`, {
-      user: ftpUser,
-      password,
-    });
-    await uploadFile(metaPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/catalog-meta.json`, {
-      user: ftpUser,
-      password,
-    });
-    await uploadFile(refreshStatusPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/refresh-status.json`, {
-      user: ftpUser,
-      password,
-    });
+    await publishDataFile(snapshotPath, "catalog.json", password);
+    await publishDataFile(metaPath, "catalog-meta.json", password);
     if (existsSync(dailyBargainPath)) {
-      await uploadFile(dailyBargainPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/daily-bargain.json`, {
-        user: ftpUser,
-        password,
-      });
+      await publishDataFile(dailyBargainPath, "daily-bargain.json", password);
     }
+    // Publish status last so it only announces a refresh after every data file is live.
+    await publishDataFile(refreshStatusPath, "refresh-status.json", password);
     await verifyPublicRefreshFiles(snapshot.generated_at);
   } else {
     console.log("Upload skipped because --no-upload was passed.");
@@ -187,10 +177,7 @@ async function recordRefreshFailure(error) {
 
   try {
     const password = process.env.FTP_PASS || (await readKeychainPassword());
-    await uploadFile(refreshStatusPath, `ftp://${ftpHost}/${ftpRemoteDir}/data/refresh-status.json`, {
-      user: ftpUser,
-      password,
-    });
+    await publishDataFile(refreshStatusPath, "refresh-status.json", password);
   } catch (uploadError) {
     console.error(`Could not upload refresh failure status: ${describeRefreshError(uploadError)}`);
   }
@@ -318,19 +305,14 @@ async function readKeychainPassword() {
   return password;
 }
 
-async function uploadFile(filePath, url, credentials) {
-  const curlConfig = [
-    `user = "${escapeCurlConfig(`${credentials.user}:${credentials.password}`)}"`,
-    "ftp-create-dirs",
-    "silent",
-    "show-error",
-    "fail",
-  ].join("\n");
-
-  await run("/usr/bin/curl", ["--config", "-", "-T", filePath, url], {
-    input: `${curlConfig}\n`,
+async function publishDataFile(filePath, remoteName, password) {
+  await uploadFileAtomic({
+    filePath,
+    url: `ftp://${ftpHost}/${ftpRemoteDir}/data/${remoteName}`,
+    user: ftpUser,
+    password,
+    cwd: projectRoot,
   });
-  console.log(`Uploaded fresh catalogue to ${url.replace(/^ftp:\/\//, "ftp://***@")}`);
 }
 
 async function fetchPublicJson(url) {
@@ -417,10 +399,6 @@ function run(command, args, options = {}) {
 
 function trimSlashes(value) {
   return String(value).replace(/^\/+|\/+$/g, "");
-}
-
-function escapeCurlConfig(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function shellQuote(value) {

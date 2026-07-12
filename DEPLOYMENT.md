@@ -138,6 +138,9 @@ npm run live:deploy
 
 `live:deploy` parses `.env.local` without sourcing it as shell code and reads the
 FTP password from either `FTP_PASS` or the configured macOS Keychain item.
+Every file is first uploaded under a unique temporary FTP name and then renamed
+over the destination. This keeps the previous complete file available throughout
+the transfer and prevents PHP or a browser from reading partially uploaded JSON.
 
 The script writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
 updates `dist/data/daily-bargain.json` once per Athens calendar day, uploads the
@@ -151,6 +154,10 @@ LaunchAgent. The key is not required on Plesk and must never be copied into
 `public/`, `dist/`, FTP, or the repository. Only public product data is sent in
 the once-daily model request, with `store: false`; user baskets and locations are
 not part of this pipeline.
+
+The installer runs the refresh through an interactive login shell so an existing
+key exported by the private local shell setup is available to the scheduled daily
+bargain step. It does not write the key into the LaunchAgent plist.
 
 Manual daily suggestion generation:
 
@@ -188,6 +195,10 @@ npm run live:install-refresh
 ```
 
 The installer prints the scheduler and log paths for the local machine.
+
+The frontend retries transient HTTP/network failures and allows up to 45 seconds
+for the full snapshot fallback. A rejected snapshot request is cleared from the
+in-memory cache so a later action can recover in the same browser session.
 
 Plesk scheduled task equivalent:
 

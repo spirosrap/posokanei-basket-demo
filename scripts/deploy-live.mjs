@@ -5,6 +5,7 @@ import { readdir } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(projectRoot, "dist");
@@ -18,7 +19,13 @@ const files = await listFiles(distRoot);
 
 for (const filePath of files) {
   const remotePath = relative(distRoot, filePath).split("/").map(encodeURIComponent).join("/");
-  await uploadFile(filePath, `ftp://${ftpHost}/${ftpRemoteDir}/${remotePath}`);
+  await uploadFileAtomic({
+    filePath,
+    url: `ftp://${ftpHost}/${ftpRemoteDir}/${remotePath}`,
+    user: ftpUser,
+    password,
+    cwd: projectRoot,
+  });
 }
 
 console.log(`Deployed ${files.length} files to https://${ftpHost}/${ftpRemoteDir}/`);
@@ -32,17 +39,6 @@ async function listFiles(directory) {
     }),
   );
   return nested.flat().sort();
-}
-
-async function uploadFile(filePath, url) {
-  const curlConfig = [
-    `user = "${escapeCurlConfig(`${ftpUser}:${password}`)}"`,
-    "ftp-create-dirs",
-    "silent",
-    "show-error",
-    "fail",
-  ].join("\n");
-  await run("/usr/bin/curl", ["--config", "-", "-T", filePath, url], `${curlConfig}\n`);
 }
 
 async function readKeychainPassword() {
@@ -108,8 +104,4 @@ function requiredEnv(name) {
 
 function trimSlashes(value) {
   return String(value).replace(/^\/+|\/+$/g, "");
-}
-
-function escapeCurlConfig(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

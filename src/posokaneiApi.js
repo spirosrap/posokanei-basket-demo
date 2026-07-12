@@ -43,47 +43,64 @@ function proxyUrl(resource, params = {}) {
   return url.toString();
 }
 
-async function fetchJson(resource, params = {}, timeout = 12000) {
-  const timer = withTimeout(timeout);
-  try {
-    const response = await fetch(proxyUrl(resource, params), {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-      signal: timer.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`PosoKanei proxy HTTP ${response.status}`);
-    }
-
-    return response.json();
-  } finally {
-    timer.clear();
-  }
+async function fetchJson(resource, params = {}, timeout = 12000, retries = 2) {
+  return fetchJsonWithRetries(proxyUrl(resource, params), {
+    timeout,
+    retries,
+    errorLabel: "PosoKanei proxy HTTP",
+  });
 }
 
-async function fetchDirectJson(url, timeout = 12000) {
-  const timer = withTimeout(timeout);
-  try {
-    const response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-      signal: timer.signal,
-    });
+async function fetchDirectJson(url, timeout = 12000, retries = 2) {
+  return fetchJsonWithRetries(url, { timeout, retries, errorLabel: "Request failed" });
+}
 
-    if (!response.ok) {
-      throw new Error(`Request failed ${response.status}`);
+async function fetchJsonWithRetries(url, { timeout, retries, errorLabel }) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const timer = withTimeout(timeout);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: timer.signal,
+      });
+
+      if (!response.ok) {
+        const error = new Error(`${errorLabel} ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries || !isTransientRequestError(error)) throw error;
+      await sleep(500 * (attempt + 1));
+    } finally {
+      timer.clear();
     }
-
-    return response.json();
-  } finally {
-    timer.clear();
   }
+
+  throw lastError;
+}
+
+function isTransientRequestError(error) {
+  const status = Number(error?.status || 0);
+  return !status || status === 408 || status === 429 || status >= 500;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 async function fetchCatalogSnapshot() {
   if (!catalogSnapshotPromise) {
-    catalogSnapshotPromise = fetchDirectJson(CATALOG_SNAPSHOT_URL, 20000);
+    catalogSnapshotPromise = fetchDirectJson(CATALOG_SNAPSHOT_URL, 45000).catch((error) => {
+      catalogSnapshotPromise = null;
+      throw error;
+    });
   }
   return catalogSnapshotPromise;
 }

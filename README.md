@@ -294,12 +294,14 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json` from PosoKanei API responses, creating a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
 - `npm run live:refresh` builds a fresh script-created snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads the data files to the live FTP path, and verifies the public `catalog`, `metadata`, and `refresh-status` timestamps.
+- Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded 18 MB catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - The snapshot builder uses a browser-like request header by default because the upstream API can reject obvious automation `User-Agent` values with `HTTP 403`. `POSOKANEI_USER_AGENT` can override that header if the upstream rules change again.
-- `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents.
+- `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts an interactive login shell so the existing private local OpenAI environment is available to the once-daily bargain step; the key is never uploaded.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
+- Browser catalogue requests retry short network/server failures. The large snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 

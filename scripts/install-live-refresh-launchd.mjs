@@ -31,7 +31,7 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>-lc</string>
+    <string>-lic</string>
     <string>${escapeXml(command)}</string>
   </array>
   <key>RunAtLoad</key>
@@ -55,7 +55,6 @@ await writeFile(plistPath, plist, "utf8");
 runLaunchctl(["bootout", `gui/${uid}`, plistPath], { allowFailure: true });
 runLaunchctl(["bootstrap", `gui/${uid}`, plistPath]);
 runLaunchctl(["enable", `gui/${uid}/${label}`], { allowFailure: true });
-runLaunchctl(["kickstart", "-k", `gui/${uid}/${label}`]);
 
 console.log(`Installed ${label}`);
 console.log(`Refresh interval: ${intervalSeconds} seconds`);
