@@ -105,9 +105,10 @@ a small editorial AI step:
   duplicate or missing IDs, and joins the model text with code-computed price
   evidence. The model cannot supply or modify the displayed prices or savings.
 - The existing hourly LaunchAgent calls the generator after a successful catalogue
-  refresh. A date guard in the `Europe/Athens` time zone limits successful generation
-  to once per day. If the AI call fails, catalogue updates continue and the previous
-  successful suggestion remains published.
+  refresh. Date and private attempt guards in the `Europe/Athens` time zone allow at
+  most one automatic AI request per day. If the AI call fails, later hourly catalogue
+  refreshes keep the previous successful set without repeating the paid request;
+  `--force` remains available for an intentional manual retry.
 - The OpenAI key stays in the Mac's private environment. Plesk and the browser receive
   only `data/daily-bargain.json`; no user basket, location, browser data, or personal
   information is sent to OpenAI.

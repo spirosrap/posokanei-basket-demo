@@ -171,6 +171,11 @@ npm run bargain:daily -- --force
 The first command is date-guarded. The second is intended for an explicit manual
 replacement of the current day's suggestion.
 
+The ignored `.cache/daily-bargain-attempt.json` file records that the automatic AI
+request was attempted for the current Athens date. This prevents an API failure
+from being retried on every hourly catalogue refresh. A deliberate `--force` run
+bypasses both the successful-generation and attempt guards.
+
 When the upstream blocks refresh requests, the script exits non-zero but still
 uploads `data/refresh-status.json` so production can show the failed refresh
 attempt while continuing to serve the last successful catalogue.

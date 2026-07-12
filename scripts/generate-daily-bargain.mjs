@@ -16,6 +16,10 @@ const outputPath = resolve(
   projectRoot,
   process.env.POSOKANEI_BARGAIN_OUT || "dist/data/daily-bargain.json",
 );
+const attemptStatePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_BARGAIN_ATTEMPT_STATE || ".cache/daily-bargain-attempt.json",
+);
 const model = process.env.OPENAI_BARGAIN_MODEL || "gpt-5.6-sol";
 const reasoningEffort = process.env.OPENAI_BARGAIN_REASONING || "high";
 const timeZone = process.env.POSOKANEI_BARGAIN_TIME_ZONE || "Europe/Athens";
@@ -25,6 +29,7 @@ const apiKey = requiredEnv("OPENAI_API_KEY");
 
 const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
 const existingPick = await readJsonIfPresent(outputPath);
+const previousAttempt = await readJsonIfPresent(attemptStatePath);
 const today = dateKey(new Date(), timeZone);
 
 if (
@@ -37,6 +42,11 @@ if (
   process.exit(0);
 }
 
+if (!force && previousAttempt?.date === today) {
+  console.log(`Daily bargain AI attempt already made for ${today}; keeping the previous set.`);
+  process.exit(0);
+}
+
 const candidates = buildCandidates(catalog.products || []);
 if (candidates.length < bargainCount) {
   throw new Error(`Daily bargain guard failed: only ${candidates.length} suitable candidates.`);
@@ -45,6 +55,11 @@ if (candidates.length < bargainCount) {
 const previousProductIds = Array.isArray(existingPick?.bargains)
   ? existingPick.bargains.map((item) => item.product_id).filter(Boolean)
   : [existingPick?.product_id].filter(Boolean);
+await writeJson(attemptStatePath, {
+  date: today,
+  attempted_at: new Date().toISOString(),
+  status: "started",
+});
 const choices = await chooseWithOpenAI(candidates, previousProductIds);
 const bargains = buildVerifiedBargains(choices, candidates, catalog.products || []);
 const primary = bargains[0];
@@ -64,8 +79,13 @@ const output = {
   bargains,
 };
 
-await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
+await writeJson(outputPath, output);
+await writeJson(attemptStatePath, {
+  date: today,
+  attempted_at: previousAttempt?.attempted_at || new Date().toISOString(),
+  completed_at: new Date().toISOString(),
+  status: "completed",
+});
 console.log(
   `Generated ${bargains.length} daily bargains for ${today}; featured ${primary.product.name.trim()} at ${primary.evidence.best_retailer_name} (${primary.evidence.best_price.toFixed(2)} EUR).`,
 );
@@ -310,6 +330,11 @@ async function readJsonIfPresent(path) {
   } catch {
     return null;
   }
+}
+
+async function writeJson(path, value) {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 function loadLocalEnv(envPath) {
