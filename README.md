@@ -159,13 +159,20 @@ The production React build uses the absolute subpath base `/demo/posokanei-baske
 
 ## Screenshots
 
-Desktop, with a four-stop optimized basket:
+Desktop homepage, with the featured daily product and the new
+`Περισσότερες ευκαιρίες` entry point:
 
-![Desktop app with a four-stop plan](screenshots/desktop.png)
+![Desktop app with the featured daily bargain and more-bargains button](screenshots/desktop.png)
 
-Mobile:
+Mobile homepage:
 
-![Mobile app](screenshots/mobile.png)
+![Mobile app with the featured daily bargain](screenshots/mobile.png)
+
+Expanded AI-assisted bargains on desktop and mobile:
+
+![Desktop expanded daily bargains page](screenshots/bargains.png)
+
+![Mobile expanded daily bargains page](screenshots/bargains-mobile.png)
 
 Product detail, with a larger image for checking the exact product:
 
