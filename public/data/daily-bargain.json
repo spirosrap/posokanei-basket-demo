@@ -1,116 +1,88 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "date": "2026-07-12",
-  "generated_at": "2026-07-12T09:43:30.107Z",
+  "generated_at": "2026-07-12T10:17:40.958Z",
   "catalog_generated_at": "2026-07-12T09:43:13.275Z",
   "model": "gpt-5.6-sol",
   "reasoning_effort": "high",
-  "product_id": "dcf31cfc3e0545e1889eb4b1fab43ed4",
-  "headline": "Μπάρες Nature Valley με μεγάλη διαφορά τιμής",
-  "reason": "Στον Χαλκιαδάκη κοστίζουν 1,50€, δηλαδή 60% λιγότερο από την υψηλότερη τιμή των 3,74€, σε σύγκριση μεταξύ 9 αλυσίδων.",
+  "product_id": "c5ec04d5b722498ba7797268ba7188d1",
+  "headline": "CORNETTO Classico 6 τεμαχίων",
+  "reason": "Στο Lidl είναι 6,37€ ή 68% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 8 αλυσίδες.",
   "evidence": {
-    "best_price": 1.5,
-    "best_retailer_id": "halkiadakis",
-    "best_retailer_name": "Χαλκιαδάκης",
-    "median_price": 3.74,
-    "highest_price": 3.74,
-    "savings_vs_highest": 2.24,
-    "savings_percent_vs_highest": 60,
-    "retailer_count": 9
+    "best_price": 3,
+    "best_retailer_id": "lidl",
+    "best_retailer_name": "Lidl",
+    "median_price": 9.1,
+    "highest_price": 9.37,
+    "savings_vs_highest": 6.37,
+    "savings_percent_vs_highest": 68,
+    "retailer_count": 8
   },
   "product": {
-    "id": "dcf31cfc3e0545e1889eb4b1fab43ed4",
-    "name": "NATURE VALLEY Crunchy Μπάρες Δημητριακών με Βρώμη & Μέλι 5x42g",
-    "brand": "nature valley",
+    "id": "c5ec04d5b722498ba7797268ba7188d1",
+    "name": "CORNETTO Παγωτό Χωνάκι Classico 6τεμ 360g (540ml)",
+    "brand": "Cornetto",
     "images": [],
-    "category": "Μπάρες Δημητριακών",
+    "category": "Παγωτά",
     "category_ids": [
       "fb7311d1172f411dba075194a4120689",
-      "f80725cd-fbce-413c-87d8-a19eaab8b8f3",
-      "b2a17c2ad4235ea8574d602763851fb5"
+      "b2a17c2ad4235ea8574d60276393ddb0",
+      "b2a17c2ad4235ea8574d6027636c8a38"
     ],
-    "subcategory": "Αρτοποιείο / Πρωινό",
-    "description": "Ricche di avena integrale e miele, le barrette Nature Valley Crunchy Fiocchi d'Avena e Miele sono lo spuntino perfetto quando sei in giro, a tua dispos",
-    "image_url": "https://api.posokanei.gov.gr/images/product/dcf31cfc3e0545e1889eb4b1fab43ed4?v=69f9deffdc4b02f7b4858929",
+    "subcategory": "Κατεψυγμένα Τρόφιμα",
+    "description": "Ο αγαπημένος πύραυλος Cornetto σε συσκευασία για όλη την οικογένεια! Απόλαυση...επί 6, με βελούδινη βανίλια και υπέροχα κομμάτια φουντουκιού, σε τραγανό χωνάκι μπισκότου με απολαυστικό σοκολατένιο τελείωμα.",
+    "image_url": "https://api.posokanei.gov.gr/images/product/c5ec04d5b722498ba7797268ba7188d1?v=6a1733d2327dc2d6160b1644",
     "has_image": true,
-    "updated_at": "2026-07-12T07:04:19.634000",
-    "image_version": "69f9deffdc4b02f7b4858929",
-    "unit": "kg",
-    "unit_quantity": 0.21,
+    "updated_at": "2026-07-12T07:05:07.726000",
+    "image_version": "6a1733d2327dc2d6160b1644",
+    "unit": "pcs",
+    "unit_quantity": 6,
     "private_label": false,
     "price_stats": {
-      "min_price": 1.5,
-      "max_price": 3.74,
-      "avg_price": 3.06,
-      "retailer_count": 9,
-      "min_unit_price": 7.14,
+      "min_price": 3,
+      "max_price": 9.37,
+      "avg_price": 7.19,
+      "retailer_count": 8,
+      "min_unit_price": 0.5,
       "last_computed": null
     },
     "retailers": [
-      "ab_vasilopoulos",
-      "alphamega",
-      "carrefour_es",
-      "carrefour_it",
-      "conad",
-      "galaxias",
       "halkiadakis",
-      "kritikos",
       "masoutis",
       "mymarket",
       "sklavenitis",
+      "ab_vasilopoulos",
       "synka"
     ],
     "retailer_prices": [
       {
-        "retailer": "halkiadakis",
-        "retailer_display_name": "Χαλκιαδάκης",
-        "retailer_name": "",
-        "price": 1.5,
-        "price_normalized": 7.14,
-        "is_discount": false,
-        "discount_percentage": null,
-        "last_updated": "2026-07-12T00:00:00",
-        "country": "GR"
-      },
-      {
-        "retailer": "mymarket",
-        "retailer_display_name": "My Market",
-        "retailer_name": "",
-        "price": 2.43,
-        "price_normalized": 11.57,
-        "is_discount": false,
-        "discount_percentage": null,
-        "last_updated": "2026-07-12T00:00:00",
-        "country": "GR"
-      },
-      {
         "retailer": "lidl",
         "retailer_display_name": "Lidl",
         "retailer_name": "",
-        "price": 2.44,
-        "price_normalized": 11.62,
-        "is_discount": false,
+        "price": 3,
+        "price_normalized": 0.5,
+        "is_discount": true,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
         "country": "GR"
       },
       {
-        "retailer": "ab_vasilopoulos",
-        "retailer_display_name": "ΑΒ Βασιλόπουλος",
+        "retailer": "sklavenitis",
+        "retailer_display_name": "Σκλαβενίτης",
         "retailer_name": "",
-        "price": 2.49,
-        "price_normalized": 11.86,
-        "is_discount": false,
+        "price": 3,
+        "price_normalized": 0.5,
+        "is_discount": true,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
         "country": "GR"
       },
       {
-        "retailer": "synka",
-        "retailer_display_name": "Synka",
+        "retailer": "galaxias",
+        "retailer_display_name": "Γαλαξίας",
         "retailer_name": "",
-        "price": 3.74,
-        "price_normalized": 17.81,
+        "price": 5.78,
+        "price_normalized": 0.96,
         "is_discount": false,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
@@ -120,41 +92,52 @@
         "retailer": "masoutis",
         "retailer_display_name": "Μασούτης",
         "retailer_name": "",
-        "price": 3.74,
-        "price_normalized": 17.81,
+        "price": 8.95,
+        "price_normalized": 1.49,
         "is_discount": false,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
         "country": "GR"
       },
       {
-        "retailer": "kritikos",
-        "retailer_display_name": "Κρητικός",
+        "retailer": "mymarket",
+        "retailer_display_name": "My Market",
         "retailer_name": "",
-        "price": 3.74,
-        "price_normalized": 17.81,
+        "price": 9.1,
+        "price_normalized": 1.52,
         "is_discount": false,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
         "country": "GR"
       },
       {
-        "retailer": "galaxias",
-        "retailer_display_name": "Γαλαξίας",
+        "retailer": "halkiadakis",
+        "retailer_display_name": "Χαλκιαδάκης",
         "retailer_name": "",
-        "price": 3.74,
-        "price_normalized": 17.81,
+        "price": 9.1,
+        "price_normalized": 1.52,
         "is_discount": false,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
         "country": "GR"
       },
       {
-        "retailer": "sklavenitis",
-        "retailer_display_name": "Σκλαβενίτης",
+        "retailer": "ab_vasilopoulos",
+        "retailer_display_name": "ΑΒ Βασιλόπουλος",
         "retailer_name": "",
-        "price": 3.74,
-        "price_normalized": 17.81,
+        "price": 9.25,
+        "price_normalized": 1.54,
+        "is_discount": false,
+        "discount_percentage": null,
+        "last_updated": "2026-07-12T00:00:00",
+        "country": "GR"
+      },
+      {
+        "retailer": "synka",
+        "retailer_display_name": "Synka",
+        "retailer_name": "",
+        "price": 9.37,
+        "price_normalized": 1.56,
         "is_discount": false,
         "discount_percentage": null,
         "last_updated": "2026-07-12T00:00:00",
@@ -162,11 +145,1273 @@
       }
     ],
     "available_countries": [
-      "CY",
-      "ES",
-      "GR",
-      "IT"
+      "GR"
     ],
-    "is_international": true
-  }
+    "is_international": false
+  },
+  "bargains": [
+    {
+      "product_id": "c5ec04d5b722498ba7797268ba7188d1",
+      "headline": "CORNETTO Classico 6 τεμαχίων",
+      "reason": "Στο Lidl είναι 6,37€ ή 68% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 8 αλυσίδες.",
+      "evidence": {
+        "best_price": 3,
+        "best_retailer_id": "lidl",
+        "best_retailer_name": "Lidl",
+        "median_price": 9.1,
+        "highest_price": 9.37,
+        "savings_vs_highest": 6.37,
+        "savings_percent_vs_highest": 68,
+        "retailer_count": 8
+      },
+      "product": {
+        "id": "c5ec04d5b722498ba7797268ba7188d1",
+        "name": "CORNETTO Παγωτό Χωνάκι Classico 6τεμ 360g (540ml)",
+        "brand": "Cornetto",
+        "images": [],
+        "category": "Παγωτά",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "b2a17c2ad4235ea8574d60276393ddb0",
+          "b2a17c2ad4235ea8574d6027636c8a38"
+        ],
+        "subcategory": "Κατεψυγμένα Τρόφιμα",
+        "description": "Ο αγαπημένος πύραυλος Cornetto σε συσκευασία για όλη την οικογένεια! Απόλαυση...επί 6, με βελούδινη βανίλια και υπέροχα κομμάτια φουντουκιού, σε τραγανό χωνάκι μπισκότου με απολαυστικό σοκολατένιο τελείωμα.",
+        "image_url": "https://api.posokanei.gov.gr/images/product/c5ec04d5b722498ba7797268ba7188d1?v=6a1733d2327dc2d6160b1644",
+        "has_image": true,
+        "updated_at": "2026-07-12T07:05:07.726000",
+        "image_version": "6a1733d2327dc2d6160b1644",
+        "unit": "pcs",
+        "unit_quantity": 6,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 3,
+          "max_price": 9.37,
+          "avg_price": 7.19,
+          "retailer_count": 8,
+          "min_unit_price": 0.5,
+          "last_computed": null
+        },
+        "retailers": [
+          "halkiadakis",
+          "masoutis",
+          "mymarket",
+          "sklavenitis",
+          "ab_vasilopoulos",
+          "synka"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "lidl",
+            "retailer_display_name": "Lidl",
+            "retailer_name": "",
+            "price": 3,
+            "price_normalized": 0.5,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 3,
+            "price_normalized": 0.5,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 5.78,
+            "price_normalized": 0.96,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 8.95,
+            "price_normalized": 1.49,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 9.1,
+            "price_normalized": 1.52,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 9.1,
+            "price_normalized": 1.52,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "ab_vasilopoulos",
+            "retailer_display_name": "ΑΒ Βασιλόπουλος",
+            "retailer_name": "",
+            "price": 9.25,
+            "price_normalized": 1.54,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 9.37,
+            "price_normalized": 1.56,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR"
+        ],
+        "is_international": false
+      }
+    },
+    {
+      "product_id": "339dc88c642646d781701fe2b4d0de92",
+      "headline": "ALOMA τρίγευστο παγωτό 1kg +455g",
+      "reason": "Στον Χαλκιαδάκη είναι 8,45€ ή 52% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 8 αλυσίδες.",
+      "evidence": {
+        "best_price": 7.95,
+        "best_retailer_id": "halkiadakis",
+        "best_retailer_name": "Χαλκιαδάκης",
+        "median_price": 15.9,
+        "highest_price": 16.4,
+        "savings_vs_highest": 8.45,
+        "savings_percent_vs_highest": 52,
+        "retailer_count": 8
+      },
+      "product": {
+        "id": "339dc88c642646d781701fe2b4d0de92",
+        "name": "ALOMA Παγωτό Κακάο Βανίλια Φράουλα 1kg (2lt) +455g Δώρο",
+        "brand": "Aloma",
+        "images": [],
+        "category": "Παγωτά",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "b2a17c2ad4235ea8574d60276393ddb0",
+          "b2a17c2ad4235ea8574d6027636c8a38"
+        ],
+        "subcategory": "Κατεψυγμένα Τρόφιμα",
+        "description": "Παγωτό με γεύσεις βανίλια - σοκολάτα φράουλα",
+        "image_url": "https://api.posokanei.gov.gr/images/product/339dc88c642646d781701fe2b4d0de92?v=6a1733d1327dc2d6160b1636",
+        "has_image": true,
+        "updated_at": "2026-07-12T08:55:12.749000",
+        "image_version": "6a1733d1327dc2d6160b1636",
+        "unit": "kg",
+        "unit_quantity": 1,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 7.95,
+          "max_price": 16.4,
+          "avg_price": 12.12,
+          "retailer_count": 8,
+          "min_unit_price": 7.95,
+          "last_computed": null
+        },
+        "retailers": [
+          "galaxias",
+          "halkiadakis",
+          "kritikos",
+          "masoutis",
+          "mymarket"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 7.95,
+            "price_normalized": 7.95,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 7.95,
+            "price_normalized": 7.95,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 7.96,
+            "price_normalized": 7.96,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "lidl",
+            "retailer_display_name": "Lidl",
+            "retailer_name": "",
+            "price": 8.98,
+            "price_normalized": 8.98,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 15.9,
+            "price_normalized": 15.9,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "kritikos",
+            "retailer_display_name": "Κρητικός",
+            "retailer_name": "",
+            "price": 15.9,
+            "price_normalized": 15.9,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 15.92,
+            "price_normalized": 15.92,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 16.4,
+            "price_normalized": 16.4,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR"
+        ],
+        "is_international": false
+      }
+    },
+    {
+      "product_id": "5a515e15733a41f59d11706ff8b454f2",
+      "headline": "TEZA Gel για κατσαρίδες 10g",
+      "reason": "Στον Σκλαβενίτη είναι 8,03€ ή 57% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 6 αλυσίδες.",
+      "evidence": {
+        "best_price": 5.95,
+        "best_retailer_id": "sklavenitis",
+        "best_retailer_name": "Σκλαβενίτης",
+        "median_price": 8.39,
+        "highest_price": 13.98,
+        "savings_vs_highest": 8.03,
+        "savings_percent_vs_highest": 57,
+        "retailer_count": 6
+      },
+      "product": {
+        "id": "5a515e15733a41f59d11706ff8b454f2",
+        "name": "TEZA Exterminator Gel Εντομοκτόνο Τζελ σε σύριγγα για Κατσαρίδες10g",
+        "brand": "Teza",
+        "images": [],
+        "category": "Εντομοκτόνα, Εντομοαπωθητικά",
+        "category_ids": [
+          "648a987abf254feb8cf62a10ea1eb117",
+          "b2a17c2ad4235ea8574d602763a6ae7f"
+        ],
+        "subcategory": "Καθαριότητα",
+        "description": null,
+        "image_url": "https://api.posokanei.gov.gr/images/product/5a515e15733a41f59d11706ff8b454f2?v=69d91f89ee13ba2de98f89d2",
+        "has_image": true,
+        "updated_at": "2026-07-12T09:06:33.160000",
+        "image_version": "69d91f89ee13ba2de98f89d2",
+        "unit": "kg",
+        "unit_quantity": 0.055,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 5.95,
+          "max_price": 13.98,
+          "avg_price": 8.9,
+          "retailer_count": 6,
+          "min_unit_price": 108.18,
+          "last_computed": null
+        },
+        "retailers": [
+          "ab_vasilopoulos",
+          "halkiadakis",
+          "masoutis",
+          "mymarket",
+          "sklavenitis"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 5.95,
+            "price_normalized": 108.18,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 7.13,
+            "price_normalized": 129.64,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 8.39,
+            "price_normalized": 152.55,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 8.39,
+            "price_normalized": 152.55,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "ab_vasilopoulos",
+            "retailer_display_name": "ΑΒ Βασιλόπουλος",
+            "retailer_name": "",
+            "price": 9.56,
+            "price_normalized": 173.82,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 13.98,
+            "price_normalized": 254.18,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR"
+        ],
+        "is_international": false
+      }
+    },
+    {
+      "product_id": "0d49373a9033444ab7b513be1ea4deab",
+      "headline": "FLOWERS Μοσχοφίλερο Μαντίνεια 750ml",
+      "reason": "Στο Lidl είναι 5,41€ ή 64% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 7 αλυσίδες.",
+      "evidence": {
+        "best_price": 2.99,
+        "best_retailer_id": "lidl",
+        "best_retailer_name": "Lidl",
+        "median_price": 5.88,
+        "highest_price": 8.4,
+        "savings_vs_highest": 5.41,
+        "savings_percent_vs_highest": 64,
+        "retailer_count": 7
+      },
+      "product": {
+        "id": "0d49373a9033444ab7b513be1ea4deab",
+        "name": "FLOWERS Ελληνικά Κελλάρια Λευκός Οίνος Μοσχοφίλερο ΠΟΠ Μαντίνεια 750ml",
+        "brand": "Flowers",
+        "images": [],
+        "category": "Μοσχοφίλερο",
+        "category_ids": [
+          "7f677200338b447cb4d469622588b749",
+          "b2a17c2ad4235ea8574d60276396bfcb",
+          "b2a17c2ad4235ea8574d60276395d5d4",
+          "b91647c9a9444018a971a1ffea317f77"
+        ],
+        "subcategory": "Κρασί",
+        "description": "Κρασί με ανοιχτόχρωμο λαμπερό χρώμα, λεπτό, έντονο ποικιλιακό άρωμα, ζωηρό και φρουτώδες στη γεύση. Συνοδεύει αρμονικά ψάρια και θαλασσινά, άσπρα κρέατα και ζυμαρικά με λευκές σάλτσες. Σερβίρεται στους 8-12°C. ",
+        "image_url": "https://api.posokanei.gov.gr/images/product/0d49373a9033444ab7b513be1ea4deab?v=6a1a6ef9486cf108a79a4913",
+        "has_image": true,
+        "updated_at": "2026-07-12T08:44:09.906000",
+        "image_version": "6a1a6ef9486cf108a79a4913",
+        "unit": "L",
+        "unit_quantity": 0.75,
+        "private_label": true,
+        "price_stats": {
+          "min_price": 2.99,
+          "max_price": 8.4,
+          "avg_price": 6.2,
+          "retailer_count": 7,
+          "min_unit_price": 3.99,
+          "last_computed": null
+        },
+        "retailers": [
+          "ab_vasilopoulos",
+          "galaxias",
+          "kritikos"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "lidl",
+            "retailer_display_name": "Lidl",
+            "retailer_name": "",
+            "price": 2.99,
+            "price_normalized": 3.99,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 5.55,
+            "price_normalized": 7.4,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 5.88,
+            "price_normalized": 7.84,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 5.88,
+            "price_normalized": 7.84,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "ab_vasilopoulos",
+            "retailer_display_name": "ΑΒ Βασιλόπουλος",
+            "retailer_name": "",
+            "price": 6.3,
+            "price_normalized": 8.4,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 8.4,
+            "price_normalized": 11.2,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "kritikos",
+            "retailer_display_name": "Κρητικός",
+            "retailer_name": "",
+            "price": 8.4,
+            "price_normalized": 11.2,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR"
+        ],
+        "is_international": false
+      }
+    },
+    {
+      "product_id": "2998272f71d249ba9018339daf807627",
+      "headline": "McCain Tradition πατάτες 1kg",
+      "reason": "Στον Χαλκιαδάκη είναι 2,89€ ή 63% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 7 αλυσίδες.",
+      "evidence": {
+        "best_price": 1.7,
+        "best_retailer_id": "halkiadakis",
+        "best_retailer_name": "Χαλκιαδάκης",
+        "median_price": 4.28,
+        "highest_price": 4.59,
+        "savings_vs_highest": 2.89,
+        "savings_percent_vs_highest": 63,
+        "retailer_count": 7
+      },
+      "product": {
+        "id": "2998272f71d249ba9018339daf807627",
+        "name": "Πατάτες MCCAIN Tradition Vegan 1kg",
+        "brand": "McCain",
+        "images": [],
+        "category": "Πατάτες",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "b2a17c2ad4235ea8574d60276393ddb0",
+          "b2a17c2ad4235ea8574d60276393f3ca"
+        ],
+        "subcategory": "Κατεψυγμένα Τρόφιμα",
+        "description": "Batata palito Tradition, corte tradicional, pré-frito e ultracongelado.",
+        "image_url": "https://api.posokanei.gov.gr/images/product/2998272f71d249ba9018339daf807627?v=69f9e158dc4b02f7b4858954",
+        "has_image": true,
+        "updated_at": "2026-07-12T08:52:20.914000",
+        "image_version": "69f9e158dc4b02f7b4858954",
+        "unit": "kg",
+        "unit_quantity": 1,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 1.7,
+          "max_price": 4.59,
+          "avg_price": 3.49,
+          "retailer_count": 7,
+          "min_unit_price": 1.7,
+          "last_computed": null
+        },
+        "retailers": [
+          "ab_vasilopoulos",
+          "continente",
+          "galaxias",
+          "halkiadakis",
+          "masoutis",
+          "mymarket",
+          "sklavenitis"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 1.7,
+            "price_normalized": 1.7,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 2.28,
+            "price_normalized": 2.28,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 2.83,
+            "price_normalized": 2.83,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 4.28,
+            "price_normalized": 4.28,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 4.37,
+            "price_normalized": 4.37,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 4.37,
+            "price_normalized": 4.37,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "ab_vasilopoulos",
+            "retailer_display_name": "ΑΒ Βασιλόπουλος",
+            "retailer_name": "",
+            "price": 4.59,
+            "price_normalized": 4.59,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR",
+          "PT"
+        ],
+        "is_international": true
+      }
+    },
+    {
+      "product_id": "1ed33ec0998645b4a4fd00356c65af44",
+      "headline": "ORBIT Refreshers καρπούζι & βατόμουρο 67g",
+      "reason": "Στον Γαλαξία είναι 1,86€ ή 62% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 6 αλυσίδες.",
+      "evidence": {
+        "best_price": 1.13,
+        "best_retailer_id": "galaxias",
+        "best_retailer_name": "Γαλαξίας",
+        "median_price": 2.98,
+        "highest_price": 2.99,
+        "savings_vs_highest": 1.86,
+        "savings_percent_vs_highest": 62,
+        "retailer_count": 6
+      },
+      "product": {
+        "id": "1ed33ec0998645b4a4fd00356c65af44",
+        "name": "ORBIT Refreshers Watermelon & Raspberry Τσίχλες Χωρίς Ζάχαρη 67g",
+        "brand": "Orbit",
+        "images": [],
+        "category": "Τσίχλες",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "b2a17c2ad4235ea8574d60276391afff",
+          "b2a17c2ad4235ea8574d6027636c39c7"
+        ],
+        "subcategory": "Ζαχαρώδη,  Επιδόρπια ",
+        "description": null,
+        "image_url": "https://api.posokanei.gov.gr/images/product/1ed33ec0998645b4a4fd00356c65af44?v=6a2971ed486cf108a79a5394",
+        "has_image": true,
+        "updated_at": "2026-07-12T08:48:39.982000",
+        "image_version": "6a2971ed486cf108a79a5394",
+        "unit": "kg",
+        "unit_quantity": 0.067,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 1.13,
+          "max_price": 2.99,
+          "avg_price": 2.5,
+          "retailer_count": 6,
+          "min_unit_price": 16.87,
+          "last_computed": null
+        },
+        "retailers": [
+          "alphamega",
+          "halkiadakis",
+          "masoutis"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 1.13,
+            "price_normalized": 16.87,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 1.94,
+            "price_normalized": 28.96,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 2.98,
+            "price_normalized": 44.48,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 2.98,
+            "price_normalized": 44.48,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 2.99,
+            "price_normalized": 44.63,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 2.99,
+            "price_normalized": 44.63,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "CY",
+          "GR"
+        ],
+        "is_international": true
+      }
+    },
+    {
+      "product_id": "66f88649542e4bb28164065cab91bdd0",
+      "headline": "FITNESS Original δημητριακά 375g",
+      "reason": "Στο Lidl είναι 2,22€ ή 54% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 8 αλυσίδες.",
+      "evidence": {
+        "best_price": 1.88,
+        "best_retailer_id": "lidl",
+        "best_retailer_name": "Lidl",
+        "median_price": 3.95,
+        "highest_price": 4.1,
+        "savings_vs_highest": 2.22,
+        "savings_percent_vs_highest": 54,
+        "retailer_count": 8
+      },
+      "product": {
+        "id": "66f88649542e4bb28164065cab91bdd0",
+        "name": "FITNESS Δημητριακά Original 375g",
+        "brand": "Fitness",
+        "images": [],
+        "category": "Δημητριακά",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "f80725cd-fbce-413c-87d8-a19eaab8b8f3",
+          "b2a17c2ad4235ea8574d60276384b26a"
+        ],
+        "subcategory": "Αρτοποιείο / Πρωινό",
+        "description": "Τα δημητριακά FITNESS είναι φτιαγμένα για εσένα με απολαυστικά θρεπτικά συστατικά και τώρα προσθέσαμε και βρώμη ολικής άλεσης! Παράλληλα περιέχουν και βιταμίνες του συμπλέγματος Β που βοηθούν στην απελευθέρωση της ενέργειας από την τροφή σου. Η ολική άλεση είναι το βασικό μας συστατικό, γι' αυτό θα αγαπήσεις κάθε κουταλιά!",
+        "image_url": "https://api.posokanei.gov.gr/images/product/66f88649542e4bb28164065cab91bdd0?v=69f9da4cdc4b02f7b48588d7",
+        "has_image": true,
+        "updated_at": "2026-07-12T09:10:01.262000",
+        "image_version": "69f9da4cdc4b02f7b48588d7",
+        "unit": "kg",
+        "unit_quantity": 0.375,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 1.88,
+          "max_price": 4.1,
+          "avg_price": 3.53,
+          "retailer_count": 8,
+          "min_unit_price": 5.01,
+          "last_computed": null
+        },
+        "retailers": [
+          "ab_vasilopoulos",
+          "alphamega",
+          "carrefour_it",
+          "conad",
+          "ebag",
+          "galaxias",
+          "halkiadakis",
+          "kritikos",
+          "market_in",
+          "masoutis",
+          "mymarket",
+          "sklavenitis"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "lidl",
+            "retailer_display_name": "Lidl",
+            "retailer_name": "",
+            "price": 1.88,
+            "price_normalized": 5.01,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 2.43,
+            "price_normalized": 6.48,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 3.95,
+            "price_normalized": 10.53,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 3.95,
+            "price_normalized": 10.53,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 3.95,
+            "price_normalized": 10.53,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "kritikos",
+            "retailer_display_name": "Κρητικός",
+            "retailer_name": "",
+            "price": 3.95,
+            "price_normalized": 10.53,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 4.01,
+            "price_normalized": 10.69,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 4.1,
+            "price_normalized": 10.93,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "BG",
+          "CY",
+          "GR",
+          "IT"
+        ],
+        "is_international": true
+      }
+    },
+    {
+      "product_id": "f78f6c21685f4777ada4e1efa56cbe46",
+      "headline": "ΩΜΕΓΑ φασόλια μέτρια 500g",
+      "reason": "Στον Χαλκιαδάκη είναι 1,55€ ή 61% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 6 αλυσίδες.",
+      "evidence": {
+        "best_price": 1,
+        "best_retailer_id": "halkiadakis",
+        "best_retailer_name": "Χαλκιαδάκης",
+        "median_price": 2.06,
+        "highest_price": 2.55,
+        "savings_vs_highest": 1.55,
+        "savings_percent_vs_highest": 61,
+        "retailer_count": 6
+      },
+      "product": {
+        "id": "f78f6c21685f4777ada4e1efa56cbe46",
+        "name": "ΩΜΕΓΑ Special Φασόλια Μέτρια Εισαγωγής 500gr",
+        "brand": "ΩΜΕΓΑ",
+        "images": [],
+        "category": "Φασόλια",
+        "category_ids": [
+          "fb7311d1172f411dba075194a4120689",
+          "b2a17c2ad4235ea8574d60276376fda9",
+          "b2a17c2ad4235ea8574d60276377f2ba",
+          "b2a17c2ad4235ea8574d60276377eda9"
+        ],
+        "subcategory": "Όσπρια",
+        "description": null,
+        "image_url": "https://api.posokanei.gov.gr/images/product/f78f6c21685f4777ada4e1efa56cbe46?v=69d3913572191242fc3b22c1",
+        "has_image": true,
+        "updated_at": "2026-07-12T06:58:53.601000",
+        "image_version": "69d3913572191242fc3b22c1",
+        "unit": "kg",
+        "unit_quantity": 0.5,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 1,
+          "max_price": 2.55,
+          "avg_price": 1.99,
+          "retailer_count": 6,
+          "min_unit_price": 2,
+          "last_computed": null
+        },
+        "retailers": [
+          "galaxias",
+          "halkiadakis",
+          "masoutis",
+          "mymarket",
+          "sklavenitis",
+          "synka"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 1,
+            "price_normalized": 2,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 1.92,
+            "price_normalized": 3.84,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 1.92,
+            "price_normalized": 3.84,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 2.06,
+            "price_normalized": 4.12,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 2.48,
+            "price_normalized": 4.96,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 2.55,
+            "price_normalized": 5.1,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "GR"
+        ],
+        "is_international": false
+      }
+    },
+    {
+      "product_id": "14360a37919b41eea3f3135714420631",
+      "headline": "NIVEA Men Dry Impact Roll On 50ml",
+      "reason": "Στο My Market είναι 2,72€ ή 52% χαμηλότερα από την υψηλότερη τιμή, ανάμεσα σε 10 αλυσίδες.",
+      "evidence": {
+        "best_price": 2.48,
+        "best_retailer_id": "mymarket",
+        "best_retailer_name": "My Market",
+        "median_price": 2.64,
+        "highest_price": 5.2,
+        "savings_vs_highest": 2.72,
+        "savings_percent_vs_highest": 52,
+        "retailer_count": 10
+      },
+      "product": {
+        "id": "14360a37919b41eea3f3135714420631",
+        "name": "NIVEA Men Skin Active Protection Αποσμητικό Roll On Dry Impact 50ml",
+        "brand": "NIVEA",
+        "images": [],
+        "category": "Αποσμητικά",
+        "category_ids": [
+          "b2a17c2ad4235ea8574d602763988be6",
+          "f469418b-074d-425c-98ca-89ac16474ee7",
+          "oXd5MrkKnqYBYl98q59Faxl2rBrSwoEd"
+        ],
+        "subcategory": "Ξύρισμα & Ανδρική φροντίδα",
+        "description": "Το αποσμητικό NIVEA Men Dry Impact Plus σας δίνει εξαιρετική προστασία από τον ιδρώτα για στεγνή αίσθηση περιποίησης και 48 ώρες προστασία από τον ιδρώτα και την κακοσμία. Για πρώτη φορά, η έρευνα της NIVEA MEN ανέπτυξε μια σύνθεση που περιέχει ένα δεύτερο, πρόσθετο αντιιδρωτικό παράγοντα. Αυτό το μοναδικό «σύστημα DryPlus» σάς παρέχει αξιόπιστη προστασία 48 ώρες από τον ιδρώτα και την κακοσμίαΠροσφέρει τη σιγουριά της αποτελεσματικής 48ωρης ρύθμισης της εφίδρωσης, χαρίζοντάς σας μια ευχάριστη αίσθηση στεγνής επιδερμίδαςΧωρίς οινόπνευμα, χρωστικές ουσίες και συντηρητικά.Συμβατό με την επιδερμίδα, δερματολογικά εγκεκριμένο.\n'- Δυνατή προστασία, δοκιμασμένη σε πραγματικές συνθήκες\r\n - Αξιόπιστη 48h προστασία\r\n - Γρήγορη Απορρόφηση\r\n - Χωρίς Αιθυλική Αλκοόλη",
+        "image_url": "https://api.posokanei.gov.gr/images/product/14360a37919b41eea3f3135714420631?v=6a44d3cdfa2c39a9c257f668",
+        "has_image": true,
+        "updated_at": "2026-07-12T08:45:56.829000",
+        "image_version": "6a44d3cdfa2c39a9c257f668",
+        "unit": "L",
+        "unit_quantity": 0.05,
+        "private_label": false,
+        "price_stats": {
+          "min_price": 2.48,
+          "max_price": 5.2,
+          "avg_price": 2.87,
+          "retailer_count": 10,
+          "min_unit_price": 49.6,
+          "last_computed": null
+        },
+        "retailers": [
+          "ab_vasilopoulos",
+          "alphamega",
+          "carrefour_it",
+          "continente",
+          "delhaize",
+          "galaxias",
+          "halkiadakis",
+          "kritikos",
+          "market_in",
+          "masoutis",
+          "mymarket",
+          "sklavenitis"
+        ],
+        "retailer_prices": [
+          {
+            "retailer": "mymarket",
+            "retailer_display_name": "My Market",
+            "retailer_name": "",
+            "price": 2.48,
+            "price_normalized": 49.6,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "halkiadakis",
+            "retailer_display_name": "Χαλκιαδάκης",
+            "retailer_name": "",
+            "price": 2.49,
+            "price_normalized": 49.8,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "galaxias",
+            "retailer_display_name": "Γαλαξίας",
+            "retailer_name": "",
+            "price": 2.5,
+            "price_normalized": 50,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "synka",
+            "retailer_display_name": "Synka",
+            "retailer_name": "",
+            "price": 2.64,
+            "price_normalized": 52.8,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "masoutis",
+            "retailer_display_name": "Μασούτης",
+            "retailer_name": "",
+            "price": 2.64,
+            "price_normalized": 52.8,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "kritikos",
+            "retailer_display_name": "Κρητικός",
+            "retailer_name": "",
+            "price": 2.64,
+            "price_normalized": 52.8,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "sklavenitis",
+            "retailer_display_name": "Σκλαβενίτης",
+            "retailer_name": "",
+            "price": 2.68,
+            "price_normalized": 53.6,
+            "is_discount": true,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "market_in",
+            "retailer_display_name": "Market In",
+            "retailer_name": "",
+            "price": 2.69,
+            "price_normalized": 53.8,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "ab_vasilopoulos",
+            "retailer_display_name": "ΑΒ Βασιλόπουλος",
+            "retailer_name": "",
+            "price": 2.78,
+            "price_normalized": 55.6,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          },
+          {
+            "retailer": "lidl",
+            "retailer_display_name": "Lidl",
+            "retailer_name": "",
+            "price": 5.2,
+            "price_normalized": 104,
+            "is_discount": false,
+            "discount_percentage": null,
+            "last_updated": "2026-07-12T00:00:00",
+            "country": "GR"
+          }
+        ],
+        "available_countries": [
+          "BE",
+          "CY",
+          "GR",
+          "IT",
+          "PT"
+        ],
+        "is_international": true
+      }
+    }
+  ]
 }

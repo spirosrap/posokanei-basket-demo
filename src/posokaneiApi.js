@@ -1,12 +1,13 @@
 const API_ORIGIN = "https://api.posokanei.gov.gr";
+const APP_BASE_URL = import.meta.env.BASE_URL;
 const PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
-  : "./api/posokanei.php";
+  : `${APP_BASE_URL}api/posokanei.php`;
 const UPDATE_STATUS_URL = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php"
-  : "./api/update-status.php";
-const CATALOG_SNAPSHOT_URL = "./data/catalog.json";
-const DAILY_BARGAIN_URL = "./data/daily-bargain.json";
+  : `${APP_BASE_URL}api/update-status.php`;
+const CATALOG_SNAPSHOT_URL = `${APP_BASE_URL}data/catalog.json`;
+const DAILY_BARGAIN_URL = `${APP_BASE_URL}data/daily-bargain.json`;
 
 const PAGE_SIZE = 30;
 const RETAILER_COLORS = [
@@ -384,11 +385,24 @@ export async function fetchDailyBargain() {
   if (!raw?.product_id || !raw?.product || !raw?.evidence) {
     throw new Error("Daily bargain data is incomplete.");
   }
+  const rawBargains = Array.isArray(raw.bargains) && raw.bargains.length ? raw.bargains : [raw];
+  const bargains = rawBargains.map(normalizeBargain).filter(Boolean);
+  if (!bargains.length) throw new Error("Daily bargain list is incomplete.");
+
   return {
+    ...bargains[0],
     date: raw.date || "",
     generatedAt: raw.generated_at || "",
     catalogGeneratedAt: raw.catalog_generated_at || "",
-    headline: raw.headline || "Η ευκαιρία της ημέρας",
+    bargains,
+  };
+}
+
+function normalizeBargain(raw) {
+  if (!raw?.product_id || !raw?.product || !raw?.evidence) return null;
+  return {
+    productId: String(raw.product_id),
+    headline: raw.headline || "Ευκαιρία τιμής",
     reason: raw.reason || "",
     evidence: {
       bestPrice: Number(raw.evidence.best_price),

@@ -103,11 +103,13 @@ success it stores the new catalogue timestamp; on upstream failure it stores the
 failed attempt time and a short error such as `Upstream returned HTTP 403`.
 `update-status.php` merges this into the UI status response.
 
-`data/daily-bargain.json` contains the public daily suggestion. It is generated
+`data/daily-bargain.json` contains the featured daily suggestion plus eight
+additional bargains used by `/bargains/`. They are generated in one daily request
 on the Mac from public catalogue facts using `gpt-5.6-sol` with `high` reasoning,
-then uploaded like the other static data files. The displayed price, retailer,
-and savings are computed and validated by code; AI only selects a verified
-candidate and writes the Greek editorial text.
+then uploaded like the other static data files. Every product ID is validated for
+uniqueness and membership in the code-built candidate list. Displayed prices,
+retailers, and savings are computed and validated by code; AI only selects the
+verified candidates and writes the Greek editorial text.
 
 Scheduled update check:
 

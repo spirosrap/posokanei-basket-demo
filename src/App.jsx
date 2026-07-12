@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowDownUp,
   Barcode,
   Check,
@@ -57,9 +58,12 @@ import {
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
+const APP_BASE_PATH = import.meta.env.BASE_URL;
+const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
+const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
 const IMAGE_PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
-  : "./api/posokanei.php";
+  : `${APP_BASE_PATH}api/posokanei.php`;
 
 const RETAILER_LOGO_FALLBACKS = {
   ab_vasilopoulos: ["https://static.ab.gr/static/next/images/logo_header_ab_gr.svg"],
@@ -138,6 +142,7 @@ function App() {
   const [health, setHealth] = useState({ state: "checking", label: "Σύνδεση με κατάλογο" });
   const [updateStatus, setUpdateStatus] = useState(null);
   const [dailyBargain, setDailyBargain] = useState(null);
+  const [dailyBargainState, setDailyBargainState] = useState("loading");
   const [liveProducts, setLiveProducts] = useState([]);
   const [liveRetailers, setLiveRetailers] = useState([]);
   const [liveCategories, setLiveCategories] = useState([]);
@@ -213,9 +218,17 @@ function App() {
       .then((pick) => {
         if (cancelled) return;
         setDailyBargain(pick);
-        setLiveBasketProducts((current) => mergeCatalogProducts(current, [pick.product]));
+        setDailyBargainState("ready");
+        setLiveBasketProducts((current) =>
+          mergeCatalogProducts(
+            current,
+            pick.bargains.map((item) => item.product),
+          ),
+        );
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setDailyBargainState("error");
+      });
     return () => {
       cancelled = true;
     };
@@ -445,6 +458,29 @@ function App() {
     });
   };
 
+  if (IS_BARGAINS_PAGE) {
+    return (
+      <div className="app-shell bargains-shell">
+        <Header health={health} basketCount={basket.length} />
+        <BargainsPage
+          pick={dailyBargain}
+          state={dailyBargainState}
+          retailers={activeRetailers}
+          onSelect={setSelectedProduct}
+          onAdd={addToBasket}
+        />
+        {selectedProduct ? (
+          <ProductDrawer
+            product={selectedProduct}
+            retailers={activeRetailers}
+            onClose={() => setSelectedProduct(null)}
+            onAdd={() => addToBasket(selectedProduct)}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <Header
@@ -461,6 +497,7 @@ function App() {
           retailers={activeRetailers}
           onSelect={() => setSelectedProduct(dailyBargain.product)}
           onAdd={() => addToBasket(dailyBargain.product)}
+          moreHref={BARGAINS_PATH}
         />
       ) : null}
 
@@ -524,7 +561,7 @@ function App() {
   );
 }
 
-function DailyBargain({ pick, retailers, onSelect, onAdd }) {
+function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
   const retailer = retailers.find((item) => item.id === pick.evidence.bestRetailerId);
   const updated = formatDataTime(pick.generatedAt);
   return (
@@ -565,12 +602,136 @@ function DailyBargain({ pick, retailers, onSelect, onAdd }) {
           <Info size={16} />
           Λεπτομέρειες
         </button>
+        <a className="text-button bargains-button" href={moreHref}>
+          <Sparkles size={16} />
+          Περισσότερες ευκαιρίες
+          <ChevronRight size={15} />
+        </a>
         <button type="button" className="text-button primary-button" onClick={onAdd}>
           <Plus size={17} />
           Στο καλάθι
         </button>
       </div>
     </section>
+  );
+}
+
+function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
+  const bargains = pick?.bargains || [];
+  const updated = formatDataTime(pick?.generatedAt);
+
+  return (
+    <main className="bargains-page">
+      <a className="bargains-back" href={APP_BASE_PATH}>
+        <ArrowLeft size={17} />
+        Πίσω στο καλάθι
+      </a>
+
+      <header className="bargains-heading">
+        <div>
+          <span className="bargains-eyebrow">
+            <Sparkles size={16} />
+            Καθημερινές επιλογές
+          </span>
+          <h1>Ευκαιρίες που ξεχωρίζουν σήμερα</h1>
+          <p>Μεγάλες διαφορές τιμής για το ίδιο προϊόν ανάμεσα σε αλυσίδες supermarket.</p>
+        </div>
+        {updated ? (
+          <span className="bargains-updated">
+            {bargains.length.toLocaleString("el-GR")} επιλογές · {updated}
+          </span>
+        ) : null}
+      </header>
+
+      {state === "loading" ? (
+        <div className="bargains-status" role="status">
+          <RefreshCw size={20} className="spin" />
+          Φόρτωση σημερινών επιλογών…
+        </div>
+      ) : null}
+
+      {state === "error" ? (
+        <div className="bargains-status error" role="alert">
+          <AlertCircle size={20} />
+          Οι σημερινές επιλογές δεν είναι διαθέσιμες αυτή τη στιγμή.
+        </div>
+      ) : null}
+
+      {bargains.length ? (
+        <section className="bargains-grid" aria-label="Σημερινές ευκαιρίες προϊόντων">
+          {bargains.map((bargain, index) => {
+            const retailer = retailers.find(
+              (item) => item.id === bargain.evidence.bestRetailerId,
+            );
+            return (
+              <article className="bargain-card" key={bargain.productId}>
+                <button
+                  type="button"
+                  className="bargain-card-product"
+                  onClick={() => onSelect(bargain.product)}
+                >
+                  <ProductThumb product={bargain.product} />
+                  <span className="bargain-card-copy">
+                    <small>{index === 0 ? "Επιλογή ημέρας" : `Ευκαιρία ${index + 1}`}</small>
+                    <strong>{bargain.headline}</strong>
+                    <span>{bargain.product.name}</span>
+                  </span>
+                </button>
+
+                <div className="bargain-card-price">
+                  <span className="bargain-card-chain">
+                    {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
+                    <span>
+                      <strong>{formatEuro(bargain.evidence.bestPrice)}</strong>
+                      <small>{bargain.evidence.bestRetailerName}</small>
+                    </span>
+                  </span>
+                  <span className="bargain-card-saving">
+                    <strong>{Math.round(bargain.evidence.savingsPercentVsHighest)}%</strong>
+                    <small>φθηνότερα</small>
+                  </span>
+                </div>
+
+                <p className="bargain-card-reason">{bargain.reason}</p>
+
+                <div className="bargain-card-meta">
+                  <span>{bargain.evidence.retailerCount} αλυσίδες</span>
+                  <span>
+                    {formatEuro(bargain.evidence.savingsVsHighest)} κάτω από την υψηλότερη
+                  </span>
+                </div>
+
+                <div className="bargain-card-actions">
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => onSelect(bargain.product)}
+                  >
+                    <Info size={16} />
+                    Λεπτομέρειες
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button primary-button"
+                    onClick={() => onAdd(bargain.product)}
+                  >
+                    <Plus size={17} />
+                    Στο καλάθι
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
+
+      {bargains.length ? (
+        <p className="bargains-footnote">
+          Οι διαφορές συγκρίνουν τρέχουσες τιμές μεταξύ αλυσίδων και δεν αποτελούν
+          ιστορική έκπτωση.
+        </p>
+      ) : null}
+    </main>
   );
 }
 

@@ -19,6 +19,7 @@ const outputPath = resolve(
 const model = process.env.OPENAI_BARGAIN_MODEL || "gpt-5.6-sol";
 const reasoningEffort = process.env.OPENAI_BARGAIN_REASONING || "high";
 const timeZone = process.env.POSOKANEI_BARGAIN_TIME_ZONE || "Europe/Athens";
+const bargainCount = 9;
 const force = process.argv.includes("--force");
 const apiKey = requiredEnv("OPENAI_API_KEY");
 
@@ -26,57 +27,89 @@ const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
 const existingPick = await readJsonIfPresent(outputPath);
 const today = dateKey(new Date(), timeZone);
 
-if (!force && existingPick?.date === today) {
+if (
+  !force &&
+  existingPick?.date === today &&
+  Array.isArray(existingPick.bargains) &&
+  existingPick.bargains.length >= bargainCount
+) {
   console.log(`Daily bargain already generated for ${today}: ${existingPick.product_id}`);
   process.exit(0);
 }
 
 const candidates = buildCandidates(catalog.products || []);
-if (candidates.length < 5) {
+if (candidates.length < bargainCount) {
   throw new Error(`Daily bargain guard failed: only ${candidates.length} suitable candidates.`);
 }
 
-const choice = await chooseWithOpenAI(candidates, existingPick?.product_id || "");
-const selected = candidates.find((candidate) => candidate.product_id === choice.product_id);
-if (!selected) {
-  throw new Error("The model selected a product outside the verified candidate list.");
-}
-
-const sourceProduct = (catalog.products || []).find(
-  (product) => String(product.id) === selected.product_id,
-);
-if (!sourceProduct) {
-  throw new Error("The selected product no longer exists in the catalogue.");
-}
+const previousProductIds = Array.isArray(existingPick?.bargains)
+  ? existingPick.bargains.map((item) => item.product_id).filter(Boolean)
+  : [existingPick?.product_id].filter(Boolean);
+const choices = await chooseWithOpenAI(candidates, previousProductIds);
+const bargains = buildVerifiedBargains(choices, candidates, catalog.products || []);
+const primary = bargains[0];
 
 const output = {
-  schema_version: 1,
+  schema_version: 2,
   date: today,
   generated_at: new Date().toISOString(),
   catalog_generated_at: catalog.generated_at || "",
   model,
   reasoning_effort: reasoningEffort,
-  product_id: selected.product_id,
-  headline: cleanText(choice.headline, 80),
-  reason: cleanText(choice.reason, 240),
-  evidence: {
-    best_price: selected.best_price,
-    best_retailer_id: selected.best_retailer_id,
-    best_retailer_name: selected.best_retailer_name,
-    median_price: selected.median_price,
-    highest_price: selected.highest_price,
-    savings_vs_highest: selected.savings_vs_highest,
-    savings_percent_vs_highest: selected.savings_percent_vs_highest,
-    retailer_count: selected.retailer_count,
-  },
-  product: sourceProduct,
+  product_id: primary.product_id,
+  headline: primary.headline,
+  reason: primary.reason,
+  evidence: primary.evidence,
+  product: primary.product,
+  bargains,
 };
 
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
 console.log(
-  `Generated daily bargain for ${today}: ${sourceProduct.name.trim()} at ${selected.best_retailer_name} (${selected.best_price.toFixed(2)} EUR).`,
+  `Generated ${bargains.length} daily bargains for ${today}; featured ${primary.product.name.trim()} at ${primary.evidence.best_retailer_name} (${primary.evidence.best_price.toFixed(2)} EUR).`,
 );
+
+function buildVerifiedBargains(choices, candidates, products) {
+  if (!Array.isArray(choices) || choices.length !== bargainCount) {
+    throw new Error(`The model must return exactly ${bargainCount} bargains.`);
+  }
+
+  const candidatesById = new Map(candidates.map((candidate) => [candidate.product_id, candidate]));
+  const productsById = new Map(products.map((product) => [String(product.id), product]));
+  const seen = new Set();
+
+  return choices.map((choice) => {
+    const productId = String(choice?.product_id || "");
+    if (!productId || seen.has(productId)) {
+      throw new Error("The model returned a missing or duplicate product ID.");
+    }
+    seen.add(productId);
+
+    const selected = candidatesById.get(productId);
+    const sourceProduct = productsById.get(productId);
+    if (!selected || !sourceProduct) {
+      throw new Error("The model selected a product outside the verified candidate list.");
+    }
+
+    return {
+      product_id: productId,
+      headline: cleanText(choice.headline, 80),
+      reason: cleanText(choice.reason, 240),
+      evidence: {
+        best_price: selected.best_price,
+        best_retailer_id: selected.best_retailer_id,
+        best_retailer_name: selected.best_retailer_name,
+        median_price: selected.median_price,
+        highest_price: selected.highest_price,
+        savings_vs_highest: selected.savings_vs_highest,
+        savings_percent_vs_highest: selected.savings_percent_vs_highest,
+        retailer_count: selected.retailer_count,
+      },
+      product: sourceProduct,
+    };
+  });
+}
 
 function buildCandidates(products) {
   const ranked = products
@@ -103,8 +136,15 @@ function toCandidate(product) {
       retailer_name: String(entry.retailer_display_name || entry.retailer_name || entry.retailer || ""),
       price: Number(entry.price),
       is_discount: Boolean(entry.is_discount),
+      country: String(entry.country || ""),
     }))
-    .filter((entry) => entry.retailer_id && Number.isFinite(entry.price) && entry.price > 0)
+    .filter(
+      (entry) =>
+        entry.retailer_id &&
+        (!entry.country || entry.country === "GR") &&
+        Number.isFinite(entry.price) &&
+        entry.price > 0,
+    )
     .sort((a, b) => a.price - b.price);
 
   if (
@@ -150,7 +190,7 @@ function toCandidate(product) {
   };
 }
 
-async function chooseWithOpenAI(candidates, previousProductId) {
+async function chooseWithOpenAI(candidates, previousProductIds) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -162,36 +202,48 @@ async function chooseWithOpenAI(candidates, previousProductId) {
       reasoning: { effort: reasoningEffort },
       service_tier: "default",
       store: false,
-      max_output_tokens: 700,
+      max_output_tokens: 10000,
       instructions: [
-        "Είσαι ο συντάκτης της καθημερινής πρότασης σε ελληνική εφαρμογή σύγκρισης supermarket.",
-        "Διάλεξε ακριβώς ένα προϊόν μόνο από τη λίστα υποψηφίων.",
-        "Προτίμησε χρήσιμο, ευρείας κατανάλωσης προϊόν με ουσιαστική διαφορά τιμής και αρκετές διαθέσιμες αλυσίδες.",
+        "Είσαι ο συντάκτης των καθημερινών προτάσεων σε ελληνική εφαρμογή σύγκρισης supermarket.",
+        `Διάλεξε ακριβώς ${bargainCount} διαφορετικά προϊόντα μόνο από τη λίστα υποψηφίων και βάλε πρώτο το ισχυρότερο.`,
+        "Δώσε ποικιλία σε κατηγορίες και αλυσίδες. Προτίμησε χρήσιμα, ευρείας κατανάλωσης προϊόντα με ουσιαστική διαφορά τιμής και αρκετές διαθέσιμες αλυσίδες.",
         "Μην εφευρίσκεις έκπτωση, ποιότητα, γεύση, διαθεσιμότητα, ιστορικό τιμής ή όφελος υγείας.",
-        "Η αιτιολόγηση πρέπει να είναι μία φυσική ελληνική πρόταση και να βασίζεται μόνο στα αριθμητικά στοιχεία της λίστας.",
-        "Μην επαναλαμβάνεις την τιμή στο headline. Μην χρησιμοποιείς markdown.",
+        "Κάθε αιτιολόγηση πρέπει να είναι μία σύντομη φυσική ελληνική πρόταση και να βασίζεται μόνο στα αριθμητικά στοιχεία της λίστας.",
+        "Μην επαναλαμβάνεις την τιμή στα headlines. Μην χρησιμοποιείς markdown.",
       ].join(" "),
       input: JSON.stringify({
-        previous_product_id: previousProductId || null,
+        previous_product_ids: previousProductIds,
         instruction:
-          "Απόφυγε το προηγούμενο προϊόν όταν υπάρχει εξίσου καλή εναλλακτική. Το headline να είναι έως 55 χαρακτήρες και το reason έως 170 χαρακτήρες.",
+          "Απόφυγε τις προηγούμενες επιλογές όταν υπάρχουν εξίσου καλές εναλλακτικές. Κάθε headline να είναι έως 55 χαρακτήρες και κάθε reason έως 170 χαρακτήρες.",
         candidates: candidates.map(({ score, ...candidate }) => candidate),
       }),
       text: {
         verbosity: "low",
         format: {
           type: "json_schema",
-          name: "daily_supermarket_bargain",
+          name: "daily_supermarket_bargains",
           strict: true,
           schema: {
             type: "object",
             additionalProperties: false,
             properties: {
-              product_id: { type: "string" },
-              headline: { type: "string" },
-              reason: { type: "string" },
+              bargains: {
+                type: "array",
+                minItems: bargainCount,
+                maxItems: bargainCount,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    product_id: { type: "string" },
+                    headline: { type: "string" },
+                    reason: { type: "string" },
+                  },
+                  required: ["product_id", "headline", "reason"],
+                },
+              },
             },
-            required: ["product_id", "headline", "reason"],
+            required: ["bargains"],
           },
         },
       },
@@ -204,6 +256,11 @@ async function chooseWithOpenAI(candidates, previousProductId) {
   }
 
   const payload = await response.json();
+  if (payload.status && payload.status !== "completed") {
+    throw new Error(
+      `OpenAI response was incomplete (${payload.incomplete_details?.reason || payload.status}).`,
+    );
+  }
   const outputText =
     payload.output_text ||
     payload.output
@@ -212,7 +269,11 @@ async function chooseWithOpenAI(candidates, previousProductId) {
   if (!outputText) {
     throw new Error(`OpenAI response did not contain output text (status: ${payload.status || "unknown"}).`);
   }
-  return JSON.parse(outputText);
+  try {
+    return JSON.parse(outputText).bargains;
+  } catch {
+    throw new Error("OpenAI response contained incomplete structured JSON.");
+  }
 }
 
 function safeApiError(value) {

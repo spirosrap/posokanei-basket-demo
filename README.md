@@ -30,9 +30,9 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 
 ### Ευκαιρία της ημέρας
 
-Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Η κάρτα δείχνει το συγκεκριμένο προϊόν και τη φωτογραφία του, τη φθηνότερη αλυσίδα, την τρέχουσα τιμή, πόσο χαμηλότερη είναι από την υψηλότερη τρέχουσα τιμή στις υπόλοιπες αλυσίδες, σύνδεσμο λεπτομερειών και κουμπί προσθήκης στο καλάθι. Το ποσοστό είναι σύγκριση τιμών του ίδιου προϊόντος μεταξύ αλυσίδων την ίδια χρονική περίοδο, όχι ιστορική έκπτωση ή σύγκριση με προηγούμενη τιμή.
+Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Η κάρτα δείχνει το συγκεκριμένο προϊόν και τη φωτογραφία του, τη φθηνότερη αλυσίδα, την τρέχουσα τιμή, πόσο χαμηλότερη είναι από την υψηλότερη τρέχουσα τιμή στις υπόλοιπες αλυσίδες, σύνδεσμο λεπτομερειών και κουμπί προσθήκης στο καλάθι. Το νέο κουμπί «Περισσότερες ευκαιρίες» ανοίγει ξεχωριστή σελίδα με εννέα συνολικά καθημερινές επιλογές: την κεντρική πρόταση και οκτώ επιπλέον προϊόντα, όλα με λεπτομέρειες και άμεση προσθήκη στο ίδιο αποθηκευμένο καλάθι. Το ποσοστό είναι σύγκριση τιμών του ίδιου προϊόντος μεταξύ αλυσίδων την ίδια χρονική περίοδο, όχι ιστορική έκπτωση ή σύγκριση με προηγούμενη τιμή.
 
-Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει ένα από τα ήδη επαληθευμένα υποψήφια προϊόντα και γράφει μία σύντομη ελληνική αιτιολόγηση. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών.
+Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει εννέα διαφορετικά προϊόντα από την ήδη επαληθευμένη λίστα και γράφει μία σύντομη ελληνική αιτιολόγηση για το καθένα. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών.
 
 Η παραγωγή γίνεται μία φορά την ημέρα στο Mac που εκτελεί ήδη τον συγχρονισμό του καταλόγου. Στον Plesk ανεβαίνει μόνο το δημόσιο `data/daily-bargain.json`, μαζί με το όνομα, την εικόνα, τις επαληθευμένες τιμές και το κείμενο της πρότασης. Το `OPENAI_API_KEY` μένει στο ιδιωτικό περιβάλλον του Mac, δεν περιλαμβάνεται στο repository ή στο build και δεν στέλνεται ποτέ στον browser ή στον web server.
 
@@ -74,17 +74,21 @@ Source code: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spi
 - Link from the app header to the public GitHub repository.
 - Browse/search the official catalog with pagination instead of a fixed sample list.
 - Show the last product/price update check in the UI.
-- Publish one daily AI-assisted bargain with the exact product image, verified chain price, price spread, details, and add-to-basket action.
+- Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
 
 ## Daily Product Suggestion
 
-The app publishes one prominent `Ευκαιρία της ημέρας` card each day. It includes
-the exact product and image, the cheapest current chain and price, the percentage
-difference from the highest current chain price, product details, and an
-add-to-basket action. This percentage is a same-product, same-period comparison
-across chains; it is not presented as a historical discount or previous-price
-claim.
+The app publishes one prominent `Ευκαιρία της ημέρας` card each day. Its new
+`Περισσότερες ευκαιρίες` button opens the dedicated `/bargains/` view with the
+featured product and eight more daily selections. Every card includes the exact
+product and image, the cheapest current chain and price, the percentage difference
+from the highest current chain price, product details, and an add-to-basket action.
+The basket is shared with the main comparison page. This percentage is a
+same-product, same-period comparison across chains; it is not presented as a
+historical discount or previous-price claim.
+
+![Desktop screenshot of the expanded daily bargains page](screenshots/bargains.png)
 
 The daily suggestion is intentionally split into deterministic price analysis and
 a small editorial AI step:
@@ -94,11 +98,12 @@ a small editorial AI step:
   implausible extremes, calculates the cheapest, median, and highest current price,
   and sends only 30 compact public candidates to the model.
 - `gpt-5.6-sol` with `high` reasoning and the default/standard service tier selects
-  one candidate and writes a short Greek headline and explanation using Structured
-  Outputs. The request uses `store: false`.
-- The script validates the returned product ID against the candidate list and joins
-  the model text with code-computed price evidence. The model cannot supply or
-  modify the displayed prices or savings.
+  nine unique, category-diverse candidates in one daily request and writes a short
+  Greek headline and explanation for each using Structured Outputs. The request
+  uses `store: false`.
+- The script validates every returned product ID against the candidate list, rejects
+  duplicate or missing IDs, and joins the model text with code-computed price
+  evidence. The model cannot supply or modify the displayed prices or savings.
 - The existing hourly LaunchAgent calls the generator after a successful catalogue
   refresh. A date guard in the `Europe/Athens` time zone limits successful generation
   to once per day. If the AI call fails, catalogue updates continue and the previous
