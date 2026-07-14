@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+
+const packageJson = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+);
 
 const stripSameOriginCrossorigin = () => ({
   name: "strip-same-origin-crossorigin",
@@ -11,6 +16,9 @@ const stripSameOriginCrossorigin = () => ({
 
 export default defineConfig(({ command }) => ({
   base: command === "build" ? "/demo/posokanei-basket/" : "/",
+  define: {
+    "import.meta.env.PACKAGE_VERSION": JSON.stringify(packageJson.version),
+  },
   build: {
     target: ["es2019", "safari14"],
   },

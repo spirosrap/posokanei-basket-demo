@@ -102,6 +102,7 @@ button {
 }
 
 .repo-link,
+.version-badge,
 .source-status,
 .basket-pill {
   display: inline-flex;
@@ -126,6 +127,13 @@ button {
 .repo-link:focus-visible {
   border-color: rgba(37, 99, 235, 0.35);
   color: var(--blue);
+}
+
+.version-badge {
+  gap: 6px;
+  padding: 0 10px;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
 }
 
 .source-status {

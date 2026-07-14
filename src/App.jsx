@@ -19,6 +19,7 @@ import {
   ShoppingBasket,
   Sparkles,
   Store,
+  Tag,
   Trash2,
   Wifi,
   WifiOff,
@@ -58,6 +59,7 @@ import {
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
+const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
 const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
@@ -762,6 +764,10 @@ function Header({ health, basketCount }) {
           <Github size={16} aria-hidden="true" />
           <span>GitHub</span>
         </a>
+        <span className="version-badge" title="Έκδοση εφαρμογής">
+          <Tag size={14} aria-hidden="true" />
+          v{APP_VERSION}
+        </span>
         <div
           className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
           title="Κατάσταση API PosoKanei"
