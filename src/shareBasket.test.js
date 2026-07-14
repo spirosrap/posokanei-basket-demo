@@ -14,7 +14,26 @@ const basket = [
 
 test("shared baskets preserve product IDs, quantities, and stop count", () => {
   const decoded = decodeSharedBasket(encodeSharedBasket(basket, 3));
-  assert.deepEqual(decoded, { basket, maxChains: 3 });
+  assert.deepEqual(decoded, { basket, maxChains: 3, retailerIds: null });
+});
+
+test("shared baskets preserve an explicit supermarket selection", () => {
+  const retailerIds = ["lidl", "sklavenitis", "ab_vasilopoulos"];
+  const decoded = decodeSharedBasket(encodeSharedBasket(basket, 2, retailerIds));
+  assert.deepEqual(decoded, { basket, maxChains: 2, retailerIds });
+});
+
+test("version 1 links remain compatible and default to all supermarkets", () => {
+  const legacyPayload = btoa(JSON.stringify({
+    v: 1,
+    s: 3,
+    i: basket.map(({ productId, quantity }) => [productId, quantity]),
+  })).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  assert.deepEqual(decodeSharedBasket(legacyPayload), {
+    basket,
+    maxChains: 3,
+    retailerIds: null,
+  });
 });
 
 test("shared basket URLs use a single compact basket parameter", () => {
@@ -30,15 +49,16 @@ test("shared basket URLs use a single compact basket parameter", () => {
     status: "valid",
     basket,
     maxChains: 4,
+    retailerIds: null,
   });
 });
 
 test("invalid and unsupported shared baskets are rejected", () => {
   assert.deepEqual(
     readSharedBasketUrl("https://example.com/?basket=not-valid-json"),
-    { status: "invalid", basket: [], maxChains: 1 },
+    { status: "invalid", basket: [], maxChains: 1, retailerIds: null },
   );
   assert.throws(() => encodeSharedBasket([{ productId: "bad,id", quantity: 1 }], 1));
   assert.throws(() => encodeSharedBasket(basket, 5));
+  assert.throws(() => encodeSharedBasket(basket, 1, []));
 });
-

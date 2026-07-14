@@ -1,5 +1,7 @@
-const SHARE_VERSION = 1;
+const SHARE_VERSION = 2;
+const SUPPORTED_SHARE_VERSIONS = new Set([1, SHARE_VERSION]);
 const MAX_SHARED_ITEMS = 60;
+const MAX_SHARED_RETAILERS = 30;
 const MAX_PRODUCT_ID_LENGTH = 120;
 const MAX_TOKEN_LENGTH = 8192;
 
@@ -31,6 +33,14 @@ function normalizeStops(value) {
     throw new Error("invalid_stops");
   }
   return stops;
+}
+
+function normalizeRetailerIds(values) {
+  if (values === null || values === undefined) return null;
+  if (!Array.isArray(values) || values.length === 0 || values.length > MAX_SHARED_RETAILERS) {
+    throw new Error("invalid_retailer_filter");
+  }
+  return [...new Set(values.map(normalizeProductId))];
 }
 
 function normalizeBasket(entries) {
@@ -70,12 +80,13 @@ function decodeUtf8(value) {
   return new TextDecoder().decode(bytes);
 }
 
-export function encodeSharedBasket(entries, maxChains = 1) {
+export function encodeSharedBasket(entries, maxChains = 1, retailerIds = null) {
   const basket = normalizeBasket(entries);
   const payload = {
     v: SHARE_VERSION,
     s: normalizeStops(maxChains),
     i: basket.map(({ productId, quantity }) => [productId, quantity]),
+    r: normalizeRetailerIds(retailerIds),
   };
   const token = encodeUtf8(JSON.stringify(payload));
   if (token.length > MAX_TOKEN_LENGTH) throw new Error("share_token_too_long");
@@ -84,18 +95,22 @@ export function encodeSharedBasket(entries, maxChains = 1) {
 
 export function decodeSharedBasket(token) {
   const payload = JSON.parse(decodeUtf8(token));
-  if (payload?.v !== SHARE_VERSION) throw new Error("unsupported_share_version");
+  if (!SUPPORTED_SHARE_VERSIONS.has(payload?.v)) throw new Error("unsupported_share_version");
   return {
     basket: normalizeBasket(payload.i),
     maxChains: normalizeStops(payload.s),
+    retailerIds: payload.v >= 2 ? normalizeRetailerIds(payload.r) : null,
   };
 }
 
-export function buildSharedBasketUrl(baseUrl, entries, maxChains = 1) {
+export function buildSharedBasketUrl(baseUrl, entries, maxChains = 1, retailerIds = null) {
   const url = new URL(baseUrl);
   url.search = "";
   url.hash = "";
-  url.searchParams.set(SHARED_BASKET_PARAM, encodeSharedBasket(entries, maxChains));
+  url.searchParams.set(
+    SHARED_BASKET_PARAM,
+    encodeSharedBasket(entries, maxChains, retailerIds),
+  );
   return url.toString();
 }
 
@@ -106,7 +121,6 @@ export function readSharedBasketUrl(urlValue) {
   try {
     return { status: "valid", ...decodeSharedBasket(token) };
   } catch {
-    return { status: "invalid", basket: [], maxChains: 1 };
+    return { status: "invalid", basket: [], maxChains: 1, retailerIds: null };
   }
 }
-

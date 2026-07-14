@@ -20,6 +20,7 @@ import {
   Search,
   Share2,
   ShoppingBasket,
+  SlidersHorizontal,
   Sparkles,
   Store,
   Tag,
@@ -58,10 +59,12 @@ import {
   getBrowserLocation,
   mapsSearchUrl,
 } from "./locationStores";
+import { formatPlanText } from "./planText";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
+const RETAILER_FILTER_KEY = "posokanei-retailer-filter";
 const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
 const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
@@ -143,11 +146,46 @@ const savedLiveBasketProducts = () => {
   }
 };
 
+const savedRetailerFilter = () => {
+  try {
+    const stored = localStorage.getItem(RETAILER_FILTER_KEY);
+    if (stored === null) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed === null) return null;
+    if (!Array.isArray(parsed) || !parsed.length || parsed.length > 30) return null;
+    const retailerIds = [...new Set(parsed.map((id) => String(id).trim()))].filter((id) =>
+      /^[a-zA-Z0-9_-]{1,120}$/.test(id),
+    );
+    return retailerIds.length ? retailerIds : null;
+  } catch {
+    return null;
+  }
+};
+
 const removeSharedBasketParam = () => {
   const url = new URL(window.location.href);
   if (!url.searchParams.has(SHARED_BASKET_PARAM)) return;
   url.searchParams.delete(SHARED_BASKET_PARAM);
   window.history.replaceState({}, "", url.toString());
+};
+
+const copyText = async (value) => {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
+    await navigator.clipboard.writeText(value);
+    return;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("copy_failed");
+  }
 };
 
 function App() {
@@ -191,6 +229,11 @@ function App() {
     return null;
   });
   const [shareUrl, setShareUrl] = useState("");
+  const [retailerFilterIds, setRetailerFilterIds] = useState(() =>
+    INITIAL_SHARED_BASKET?.status === "valid"
+      ? INITIAL_SHARED_BASKET.retailerIds
+      : savedRetailerFilter(),
+  );
   const [locationRadiusKm, setLocationRadiusKm] = useState(2);
   const [locationState, setLocationState] = useState({
     status: "idle",
@@ -208,6 +251,10 @@ function App() {
   useEffect(() => {
     saveLocalJson(LIVE_BASKET_PRODUCTS_KEY, liveBasketProducts);
   }, [liveBasketProducts]);
+
+  useEffect(() => {
+    saveLocalJson(RETAILER_FILTER_KEY, retailerFilterIds);
+  }, [retailerFilterIds]);
 
   useEffect(() => {
     if (!INITIAL_SHARED_BASKET) return undefined;
@@ -236,6 +283,7 @@ function App() {
             productCount: availableBasket.length,
             missingCount,
             maxChains: INITIAL_SHARED_BASKET.maxChains,
+            retailerCount: INITIAL_SHARED_BASKET.retailerIds?.length ?? null,
           });
         }
 
@@ -363,10 +411,21 @@ function App() {
     ];
   }, [liveCategories, liveMeta.activeProducts, liveMeta.total]);
 
-  const activeRetailers = liveRetailers;
+  const activeRetailers = useMemo(() => {
+    if (retailerFilterIds === null) return liveRetailers;
+    const selectedIds = new Set(retailerFilterIds);
+    return liveRetailers.filter((retailer) => selectedIds.has(retailer.id));
+  }, [liveRetailers, retailerFilterIds]);
   const retailerProximity = useMemo(
-    () => buildRetailerProximity(activeRetailers, locationState.stores),
-    [activeRetailers, locationState.stores],
+    () => buildRetailerProximity(liveRetailers, locationState.stores),
+    [liveRetailers, locationState.stores],
+  );
+  const nearbyRetailerIds = useMemo(
+    () =>
+      liveRetailers
+        .filter((retailer) => retailerProximity[retailer.id]?.stores?.length)
+        .map((retailer) => retailer.id),
+    [liveRetailers, retailerProximity],
   );
 
   const productMap = useMemo(
@@ -374,6 +433,17 @@ function App() {
     [allProducts],
   );
   const isDemoBasket = useMemo(() => basketsMatch(basket, DEFAULT_DEMO_BASKET), [basket]);
+
+  useEffect(() => {
+    if (!liveRetailers.length || retailerFilterIds === null) return;
+    const availableIds = new Set(liveRetailers.map((retailer) => retailer.id));
+    const validIds = retailerFilterIds.filter((id) => availableIds.has(id));
+    if (!validIds.length || validIds.length === liveRetailers.length) {
+      setRetailerFilterIds(null);
+    } else if (validIds.length !== retailerFilterIds.length) {
+      setRetailerFilterIds(validIds);
+    }
+  }, [liveRetailers, retailerFilterIds]);
 
   useEffect(() => {
     if (refreshedDemoProducts.current) return undefined;
@@ -463,7 +533,7 @@ function App() {
   const openShareBasket = () => {
     if (!basket.length) return;
     const baseUrl = new URL(APP_BASE_PATH, window.location.origin).toString();
-    setShareUrl(buildSharedBasketUrl(baseUrl, basket, maxChains));
+    setShareUrl(buildSharedBasketUrl(baseUrl, basket, maxChains, retailerFilterIds));
   };
 
   const copyBasket = async () => {
@@ -471,7 +541,7 @@ function App() {
       const product = productMap.get(entry.productId);
       return `${entry.quantity} x ${product?.name ?? entry.productId}`;
     });
-    await navigator.clipboard?.writeText(lines.join("\n"));
+    await copyText(lines.join("\n"));
   };
 
   const loadMoreLiveProducts = () => {
@@ -548,6 +618,28 @@ function App() {
     });
   };
 
+  const toggleRetailerFilter = (retailerId) => {
+    setRetailerFilterIds((current) => {
+      const allIds = liveRetailers.map((retailer) => retailer.id);
+      const selectedIds = new Set(current === null ? allIds : current);
+      if (selectedIds.has(retailerId)) {
+        if (selectedIds.size === 1) return current;
+        selectedIds.delete(retailerId);
+      } else {
+        selectedIds.add(retailerId);
+      }
+      const next = allIds.filter((id) => selectedIds.has(id));
+      return next.length === allIds.length ? null : next;
+    });
+  };
+
+  const selectNearbyRetailers = () => {
+    if (!nearbyRetailerIds.length) return;
+    setRetailerFilterIds(
+      nearbyRetailerIds.length === liveRetailers.length ? null : nearbyRetailerIds,
+    );
+  };
+
   if (IS_BARGAINS_PAGE) {
     return (
       <div className="app-shell bargains-shell">
@@ -555,14 +647,14 @@ function App() {
         <BargainsPage
           pick={dailyBargain}
           state={dailyBargainState}
-          retailers={activeRetailers}
+          retailers={liveRetailers}
           onSelect={setSelectedProduct}
           onAdd={addToBasket}
         />
         {selectedProduct ? (
           <ProductDrawer
             product={selectedProduct}
-            retailers={activeRetailers}
+            retailers={liveRetailers}
             onClose={() => setSelectedProduct(null)}
             onAdd={() => addToBasket(selectedProduct)}
           />
@@ -584,7 +676,7 @@ function App() {
       {dailyBargain ? (
         <DailyBargain
           pick={dailyBargain}
-          retailers={activeRetailers}
+          retailers={liveRetailers}
           onSelect={() => setSelectedProduct(dailyBargain.product)}
           onAdd={() => addToBasket(dailyBargain.product)}
           moreHref={BARGAINS_PATH}
@@ -635,16 +727,22 @@ function App() {
           locationState={locationState}
           locationRadiusKm={locationRadiusKm}
           retailerProximity={retailerProximity}
+          retailers={liveRetailers}
+          retailerFilterIds={retailerFilterIds}
+          nearbyRetailerIds={nearbyRetailerIds}
           onRequestLocation={() => loadNearbyStores()}
           onChangeLocationRadius={changeLocationRadius}
           onClearLocation={clearLocation}
+          onToggleRetailer={toggleRetailerFilter}
+          onSelectAllRetailers={() => setRetailerFilterIds(null)}
+          onSelectNearbyRetailers={selectNearbyRetailers}
         />
       </main>
 
       {selectedProduct ? (
         <ProductDrawer
           product={selectedProduct}
-          retailers={activeRetailers}
+          retailers={liveRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
         />
@@ -655,6 +753,8 @@ function App() {
           url={shareUrl}
           basketCount={basket.length}
           maxChains={maxChains}
+          retailerCount={activeRetailers.length}
+          hasRetailerFilter={retailerFilterIds !== null}
           onClose={() => setShareUrl("")}
         />
       ) : null}
@@ -1226,6 +1326,9 @@ function SharedBasketNotice({ state }) {
           {state.missingCount
             ? ` ${state.missingCount.toLocaleString("el-GR")} ${state.missingCount === 1 ? "προϊόν δεν υπάρχει" : "προϊόντα δεν υπάρχουν"} πλέον στον κατάλογο.`
             : " Οι τιμές και το φθηνότερο πλάνο υπολογίστηκαν ξανά τώρα."}
+          {state.retailerCount
+            ? ` Ο υπολογισμός χρησιμοποιεί ${state.retailerCount.toLocaleString("el-GR")} επιλεγμένες αλυσίδες.`
+            : ""}
         </span>
       </div>
     );
@@ -1239,7 +1342,14 @@ function SharedBasketNotice({ state }) {
   );
 }
 
-function ShareBasketDialog({ url, basketCount, maxChains, onClose }) {
+function ShareBasketDialog({
+  url,
+  basketCount,
+  maxChains,
+  retailerCount,
+  hasRetailerFilter,
+  onClose,
+}) {
   const [copyState, setCopyState] = useState("idle");
   const inputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
@@ -1254,17 +1364,12 @@ function ShareBasketDialog({ url, basketCount, maxChains, onClose }) {
 
   const copyLink = async () => {
     try {
-      if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
-      await navigator.clipboard.writeText(url);
+      await copyText(url);
       setCopyState("copied");
     } catch {
       inputRef.current?.focus();
       inputRef.current?.select();
-      try {
-        setCopyState(document.execCommand("copy") ? "copied" : "manual");
-      } catch {
-        setCopyState("manual");
-      }
+      setCopyState("manual");
     }
   };
 
@@ -1298,7 +1403,10 @@ function ShareBasketDialog({ url, basketCount, maxChains, onClose }) {
           <h2 id="share-title">Μοιράσου το καλάθι σου</h2>
           <p>
             Ο παραλήπτης θα δει τα ίδια {basketCount.toLocaleString("el-GR")} προϊόντα,
-            τις ποσότητες και το όριο των {maxChains} {maxChains === 1 ? "στάσης" : "στάσεων"}.
+            τις ποσότητες, το όριο των {maxChains} {maxChains === 1 ? "στάσης" : "στάσεων"}
+            {hasRetailerFilter
+              ? ` και τις ${retailerCount.toLocaleString("el-GR")} επιλεγμένες αλυσίδες.`
+              : " και όλες τις διαθέσιμες αλυσίδες."}
           </p>
         </div>
 
@@ -1338,8 +1446,9 @@ function ShareBasketDialog({ url, basketCount, maxChains, onClose }) {
         <div className="share-privacy-note">
           <Info size={16} />
           <span>
-            Ο σύνδεσμος περιέχει μόνο κωδικούς προϊόντων, ποσότητες και αριθμό στάσεων.
-            Δεν περιέχει τοποθεσία ή τιμές. Οι διαθέσιμες τιμές υπολογίζονται ξανά όταν ανοίξει.
+            Ο σύνδεσμος περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και
+            την επιλογή αλυσίδων. Δεν περιέχει τοποθεσία ή τιμές. Οι διαθέσιμες τιμές
+            υπολογίζονται ξανά όταν ανοίξει.
           </span>
         </div>
       </div>
@@ -1405,9 +1514,15 @@ function RankingsPanel({
   locationState,
   locationRadiusKm,
   retailerProximity,
+  retailers,
+  retailerFilterIds,
+  nearbyRetailerIds,
   onRequestLocation,
   onChangeLocationRadius,
   onClearLocation,
+  onToggleRetailer,
+  onSelectAllRetailers,
+  onSelectNearbyRetailers,
 }) {
   const completeRankings = rankings.filter((row) => row.isComplete);
   const partialRankings = rankings.filter((row) => !row.isComplete);
@@ -1415,17 +1530,35 @@ function RankingsPanel({
   const oneStopTotal = bestCompleteRanking?.total ?? null;
   const locationReady = locationState.status === "ready";
   const [selectedRetailerId, setSelectedRetailerId] = useState("");
+  const [planCopyState, setPlanCopyState] = useState("idle");
   const defaultRetailerId =
     visitPlan?.groups?.[0]?.retailer.id ||
     bestCompleteRanking?.retailer.id ||
     completeRankings[0]?.retailer.id ||
     rankings[0]?.retailer.id ||
     "";
-  const effectiveRetailerId = selectedRetailerId || defaultRetailerId;
+  const selectedRetailerIsAvailable =
+    rankings.some((row) => row.retailer.id === selectedRetailerId) ||
+    visitPlan?.groups?.some((group) => group.retailer.id === selectedRetailerId);
+  const effectiveRetailerId =
+    (selectedRetailerIsAvailable ? selectedRetailerId : "") || defaultRetailerId;
   const selectedRetailer =
     rankings.find((row) => row.retailer.id === effectiveRetailerId)?.retailer ||
     visitPlan?.groups?.find((group) => group.retailer.id === effectiveRetailerId)?.retailer ||
     null;
+
+  useEffect(() => {
+    setPlanCopyState("idle");
+  }, [visitPlan]);
+
+  const copyPlan = async () => {
+    try {
+      await copyText(formatPlanText(visitPlan));
+      setPlanCopyState("copied");
+    } catch {
+      setPlanCopyState("error");
+    }
+  };
 
   return (
     <section className="panel rankings-panel" aria-labelledby="ranking-title">
@@ -1437,6 +1570,16 @@ function RankingsPanel({
       />
 
       <ChainLimitControl maxChains={maxChains} setMaxChains={setMaxChains} />
+
+      <RetailerFilterControl
+        retailers={retailers}
+        selectedIds={retailerFilterIds}
+        nearbyIds={nearbyRetailerIds}
+        locationReady={locationReady}
+        onToggle={onToggleRetailer}
+        onSelectAll={onSelectAllRetailers}
+        onSelectNearby={onSelectNearbyRetailers}
+      />
 
       <LocationControl
         locationState={locationState}
@@ -1468,6 +1611,8 @@ function RankingsPanel({
           retailerProximity={retailerProximity}
           selectedRetailerId={effectiveRetailerId}
           onSelectRetailer={setSelectedRetailerId}
+          onCopyPlan={copyPlan}
+          copyState={planCopyState}
         />
       ) : null}
 
@@ -1583,6 +1728,76 @@ function ChainLimitControl({ maxChains, setMaxChains }) {
   );
 }
 
+function RetailerFilterControl({
+  retailers,
+  selectedIds,
+  nearbyIds,
+  locationReady,
+  onToggle,
+  onSelectAll,
+  onSelectNearby,
+}) {
+  const selectedSet = new Set(selectedIds === null ? retailers.map((retailer) => retailer.id) : selectedIds);
+  const selectedCount = selectedSet.size;
+  const hasFilter = selectedIds !== null;
+
+  return (
+    <details className="retailer-filter-box">
+      <summary>
+        <span className="retailer-filter-title">
+          <SlidersHorizontal size={15} />
+          Αλυσίδες στον υπολογισμό
+        </span>
+        <span className={hasFilter ? "retailer-filter-count active" : "retailer-filter-count"}>
+          {selectedCount}/{retailers.length || 0}
+          <ChevronRight size={15} className="retailer-filter-chevron" />
+        </span>
+      </summary>
+
+      <div className="retailer-filter-actions">
+        <button type="button" className="quiet-button" onClick={onSelectAll} disabled={!hasFilter}>
+          Όλες οι αλυσίδες
+        </button>
+        <button
+          type="button"
+          className="quiet-button nearby-filter-button"
+          onClick={onSelectNearby}
+          disabled={!locationReady || !nearbyIds.length}
+        >
+          <MapPin size={13} />
+          Μόνο κοντινές
+        </button>
+      </div>
+
+      <div className="retailer-filter-grid" role="group" aria-label="Επιλεγμένες αλυσίδες">
+        {retailers.map((retailer) => {
+          const checked = selectedSet.has(retailer.id);
+          return (
+            <label
+              key={retailer.id}
+              className={checked ? "checked" : ""}
+              data-retailer-id={retailer.id}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={checked && selectedCount === 1}
+                onChange={() => onToggle(retailer.id)}
+                aria-label={retailer.name}
+              />
+              <RetailerLogo retailer={retailer} className="tiny" ariaHidden />
+              <span>{retailer.name}</span>
+            </label>
+          );
+        })}
+      </div>
+      <p>
+        Το φθηνότερο πλάνο και η κατάταξη υπολογίζονται μόνο με τις επιλεγμένες αλυσίδες.
+      </p>
+    </details>
+  );
+}
+
 function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
   if (!basketSize) {
     return (
@@ -1676,12 +1891,24 @@ function VisitPlanBreakdown({
   retailerProximity,
   selectedRetailerId,
   onSelectRetailer,
+  onCopyPlan,
+  copyState,
 }) {
   return (
     <div className="route-group">
-      <div className="rank-group-title">
-        <ClipboardList size={15} />
-        <span>Τι αγοράζεις σε κάθε αλυσίδα</span>
+      <div className="route-group-heading">
+        <div className="rank-group-title">
+          <ClipboardList size={15} />
+          <span>Τι αγοράζεις σε κάθε αλυσίδα</span>
+        </div>
+        <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
+          {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
+          {copyState === "copied"
+            ? "Αντιγράφηκε"
+            : copyState === "error"
+              ? "Δεν αντιγράφηκε"
+              : "Αντιγραφή πλάνου"}
+        </button>
       </div>
       <div className="route-list">
         {plan.groups.map((group) => (

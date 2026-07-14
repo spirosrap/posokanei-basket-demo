@@ -1160,6 +1160,125 @@ button {
   color: #ffffff;
 }
 
+.retailer-filter-box {
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 0 10px;
+}
+
+.retailer-filter-box summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.retailer-filter-box summary::-webkit-details-marker {
+  display: none;
+}
+
+.retailer-filter-title,
+.retailer-filter-count,
+.nearby-filter-button,
+.copy-plan-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retailer-filter-count {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #e2e8f0;
+  padding: 4px 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.retailer-filter-count.active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.retailer-filter-chevron {
+  transition: transform 160ms ease;
+}
+
+.retailer-filter-box[open] .retailer-filter-chevron {
+  transform: rotate(90deg);
+}
+
+.retailer-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0 8px;
+}
+
+.retailer-filter-actions .quiet-button {
+  min-height: 28px;
+}
+
+.retailer-filter-actions .quiet-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.retailer-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.retailer-filter-grid label {
+  display: grid;
+  grid-template-columns: 16px 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 5px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.retailer-filter-grid label.checked {
+  border-color: rgba(15, 118, 110, 0.24);
+  color: var(--text);
+}
+
+.retailer-filter-grid input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.retailer-filter-grid input:disabled {
+  cursor: not-allowed;
+}
+
+.retailer-filter-box > p {
+  margin: 9px 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .location-box {
   display: grid;
   gap: 8px;
@@ -1493,6 +1612,19 @@ button {
   display: grid;
   gap: 8px;
   margin-top: 12px;
+}
+
+.route-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.copy-plan-button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  color: #0f766e;
 }
 
 .route-list {
@@ -2107,6 +2239,15 @@ button {
 
   .location-actions .text-button {
     width: 100%;
+  }
+
+  .retailer-filter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .route-group-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .branch-row {

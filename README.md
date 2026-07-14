@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.3.0`
+**Τρέχουσα έκδοση:** `v0.4.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -26,15 +26,25 @@
 
 Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα είναι πιο ρεαλιστικό εβδομαδιαίο καλάθι ελληνικής οικογένειας, με γάλα, γιαούρτι, τυριά, αυγά, κοτόπουλο, ζυμαρικά, όσπρια, χυμούς, νερά, καθαριστικά και χαρτικά. Τα προϊόντα έχουν επιλεγεί ώστε να υπάρχουν αρκετές πλήρεις επιλογές και στο σενάριο της μίας στάσης, αλλά και να φαίνεται καθαρά πότε συμφέρει να μοιραστεί η λίστα σε δύο, τρεις ή τέσσερις αλυσίδες. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
 
+### Επιλογή αλυσίδων και πρακτικό πλάνο
+
+Από την έκδοση `v0.4.0`, ο χρήστης μπορεί να ανοίξει την ενότητα «Αλυσίδες στον υπολογισμό» και να επιλέξει ποιες αλυσίδες θέλει πραγματικά να εξετάσει. Η κατάταξη, τα πλήρη καλάθια μίας στάσης και η βελτιστοποίηση έως τεσσάρων στάσεων υπολογίζονται αμέσως μόνο με τις επιλεγμένες αλυσίδες. Παραμένει πάντα ενεργή τουλάχιστον μία αλυσίδα και η επιλογή αποθηκεύεται τοπικά στον browser.
+
+Μετά την προαιρετική ενεργοποίηση τοποθεσίας, το κουμπί «Μόνο κοντινές» επιλέγει ως αρχικό φίλτρο μόνο τις αλυσίδες που έχουν διαθέσιμο υποκατάστημα μέσα στην τρέχουσα ακτίνα. Πρόκειται για στιγμιαία επιλογή βάσει των αποτελεσμάτων εγγύτητας: ο χρήστης μπορεί μετά να προσθέσει ή να αφαιρέσει αλυσίδες χειροκίνητα. Η τοποθεσία δεν αποθηκεύεται στον σύνδεσμο ή στο καλάθι.
+
+Το κουμπί «Αντιγραφή πλάνου» δημιουργεί έτοιμη λίστα αγορών ομαδοποιημένη ανά supermarket, με ποσότητες, υποσύνολα, συνολικό κόστος και αριθμό στάσεων. Έτσι το αποτέλεσμα της σύγκρισης μπορεί να χρησιμοποιηθεί πρακτικά μέσα στο κατάστημα ή να σταλεί ως απλό κείμενο.
+
+![Επιλογή αλυσίδων και ομαδοποιημένο πλάνο αγορών](screenshots/retailer-filter.png)
+
 ### Κοινόχρηστα καλάθια
 
-Από την έκδοση `v0.3.0`, το κουμπί «Κοινή χρήση» δημιουργεί σύνδεσμο για το τρέχον καλάθι. Ο σύνδεσμος κρατά τα συγκεκριμένα προϊόντα, τις ποσότητες και το επιλεγμένο όριο `1` έως `4` στάσεων. Όταν τον ανοίξει κάποιος άλλος, η εφαρμογή φορτώνει τα αντίστοιχα προϊόντα από τον πιο πρόσφατο κατάλογο και υπολογίζει ξανά τις διαθέσιμες τιμές, την κατάταξη αλυσίδων και το φθηνότερο πλάνο. Έτσι ο σύνδεσμος μοιράζεται τη λίστα αγορών, όχι ένα παλιό στιγμιότυπο τιμών.
+Το κουμπί «Κοινή χρήση» δημιουργεί σύνδεσμο για το τρέχον καλάθι. Από την έκδοση `v0.4.0`, ο σύνδεσμος κρατά τα συγκεκριμένα προϊόντα, τις ποσότητες, το επιλεγμένο όριο `1` έως `4` στάσεων και τις αλυσίδες που συμμετέχουν στον υπολογισμό. Όταν τον ανοίξει κάποιος άλλος, η εφαρμογή φορτώνει τα αντίστοιχα προϊόντα από τον πιο πρόσφατο κατάλογο και υπολογίζει ξανά τις διαθέσιμες τιμές, την κατάταξη αλυσίδων και το φθηνότερο πλάνο. Έτσι ο σύνδεσμος μοιράζεται τη λίστα και τις προτιμήσεις αγορών, όχι ένα παλιό στιγμιότυπο τιμών. Οι σύνδεσμοι της έκδοσης `v0.3.0` παραμένουν συμβατοί και ανοίγουν με όλες τις αλυσίδες ενεργές.
 
 ![Παράθυρο κοινής χρήσης καλαθιού με σύνδεσμο και πληροφορίες απορρήτου](screenshots/share.png)
 
 Η εισαγωγή είναι ανθεκτική σε αλλαγές καταλόγου: αν κάποιο προϊόν δεν υπάρχει πλέον, το υπόλοιπο καλάθι ανοίγει κανονικά και εμφανίζεται σαφής προειδοποίηση. Μετά την επιτυχημένη εισαγωγή, η παράμετρος αφαιρείται από τη γραμμή διεύθυνσης ώστε μια μελλοντική ανανέωση να μη γυρίσει τον χρήστη στην αρχική κοινόχρηστη έκδοση, ενώ το καλάθι συνεχίζει να αποθηκεύεται τοπικά όπως πριν.
 
-Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες και αριθμό στάσεων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Το νέο same-origin `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
+Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και κωδικούς επιλεγμένων αλυσίδων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Το same-origin `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
 
 ### Ευκαιρία της ημέρας
 
@@ -66,7 +76,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.3.0`
+**Current version:** `v0.4.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -80,7 +90,10 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
-- Share the exact basket, quantities, and selected stop limit with a compact link.
+- Include or exclude supermarket chains from every ranking and optimized plan.
+- Use a nearby-chains preset after enabling location, then adjust the selection manually.
+- Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
+- Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
 - Rank supermarket chains by total basket price.
 - Show coverage and missing-item counts per chain.
@@ -101,13 +114,33 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
 
+### Supermarket Selection and Practical Plans
+
+Version `v0.4.0` adds an `Αλυσίδες στον υπολογισμό` control for choosing which
+supermarket chains should participate. One-stop rankings and multi-stop optimization
+recalculate immediately using only those chains. At least one chain remains enabled,
+and the preference is stored locally in the browser.
+
+After the user explicitly enables location, `Μόνο κοντινές` provides a one-time
+preset containing chains with a known branch inside the current search radius. The
+user can still add or remove chains afterward. The app never saves coordinates in
+the basket or a share link.
+
+The optimized result can now be copied as a practical store-by-store shopping plan,
+including products, quantities, store subtotals, the full total, and the number of
+stops.
+
+![Supermarket selection and grouped shopping plan](screenshots/retailer-filter.png)
+
 ### Shareable Baskets
 
-Version `v0.3.0` adds a `Κοινή χρήση` action to the basket toolbar. It creates a
-compact link that preserves product IDs, quantities, and the selected one-to-four
-stop limit. Opening the link retrieves those products from the latest catalogue and
-recalculates the chain ranking and cheapest plan using the prices available at that
-time. The URL therefore shares a grocery list, not a stale price quote.
+The basket toolbar includes a `Κοινή χρήση` action. Version `v0.4.0` share links
+preserve product IDs, quantities, the selected one-to-four stop limit, and the
+supermarket chains included in the calculation. Opening the link retrieves those
+products from the latest catalogue and recalculates the chain ranking and cheapest
+plan using the prices available at that time. The URL therefore shares grocery and
+planning preferences, not a stale price quote. Version `v0.3.0` links remain
+compatible and open with every chain enabled.
 
 ![Share-basket dialog with the generated link and privacy explanation](screenshots/share.png)
 
@@ -118,8 +151,8 @@ later refresh does not unexpectedly restore the original shared version; normal
 local basket persistence then continues.
 
 The versioned and validated payload is capped at 60 products and contains only
-product IDs, quantities, and the stop count. It contains no location, nearby-branch
-data, prices, or personal information. A same-origin `products-by-ids` PHP endpoint
+product IDs, quantities, the stop count, and selected retailer IDs. It contains no
+location, nearby-branch data, prices, or personal information. A same-origin `products-by-ids` PHP endpoint
 returns only the requested records from the latest snapshot, avoiding a full
 catalogue download for every recipient. The dialog supports copy-to-clipboard,
 the platform share sheet where available, and a manual-selection fallback for
@@ -230,6 +263,10 @@ Shareable basket dialog:
 
 ![Shareable basket dialog on desktop](screenshots/share.png)
 
+Supermarket selection and grouped plan export:
+
+![Supermarket selection and grouped shopping plan](screenshots/retailer-filter.png)
+
 ### Local Development
 
 Requirements:
@@ -281,8 +318,12 @@ Browser QA covers:
 - No browser console errors.
 - Product add flow.
 - Quantity update flow.
+- Supermarket include/exclude filtering and local preference persistence.
+- Nearby-chain preset after location is enabled.
+- Grouped shopping-plan copy output.
 - Share-link generation, copy feedback, and privacy explanation.
-- Shared-basket restoration with quantities and selected stop limit.
+- Shared-basket restoration with quantities, selected stop limit, and retailer filter.
+- Backward compatibility with version 1 share links.
 - Invalid-link and missing-product handling.
 - Product detail drawer open/close.
 - Large product image in the detail drawer.
