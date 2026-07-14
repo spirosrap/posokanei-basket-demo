@@ -7,8 +7,10 @@ import {
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
+  Copy,
   Github,
   Info,
+  Link2,
   MapPin,
   Minus,
   Navigation,
@@ -16,6 +18,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Share2,
   ShoppingBasket,
   Sparkles,
   Store,
@@ -55,6 +58,7 @@ import {
   getBrowserLocation,
   mapsSearchUrl,
 } from "./locationStores";
+import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -63,6 +67,9 @@ const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
 const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
+const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE
+  ? null
+  : readSharedBasketUrl(window.location.href);
 const IMAGE_PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
   : `${APP_BASE_PATH}api/posokanei.php`;
@@ -136,8 +143,19 @@ const savedLiveBasketProducts = () => {
   }
 };
 
+const removeSharedBasketParam = () => {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(SHARED_BASKET_PARAM)) return;
+  url.searchParams.delete(SHARED_BASKET_PARAM);
+  window.history.replaceState({}, "", url.toString());
+};
+
 function App() {
-  const [basket, setBasket] = useState(savedBasket);
+  const [basket, setBasket] = useState(() =>
+    INITIAL_SHARED_BASKET?.status === "valid"
+      ? INITIAL_SHARED_BASKET.basket
+      : savedBasket(),
+  );
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -157,7 +175,22 @@ function App() {
   });
   const [liveState, setLiveState] = useState("idle");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [maxChains, setMaxChains] = useState(() => (shouldStartWithDemoBasket() ? 4 : 1));
+  const [maxChains, setMaxChains] = useState(() =>
+    INITIAL_SHARED_BASKET?.status === "valid"
+      ? INITIAL_SHARED_BASKET.maxChains
+      : shouldStartWithDemoBasket()
+        ? 4
+        : 1,
+  );
+  const [sharedBasketHydrating, setSharedBasketHydrating] = useState(
+    INITIAL_SHARED_BASKET?.status === "valid",
+  );
+  const [sharedBasketStatus, setSharedBasketStatus] = useState(() => {
+    if (INITIAL_SHARED_BASKET?.status === "invalid") return { status: "error" };
+    if (INITIAL_SHARED_BASKET?.status === "valid") return { status: "loading" };
+    return null;
+  });
+  const [shareUrl, setShareUrl] = useState("");
   const [locationRadiusKm, setLocationRadiusKm] = useState(2);
   const [locationState, setLocationState] = useState({
     status: "idle",
@@ -169,12 +202,58 @@ function App() {
   const refreshedDemoProducts = useRef(false);
 
   useEffect(() => {
-    saveLocalJson(BASKET_KEY, basket);
-  }, [basket]);
+    if (!sharedBasketHydrating) saveLocalJson(BASKET_KEY, basket);
+  }, [basket, sharedBasketHydrating]);
 
   useEffect(() => {
     saveLocalJson(LIVE_BASKET_PRODUCTS_KEY, liveBasketProducts);
   }, [liveBasketProducts]);
+
+  useEffect(() => {
+    if (!INITIAL_SHARED_BASKET) return undefined;
+    if (INITIAL_SHARED_BASKET.status === "invalid") {
+      removeSharedBasketParam();
+      return undefined;
+    }
+
+    let cancelled = false;
+    const requestedBasket = INITIAL_SHARED_BASKET.basket;
+    fetchProductsByIds(requestedBasket.map((entry) => entry.productId))
+      .then((products) => {
+        if (cancelled) return;
+        const foundIds = new Set(products.map((product) => product.id));
+        const availableBasket = requestedBasket.filter((entry) => foundIds.has(entry.productId));
+        const missingCount = requestedBasket.length - availableBasket.length;
+
+        if (!availableBasket.length) {
+          setBasket(savedBasket());
+          setSharedBasketStatus({ status: "error" });
+        } else {
+          setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
+          setBasket(availableBasket);
+          setSharedBasketStatus({
+            status: missingCount ? "partial" : "ready",
+            productCount: availableBasket.length,
+            missingCount,
+            maxChains: INITIAL_SHARED_BASKET.maxChains,
+          });
+        }
+
+        setSharedBasketHydrating(false);
+        removeSharedBasketParam();
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBasket(savedBasket());
+        setSharedBasketStatus({ status: "error" });
+        setSharedBasketHydrating(false);
+        removeSharedBasketParam();
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,11 +397,12 @@ function App() {
   }, [basket]);
 
   useEffect(() => {
+    if (sharedBasketHydrating) return;
     setBasket((current) => {
       const next = current.filter((entry) => productMap.has(entry.productId));
       return next.length === current.length ? current : next;
     });
-  }, [productMap]);
+  }, [productMap, sharedBasketHydrating]);
 
   const rankings = useMemo(
     () => calculateRankings(basket, allProducts, activeRetailers),
@@ -369,13 +449,21 @@ function App() {
   const clearBasket = () => {
     setBasket([]);
     setMaxChains(1);
+    setSharedBasketStatus(null);
   };
 
   const loadDemoBasket = () => {
     setLiveBasketProducts((current) => mergeCatalogProducts(current, DEFAULT_DEMO_PRODUCTS));
     setBasket(DEFAULT_DEMO_BASKET);
     setMaxChains(4);
+    setSharedBasketStatus(null);
     refreshedDemoProducts.current = false;
+  };
+
+  const openShareBasket = () => {
+    if (!basket.length) return;
+    const baseUrl = new URL(APP_BASE_PATH, window.location.origin).toString();
+    setShareUrl(buildSharedBasketUrl(baseUrl, basket, maxChains));
   };
 
   const copyBasket = async () => {
@@ -531,8 +619,10 @@ function App() {
           onQuantity={updateQuantity}
           onClear={clearBasket}
           onCopy={copyBasket}
+          onShare={openShareBasket}
           onLoadDemo={loadDemoBasket}
           onSelect={setSelectedProduct}
+          sharedBasketStatus={sharedBasketStatus}
         />
 
         <RankingsPanel
@@ -557,6 +647,15 @@ function App() {
           retailers={activeRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
+        />
+      ) : null}
+
+      {shareUrl ? (
+        <ShareBasketDialog
+          url={shareUrl}
+          basketCount={basket.length}
+          maxChains={maxChains}
+          onClose={() => setShareUrl("")}
         />
       ) : null}
     </div>
@@ -993,8 +1092,10 @@ function BasketPanel({
   onQuantity,
   onClear,
   onCopy,
+  onShare,
   onLoadDemo,
   onSelect,
+  sharedBasketStatus,
 }) {
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
@@ -1024,6 +1125,15 @@ function BasketPanel({
         </button>
         <button
           type="button"
+          className="text-button share-button"
+          onClick={onShare}
+          disabled={!basket.length}
+        >
+          <Share2 size={16} />
+          Κοινή χρήση
+        </button>
+        <button
+          type="button"
           className="text-button danger-button"
           onClick={onClear}
           aria-label="Καθαρισμός παραδείγματος και έναρξη νέου καλαθιού"
@@ -1033,7 +1143,9 @@ function BasketPanel({
         </button>
       </div>
 
-      {isDemoBasket ? (
+      <SharedBasketNotice state={sharedBasketStatus} />
+
+      {isDemoBasket && !sharedBasketStatus ? (
         <div className="demo-hint">
           <Sparkles size={15} />
           <span>
@@ -1089,6 +1201,149 @@ function BasketPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function SharedBasketNotice({ state }) {
+  if (!state) return null;
+
+  if (state.status === "loading") {
+    return (
+      <div className="shared-basket-notice loading" role="status">
+        <RefreshCw size={15} className="spin" />
+        <span>Φόρτωση του κοινόχρηστου καλαθιού με τις σημερινές τιμές...</span>
+      </div>
+    );
+  }
+
+  if (state.status === "ready" || state.status === "partial") {
+    return (
+      <div className={`shared-basket-notice ${state.status}`} role="status">
+        {state.status === "ready" ? <Check size={15} /> : <AlertCircle size={15} />}
+        <span>
+          Φορτώθηκε κοινόχρηστο καλάθι με {state.productCount.toLocaleString("el-GR")} {state.productCount === 1 ? "προϊόν" : "προϊόντα"}{" "}
+          και έως {state.maxChains} {state.maxChains === 1 ? "στάση" : "στάσεις"}.
+          {state.missingCount
+            ? ` ${state.missingCount.toLocaleString("el-GR")} ${state.missingCount === 1 ? "προϊόν δεν υπάρχει" : "προϊόντα δεν υπάρχουν"} πλέον στον κατάλογο.`
+            : " Οι τιμές και το φθηνότερο πλάνο υπολογίστηκαν ξανά τώρα."}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shared-basket-notice error" role="alert">
+      <AlertCircle size={15} />
+      <span>Ο σύνδεσμος καλαθιού δεν ήταν έγκυρος ή δεν μπόρεσε να φορτωθεί.</span>
+    </div>
+  );
+}
+
+function ShareBasketDialog({ url, basketCount, maxChains, onClose }) {
+  const [copyState, setCopyState] = useState("idle");
+  const inputRef = useRef(null);
+  const supportsNativeShare = typeof navigator.share === "function";
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  const copyLink = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      try {
+        setCopyState(document.execCommand("copy") ? "copied" : "manual");
+      } catch {
+        setCopyState("manual");
+      }
+    }
+  };
+
+  const shareLink = async () => {
+    try {
+      await navigator.share({
+        title: "Καλάθι Τιμών Supermarket",
+        text: `Σύγκρινε αυτό το καλάθι ${basketCount} προϊόντων για έως ${maxChains} ${maxChains === 1 ? "στάση" : "στάσεις"}.`,
+        url,
+      });
+      setCopyState("shared");
+    } catch (error) {
+      if (error?.name !== "AbortError") await copyLink();
+    }
+  };
+
+  return (
+    <aside className="drawer share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-panel share-panel">
+        <div className="drawer-head">
+          <span className="share-dialog-icon" aria-hidden="true">
+            <Link2 size={20} />
+          </span>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Κλείσιμο">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="drawer-title">
+          <small>Κοινόχρηστη λίστα</small>
+          <h2 id="share-title">Μοιράσου το καλάθι σου</h2>
+          <p>
+            Ο παραλήπτης θα δει τα ίδια {basketCount.toLocaleString("el-GR")} προϊόντα,
+            τις ποσότητες και το όριο των {maxChains} {maxChains === 1 ? "στάσης" : "στάσεων"}.
+          </p>
+        </div>
+
+        <label className="share-link-field">
+          <span>Σύνδεσμος καλαθιού</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={url}
+            readOnly
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+
+        <div className="share-dialog-actions">
+          <button type="button" className="primary-action" onClick={copyLink}>
+            {copyState === "copied" ? <Check size={18} /> : <Copy size={18} />}
+            {copyState === "copied" ? "Αντιγράφηκε" : "Αντιγραφή συνδέσμου"}
+          </button>
+          {supportsNativeShare ? (
+            <button type="button" className="text-button" onClick={shareLink}>
+              <Share2 size={17} />
+              Κοινή χρήση
+            </button>
+          ) : null}
+        </div>
+
+        {copyState === "shared" ? (
+          <p className="share-feedback success" role="status">Το καλάθι κοινοποιήθηκε.</p>
+        ) : null}
+        {copyState === "manual" ? (
+          <p className="share-feedback" role="status">
+            Ο σύνδεσμος επιλέχθηκε. Αντέγραψέ τον από το πεδίο.
+          </p>
+        ) : null}
+
+        <div className="share-privacy-note">
+          <Info size={16} />
+          <span>
+            Ο σύνδεσμος περιέχει μόνο κωδικούς προϊόντων, ποσότητες και αριθμό στάσεων.
+            Δεν περιέχει τοποθεσία ή τιμές. Οι διαθέσιμες τιμές υπολογίζονται ξανά όταν ανοίξει.
+          </span>
+        </div>
+      </div>
+    </aside>
   );
 }
 

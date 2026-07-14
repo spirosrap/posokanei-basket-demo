@@ -981,6 +981,12 @@ button {
   color: var(--blue);
 }
 
+.text-button.share-button {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
 .text-button.danger-button {
   border-color: rgba(220, 38, 38, 0.22);
   background: #fff5f5;
@@ -1013,6 +1019,44 @@ button {
 .demo-hint svg {
   flex: 0 0 auto;
   margin-top: 1px;
+}
+
+.shared-basket-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -2px 0 12px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: var(--radius);
+  background: #ecfdf5;
+  color: #047857;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.shared-basket-notice svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.shared-basket-notice.loading {
+  border-color: rgba(37, 99, 235, 0.18);
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.shared-basket-notice.partial {
+  border-color: rgba(180, 83, 9, 0.22);
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.shared-basket-notice.error {
+  border-color: rgba(220, 38, 38, 0.2);
+  background: #fff5f5;
+  color: #b91c1c;
 }
 
 .basket-item {
@@ -1683,6 +1727,92 @@ button {
   pointer-events: auto;
 }
 
+.share-panel {
+  bottom: auto;
+  width: min(480px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+}
+
+.share-dialog-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: var(--radius);
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+.share-link-field {
+  display: grid;
+  gap: 7px;
+  margin: 22px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.share-link-field input {
+  width: 100%;
+  height: 42px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 0 11px;
+  font: inherit;
+  font-weight: 650;
+}
+
+.share-link-field input:focus {
+  border-color: rgba(15, 118, 110, 0.55);
+  outline: 2px solid rgba(15, 118, 110, 0.12);
+}
+
+.share-dialog-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.share-dialog-actions .primary-action {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.share-dialog-actions .text-button {
+  flex: 0 0 auto;
+  height: 44px;
+}
+
+.share-feedback {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.share-feedback.success {
+  color: #047857;
+}
+
+.share-privacy-note {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  padding-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.share-privacy-note svg {
+  margin-top: 1px;
+}
+
 .drawer-head {
   display: flex;
   align-items: center;
@@ -2007,9 +2137,23 @@ button {
 
   .drawer-panel {
     top: 10px;
+    left: 10px;
     right: 10px;
     bottom: 10px;
-    width: calc(100vw - 20px);
+    width: auto;
+  }
+
+  .share-panel {
+    bottom: auto;
+    max-height: calc(100vh - 20px);
+  }
+
+  .share-dialog-actions {
+    flex-direction: column;
+  }
+
+  .share-dialog-actions .text-button {
+    width: 100%;
   }
 
   .drawer-image-frame {

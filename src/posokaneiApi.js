@@ -490,6 +490,19 @@ export async function fetchProductsByIds(productIds = []) {
   const wantedIds = new Set(productIds.map((id) => String(id)));
   if (!wantedIds.size) return [];
 
+  try {
+    const raw = await fetchJson(
+      "products-by-ids",
+      { ids: [...wantedIds].join(",") },
+      18000,
+      2,
+    );
+    const products = firstArray(raw).map((product) => normalizeProduct(product, "snapshot"));
+    if (products.length) return products;
+  } catch {
+    // Fall back to the static snapshot when the batch endpoint is unavailable.
+  }
+
   const snapshot = await fetchCatalogSnapshot();
   const productsById = new Map();
   (snapshot.products || []).forEach((rawProduct) => {

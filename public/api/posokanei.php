@@ -14,6 +14,15 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=60, stale-while-revalidate=300');
 header('Access-Control-Allow-Origin: *');
 
+if ($resource === 'products-by-ids') {
+    if (emit_snapshot_json($resource, $_GET)) {
+        return;
+    }
+    http_response_code(503);
+    echo json_encode(['error' => 'snapshot_unavailable'], JSON_UNESCAPED_UNICODE);
+    return;
+}
+
 $method = 'GET';
 $path = '';
 $query = [];
@@ -276,7 +285,7 @@ function snapshot_payload(string $resource, array $request): ?array
         ];
     }
 
-    if (in_array($resource, ['products', 'search', 'barcode', 'product'], true)) {
+    if (in_array($resource, ['products', 'products-by-ids', 'search', 'barcode', 'product'], true)) {
         $snapshot = read_snapshot();
         if (!is_array($snapshot)) {
             return null;
@@ -365,6 +374,39 @@ function snapshot_products_payload(array $snapshot, string $resource, array $req
     $started = microtime(true);
     $products = first_array(['products' => $snapshot['products'] ?? []]);
     $generatedAt = (string) ($snapshot['generated_at'] ?? '');
+
+    if ($resource === 'products-by-ids') {
+        $rawIds = clean_string($request['ids'] ?? '', 8192);
+        $ids = array_values(array_unique(array_filter(
+            explode(',', $rawIds),
+            static fn($id): bool => preg_match('/^[a-zA-Z0-9_-]{1,120}$/', $id) === 1
+        )));
+        $ids = array_slice($ids, 0, 60);
+        $productsById = [];
+        $wanted = array_fill_keys($ids, true);
+
+        foreach ($products as $product) {
+            if (!is_array($product)) continue;
+            $id = (string) ($product['id'] ?? $product['product_id'] ?? $product['gtin'] ?? '');
+            if ($id !== '' && isset($wanted[$id])) {
+                $product['source'] = 'snapshot';
+                $productsById[$id] = $product;
+            }
+        }
+
+        $matches = [];
+        foreach ($ids as $id) {
+            if (isset($productsById[$id])) $matches[] = $productsById[$id];
+        }
+
+        return [
+            'products' => $matches,
+            'total' => count($matches),
+            'requested' => count($ids),
+            'source' => 'snapshot',
+            'snapshot_generated_at' => $generatedAt,
+        ];
+    }
 
     if ($resource === 'barcode') {
         $barcode = preg_replace('/[^0-9]/', '', (string) ($request['barcode'] ?? ''));

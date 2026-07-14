@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.2.0`
+**Τρέχουσα έκδοση:** `v0.3.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -25,6 +25,16 @@
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
 Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα είναι πιο ρεαλιστικό εβδομαδιαίο καλάθι ελληνικής οικογένειας, με γάλα, γιαούρτι, τυριά, αυγά, κοτόπουλο, ζυμαρικά, όσπρια, χυμούς, νερά, καθαριστικά και χαρτικά. Τα προϊόντα έχουν επιλεγεί ώστε να υπάρχουν αρκετές πλήρεις επιλογές και στο σενάριο της μίας στάσης, αλλά και να φαίνεται καθαρά πότε συμφέρει να μοιραστεί η λίστα σε δύο, τρεις ή τέσσερις αλυσίδες. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
+
+### Κοινόχρηστα καλάθια
+
+Από την έκδοση `v0.3.0`, το κουμπί «Κοινή χρήση» δημιουργεί σύνδεσμο για το τρέχον καλάθι. Ο σύνδεσμος κρατά τα συγκεκριμένα προϊόντα, τις ποσότητες και το επιλεγμένο όριο `1` έως `4` στάσεων. Όταν τον ανοίξει κάποιος άλλος, η εφαρμογή φορτώνει τα αντίστοιχα προϊόντα από τον πιο πρόσφατο κατάλογο και υπολογίζει ξανά τις διαθέσιμες τιμές, την κατάταξη αλυσίδων και το φθηνότερο πλάνο. Έτσι ο σύνδεσμος μοιράζεται τη λίστα αγορών, όχι ένα παλιό στιγμιότυπο τιμών.
+
+![Παράθυρο κοινής χρήσης καλαθιού με σύνδεσμο και πληροφορίες απορρήτου](screenshots/share.png)
+
+Η εισαγωγή είναι ανθεκτική σε αλλαγές καταλόγου: αν κάποιο προϊόν δεν υπάρχει πλέον, το υπόλοιπο καλάθι ανοίγει κανονικά και εμφανίζεται σαφής προειδοποίηση. Μετά την επιτυχημένη εισαγωγή, η παράμετρος αφαιρείται από τη γραμμή διεύθυνσης ώστε μια μελλοντική ανανέωση να μη γυρίσει τον χρήστη στην αρχική κοινόχρηστη έκδοση, ενώ το καλάθι συνεχίζει να αποθηκεύεται τοπικά όπως πριν.
+
+Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες και αριθμό στάσεων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Το νέο same-origin `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
 
 ### Ευκαιρία της ημέρας
 
@@ -56,7 +66,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.2.0`
+**Current version:** `v0.3.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -70,6 +80,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
+- Share the exact basket, quantities, and selected stop limit with a compact link.
+- Restore a shared basket against the latest catalogue and recalculate current prices automatically.
 - Rank supermarket chains by total basket price.
 - Show coverage and missing-item counts per chain.
 - Highlight the cheapest complete one-stop basket.
@@ -88,6 +100,30 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show the last product/price update check in the UI.
 - Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
+
+### Shareable Baskets
+
+Version `v0.3.0` adds a `Κοινή χρήση` action to the basket toolbar. It creates a
+compact link that preserves product IDs, quantities, and the selected one-to-four
+stop limit. Opening the link retrieves those products from the latest catalogue and
+recalculates the chain ranking and cheapest plan using the prices available at that
+time. The URL therefore shares a grocery list, not a stale price quote.
+
+![Share-basket dialog with the generated link and privacy explanation](screenshots/share.png)
+
+The import flow handles catalogue changes explicitly. Products that are no longer
+available are omitted with a visible partial-import warning, while the rest of the
+basket remains usable. After import, the token is removed from the address bar so a
+later refresh does not unexpectedly restore the original shared version; normal
+local basket persistence then continues.
+
+The versioned and validated payload is capped at 60 products and contains only
+product IDs, quantities, and the stop count. It contains no location, nearby-branch
+data, prices, or personal information. A same-origin `products-by-ids` PHP endpoint
+returns only the requested records from the latest snapshot, avoiding a full
+catalogue download for every recipient. The dialog supports copy-to-clipboard,
+the platform share sheet where available, and a manual-selection fallback for
+stricter Safari or clipboard environments.
 
 ### Daily Product Suggestion
 
@@ -190,6 +226,10 @@ Product detail, with a larger image for checking the exact product:
 
 ![Product detail drawer with large product image and per-chain prices](screenshots/detail.png)
 
+Shareable basket dialog:
+
+![Shareable basket dialog on desktop](screenshots/share.png)
+
 ### Local Development
 
 Requirements:
@@ -227,6 +267,7 @@ dist/
 Core checks:
 
 ```bash
+npm test
 npm run lint
 npm run build
 npm audit --omit=dev
@@ -240,6 +281,9 @@ Browser QA covers:
 - No browser console errors.
 - Product add flow.
 - Quantity update flow.
+- Share-link generation, copy feedback, and privacy explanation.
+- Shared-basket restoration with quantities and selected stop limit.
+- Invalid-link and missing-product handling.
 - Product detail drawer open/close.
 - Large product image in the detail drawer.
 - Basket and catalog product thumbnails through the image proxy.
