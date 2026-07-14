@@ -85,12 +85,15 @@ export function buildRetailerProximity(retailers, stores) {
   return proximity;
 }
 
-export function formatDistance(meters) {
+export function formatDistance(meters, locale = "el-GR") {
   if (!Number.isFinite(meters)) return "";
-  if (meters < 1000) return `${Math.max(1, Math.round(meters)).toLocaleString("el-GR")} μ.`;
-  return `${(meters / 1000).toLocaleString("el-GR", {
+  const english = locale.startsWith("en");
+  if (meters < 1000) {
+    return `${Math.max(1, Math.round(meters)).toLocaleString(locale)} ${english ? "m" : "μ."}`;
+  }
+  return `${(meters / 1000).toLocaleString(locale, {
     maximumFractionDigits: meters < 5000 ? 1 : 0,
-  })} χλμ.`;
+  })} ${english ? "km" : "χλμ."}`;
 }
 
 export function mapsSearchUrl(store) {

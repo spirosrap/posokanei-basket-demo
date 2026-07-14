@@ -1,7 +1,7 @@
-export function formatEuro(value) {
+export function formatEuro(value, locale = "el-GR") {
   if (!Number.isFinite(value)) return "-";
   try {
-    return new Intl.NumberFormat("el-GR", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "EUR",
       minimumFractionDigits: 2,

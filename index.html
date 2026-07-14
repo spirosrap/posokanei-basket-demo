@@ -9,6 +9,23 @@
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>Καλάθι Τιμών Supermarket</title>
+    <script>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("posokanei-theme") || "system";
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const resolvedTheme =
+            savedTheme === "dark" || (savedTheme === "system" && prefersDark)
+              ? "dark"
+              : "light";
+          document.documentElement.dataset.theme = resolvedTheme;
+          document.documentElement.dataset.themePreference = savedTheme;
+          document.documentElement.style.colorScheme = resolvedTheme;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

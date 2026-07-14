@@ -10,9 +10,12 @@ import {
   Copy,
   Github,
   Info,
+  Languages,
   Link2,
   MapPin,
   Minus,
+  Monitor,
+  Moon,
   Navigation,
   PackageSearch,
   Plus,
@@ -23,13 +26,14 @@ import {
   SlidersHorizontal,
   Sparkles,
   Store,
+  Sun,
   Tag,
   Trash2,
   Wifi,
   WifiOff,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchCategories,
   fetchDailyBargain,
@@ -61,6 +65,19 @@ import {
 } from "./locationStores";
 import { formatPlanText } from "./planText";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
+import {
+  getInitialLanguage,
+  localeForLanguage,
+  saveLanguage,
+  SUPPORTED_LANGUAGES,
+  translate,
+} from "./i18n";
+import {
+  applyTheme,
+  getInitialTheme,
+  saveTheme,
+  SUPPORTED_THEMES,
+} from "./theme";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -84,6 +101,14 @@ const RETAILER_LOGO_FALLBACKS = {
   sklavenitis: ["https://upload.wikimedia.org/wikipedia/commons/c/c8/Sklavenitis_Logo.svg"],
   synka: ["https://www.synka-sm.gr/wp-content/uploads/2026/02/logopng.png"],
 };
+
+const PreferencesContext = createContext(null);
+
+function usePreferences() {
+  const preferences = useContext(PreferencesContext);
+  if (!preferences) throw new Error("PreferencesContext is unavailable");
+  return preferences;
+}
 
 const basketsMatch = (basket, referenceBasket) => {
   if (!Array.isArray(basket) || basket.length !== referenceBasket.length) return false;
@@ -189,6 +214,58 @@ const copyText = async (value) => {
 };
 
 function App() {
+  const [language, setLanguage] = useState(getInitialLanguage);
+  const [theme, setTheme] = useState(getInitialTheme);
+  const locale = localeForLanguage(language);
+
+  const preferences = useMemo(() => {
+    const t = (key, values) => translate(language, key, values);
+    return {
+      language,
+      locale,
+      setLanguage,
+      setTheme,
+      theme,
+      t,
+      number: (value) => Number(value || 0).toLocaleString(locale),
+      money: (value) => formatEuro(value, locale),
+    };
+  }, [language, locale, theme]);
+
+  useEffect(() => {
+    saveLanguage(language);
+    document.documentElement.lang = language;
+    document.title = preferences.t("documentTitle");
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute("content", preferences.t("documentDescription"));
+  }, [language, preferences]);
+
+  useEffect(() => {
+    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateResolvedTheme = () => applyTheme(theme, colorScheme.matches);
+    saveTheme(theme);
+    updateResolvedTheme();
+
+    if (theme !== "system") return undefined;
+    if (colorScheme.addEventListener) {
+      colorScheme.addEventListener("change", updateResolvedTheme);
+      return () => colorScheme.removeEventListener("change", updateResolvedTheme);
+    }
+
+    colorScheme.addListener?.(updateResolvedTheme);
+    return () => colorScheme.removeListener?.(updateResolvedTheme);
+  }, [theme]);
+
+  return (
+    <PreferencesContext.Provider value={preferences}>
+      <AppContent />
+    </PreferencesContext.Provider>
+  );
+}
+
+function AppContent() {
+  const { t } = usePreferences();
   const [basket, setBasket] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.basket
@@ -197,7 +274,7 @@ function App() {
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
-  const [health, setHealth] = useState({ state: "checking", label: "Σύνδεση με κατάλογο" });
+  const [health, setHealth] = useState({ state: "checking", activeProducts: 0 });
   const [updateStatus, setUpdateStatus] = useState(null);
   const [dailyBargain, setDailyBargain] = useState(null);
   const [dailyBargainState, setDailyBargainState] = useState("loading");
@@ -305,7 +382,7 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
-    setHealth({ state: "checking", label: "Έλεγχος live API" });
+    setHealth({ state: "checking", activeProducts: 0 });
     Promise.all([
       fetchHealth(),
       fetchRetailers(),
@@ -324,17 +401,14 @@ function App() {
         setHealth({
           state: stats.source === "snapshot" ? "cached" : "online",
           source: stats.source,
+          activeProducts: stats.activeProducts,
           snapshotGeneratedAt: stats.snapshotGeneratedAt,
           liveError: stats.liveError,
-          label:
-            stats.source === "snapshot"
-              ? `Κατάλογος · ${stats.activeProducts.toLocaleString("el-GR")} προϊόντα`
-              : `${stats.activeProducts.toLocaleString("el-GR")} live προϊόντα`,
         });
         setUpdateStatus(fetchedUpdateStatus);
       })
       .catch(() => {
-        if (!cancelled) setHealth({ state: "offline", label: "Ο κατάλογος δεν απαντά" });
+        if (!cancelled) setHealth({ state: "offline", activeProducts: 0 });
       });
     return () => {
       cancelled = true;
@@ -406,10 +480,10 @@ function App() {
 
   const categories = useMemo(() => {
     return [
-      { id: "all", name: "Όλα", count: liveMeta.activeProducts || liveMeta.total },
+      { id: "all", name: t("all"), count: liveMeta.activeProducts || liveMeta.total },
       ...liveCategories.slice(0, 80),
     ];
-  }, [liveCategories, liveMeta.activeProducts, liveMeta.total]);
+  }, [liveCategories, liveMeta.activeProducts, liveMeta.total, t]);
 
   const activeRetailers = useMemo(() => {
     if (retailerFilterIds === null) return liveRetailers;
@@ -683,7 +757,7 @@ function App() {
         />
       ) : null}
 
-      <main className="workspace" aria-label="Εφαρμογή σύγκρισης καλαθιού">
+      <main className="workspace" aria-label={t("workspace")}>
         <SearchPanel
           query={query}
           setQuery={setQuery}
@@ -763,8 +837,17 @@ function App() {
 }
 
 function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
+  const { language, locale, money, t } = usePreferences();
   const retailer = retailers.find((item) => item.id === pick.evidence.bestRetailerId);
-  const updated = formatDataTime(pick.generatedAt);
+  const updated = formatDataTime(pick.generatedAt, locale, t);
+  const headline = language === "el" ? pick.headline : t("bargainHeadline");
+  const reason =
+    language === "el"
+      ? pick.reason
+      : t("bargainReason", {
+          retailer: pick.evidence.bestRetailerName,
+          amount: money(pick.evidence.savingsVsHighest),
+        });
   return (
     <section className="daily-bargain" aria-labelledby="daily-bargain-title">
       <button type="button" className="daily-bargain-product" onClick={onSelect}>
@@ -772,45 +855,43 @@ function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
         <span className="daily-bargain-copy">
           <small className="daily-bargain-label">
             <Sparkles size={14} aria-hidden="true" />
-            Η ευκαιρία της ημέρας
+            {t("dailyBargain")}
           </small>
-          <strong id="daily-bargain-title">{pick.headline}</strong>
+          <strong id="daily-bargain-title">{headline}</strong>
           <span>{pick.product.name}</span>
         </span>
       </button>
 
       <div className="daily-bargain-reason">
-        <p>{pick.reason}</p>
-        <small>Επιλογή με AI από δημόσια στοιχεία τιμών · {updated}</small>
+        <p>{reason}</p>
+        <small>{t("aiPublicData", { time: updated })}</small>
       </div>
 
       <div className="daily-bargain-price">
         {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
         <span>
-          <strong>{formatEuro(pick.evidence.bestPrice)}</strong>
+          <strong>{money(pick.evidence.bestPrice)}</strong>
           <small>{pick.evidence.bestRetailerName}</small>
         </span>
         <span className="daily-saving">
-          <b>{Math.round(pick.evidence.savingsPercentVsHighest)}% φθηνότερα</b>
-          <small>
-            {formatEuro(pick.evidence.savingsVsHighest)} κάτω από την υψηλότερη τιμή
-          </small>
+          <b>{t("percentCheaper", { percent: Math.round(pick.evidence.savingsPercentVsHighest) })}</b>
+          <small>{t("belowHighest", { amount: money(pick.evidence.savingsVsHighest) })}</small>
         </span>
       </div>
 
       <div className="daily-bargain-actions">
         <button type="button" className="text-button" onClick={onSelect}>
           <Info size={16} />
-          Λεπτομέρειες
+          {t("details")}
         </button>
         <a className="text-button bargains-button" href={moreHref}>
           <Sparkles size={16} />
-          Περισσότερες ευκαιρίες
+          {t("moreBargains")}
           <ChevronRight size={15} />
         </a>
         <button type="button" className="text-button primary-button" onClick={onAdd}>
           <Plus size={17} />
-          Στο καλάθι
+          {t("toBasket")}
         </button>
       </div>
     </section>
@@ -818,28 +899,29 @@ function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
 }
 
 function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
+  const { language, locale, money, number, t } = usePreferences();
   const bargains = pick?.bargains || [];
-  const updated = formatDataTime(pick?.generatedAt);
+  const updated = formatDataTime(pick?.generatedAt, locale, t);
 
   return (
     <main className="bargains-page">
       <a className="bargains-back" href={APP_BASE_PATH}>
         <ArrowLeft size={17} />
-        Πίσω στο καλάθι
+        {t("backToBasket")}
       </a>
 
       <header className="bargains-heading">
         <div>
           <span className="bargains-eyebrow">
             <Sparkles size={16} />
-            Καθημερινές επιλογές
+            {t("dailyPicks")}
           </span>
-          <h1>Ευκαιρίες που ξεχωρίζουν σήμερα</h1>
-          <p>Μεγάλες διαφορές τιμής για το ίδιο προϊόν ανάμεσα σε αλυσίδες supermarket.</p>
+          <h1>{t("bargainsTitle")}</h1>
+          <p>{t("bargainsDescription")}</p>
         </div>
         {updated ? (
           <span className="bargains-updated">
-            {bargains.length.toLocaleString("el-GR")} επιλογές · {updated}
+            {t("bargainChoices", { count: number(bargains.length), time: updated })}
           </span>
         ) : null}
       </header>
@@ -847,19 +929,19 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
       {state === "loading" ? (
         <div className="bargains-status" role="status">
           <RefreshCw size={20} className="spin" />
-          Φόρτωση σημερινών επιλογών…
+          {t("loadingBargains")}
         </div>
       ) : null}
 
       {state === "error" ? (
         <div className="bargains-status error" role="alert">
           <AlertCircle size={20} />
-          Οι σημερινές επιλογές δεν είναι διαθέσιμες αυτή τη στιγμή.
+          {t("bargainsUnavailable")}
         </div>
       ) : null}
 
       {bargains.length ? (
-        <section className="bargains-grid" aria-label="Σημερινές ευκαιρίες προϊόντων">
+        <section className="bargains-grid" aria-label={t("todaysBargains")}>
           {bargains.map((bargain, index) => {
             const retailer = retailers.find(
               (item) => item.id === bargain.evidence.bestRetailerId,
@@ -873,8 +955,8 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                 >
                   <ProductThumb product={bargain.product} />
                   <span className="bargain-card-copy">
-                    <small>{index === 0 ? "Επιλογή ημέρας" : `Ευκαιρία ${index + 1}`}</small>
-                    <strong>{bargain.headline}</strong>
+                    <small>{index === 0 ? t("dailyPick") : t("bargainNumber", { number: index + 1 })}</small>
+                    <strong>{language === "el" ? bargain.headline : t("bargainHeadline")}</strong>
                     <span>{bargain.product.name}</span>
                   </span>
                 </button>
@@ -883,23 +965,28 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                   <span className="bargain-card-chain">
                     {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
                     <span>
-                      <strong>{formatEuro(bargain.evidence.bestPrice)}</strong>
+                      <strong>{money(bargain.evidence.bestPrice)}</strong>
                       <small>{bargain.evidence.bestRetailerName}</small>
                     </span>
                   </span>
                   <span className="bargain-card-saving">
                     <strong>{Math.round(bargain.evidence.savingsPercentVsHighest)}%</strong>
-                    <small>φθηνότερα</small>
+                    <small>{t("cheaper")}</small>
                   </span>
                 </div>
 
-                <p className="bargain-card-reason">{bargain.reason}</p>
+                <p className="bargain-card-reason">
+                  {language === "el"
+                    ? bargain.reason
+                    : t("bargainReason", {
+                        retailer: bargain.evidence.bestRetailerName,
+                        amount: money(bargain.evidence.savingsVsHighest),
+                      })}
+                </p>
 
                 <div className="bargain-card-meta">
-                  <span>{bargain.evidence.retailerCount} αλυσίδες</span>
-                  <span>
-                    {formatEuro(bargain.evidence.savingsVsHighest)} κάτω από την υψηλότερη
-                  </span>
+                  <span>{t("chainCount", { count: number(bargain.evidence.retailerCount) })}</span>
+                  <span>{t("belowHighestShort", { amount: money(bargain.evidence.savingsVsHighest) })}</span>
                 </div>
 
                 <div className="bargain-card-actions">
@@ -909,7 +996,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                     onClick={() => onSelect(bargain.product)}
                   >
                     <Info size={16} />
-                    Λεπτομέρειες
+                    {t("details")}
                   </button>
                   <button
                     type="button"
@@ -917,7 +1004,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                     onClick={() => onAdd(bargain.product)}
                   >
                     <Plus size={17} />
-                    Στο καλάθι
+                    {t("toBasket")}
                   </button>
                 </div>
               </article>
@@ -928,8 +1015,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
 
       {bargains.length ? (
         <p className="bargains-footnote">
-          Οι διαφορές συγκρίνουν τρέχουσες τιμές μεταξύ αλυσίδων και δεν αποτελούν
-          ιστορική έκπτωση.
+          {t("bargainsFootnote")}
         </p>
       ) : null}
     </main>
@@ -937,46 +1023,88 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
 }
 
 function Header({ health, basketCount }) {
+  const { language, number, setLanguage, setTheme, t, theme } = usePreferences();
   const isOnline = health.state === "online";
   const isCached = health.state === "cached";
+  const healthLabel = healthStatusLabel(health, t, number);
+  const themeIcons = {
+    system: <Monitor size={14} aria-hidden="true" />,
+    light: <Sun size={14} aria-hidden="true" />,
+    dark: <Moon size={14} aria-hidden="true" />,
+  };
+  const themeLabels = {
+    system: t("systemTheme"),
+    light: t("lightTheme"),
+    dark: t("darkTheme"),
+  };
   return (
     <header className="topbar">
-      <a className="brand" href="/" aria-label="Agentic Spiros home">
+      <a className="brand" href="/" aria-label={t("agenticSpirosHome")}>
         <span className="brand-mark">
           <ShoppingBasket size={21} aria-hidden="true" />
         </span>
         <span>
-          <strong>Καλάθι Τιμών Supermarket</strong>
-          <small>Φθηνότερο πλάνο για τα ψώνια σου</small>
+          <strong>{t("brandName")}</strong>
+          <small>{t("brandTagline")}</small>
         </span>
       </a>
 
       <div className="topbar-actions">
+        <div className="preference-switch language-switch" role="group" aria-label={t("languageSelector")}>
+          <Languages size={14} aria-hidden="true" />
+          {SUPPORTED_LANGUAGES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={language === option ? "active" : ""}
+              aria-pressed={language === option}
+              title={option === "el" ? t("greek") : t("english")}
+              onClick={() => setLanguage(option)}
+            >
+              {option === "el" ? "ΕΛ" : "EN"}
+            </button>
+          ))}
+        </div>
+        <div className="preference-switch theme-switch" role="group" aria-label={t("themeSelector")}>
+          {SUPPORTED_THEMES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={theme === option ? "active" : ""}
+              aria-pressed={theme === option}
+              aria-label={themeLabels[option]}
+              title={themeLabels[option]}
+              onClick={() => setTheme(option)}
+            >
+              {themeIcons[option]}
+            </button>
+          ))}
+        </div>
         <a
           className="repo-link"
           href={REPOSITORY_URL}
           target="_blank"
           rel="noreferrer"
-          title="Άνοιγμα κώδικα στο GitHub"
-          aria-label="Άνοιγμα του αποθετηρίου στο GitHub"
+          title={t("openGithub")}
+          aria-label={t("openGithub")}
         >
           <Github size={16} aria-hidden="true" />
           <span>GitHub</span>
         </a>
-        <span className="version-badge" title="Έκδοση εφαρμογής">
+        <span className="version-badge" title={t("appVersion")}>
           <Tag size={14} aria-hidden="true" />
           v{APP_VERSION}
         </span>
         <div
           className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
-          title="Κατάσταση API PosoKanei"
+          title={t("apiStatus")}
         >
           {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
-          <span>{health.label}</span>
+          <span>{healthLabel}</span>
         </div>
-        <div className="basket-pill" title="Προϊόντα στο καλάθι">
+        <div className="basket-pill" title={t("basketItems")}>
           <ShoppingBasket size={16} />
-          <span>{basketCount.toLocaleString("el-GR")}</span>
+          <span>{number(basketCount)}</span>
         </div>
       </div>
     </header>
@@ -984,61 +1112,61 @@ function Header({ health, basketCount }) {
 }
 
 function AppIntro({ health, updateStatus }) {
+  const { locale, t } = usePreferences();
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const showIntroTimestamp = health.source !== "snapshot";
   return (
-    <section className="app-intro" aria-label="Σκοπός εφαρμογής">
+    <section className="app-intro" aria-label={t("appPurpose")}>
       <div>
-        <h1>Βρες πού σε συμφέρει να αγοράσεις το καλάθι σου</h1>
-        <p>
-          Πρόσθεσε τα προϊόντα σου, διάλεξε αν θέλεις 1, 2, 3 ή 4 στάσεις, και
-          βλέπεις το φθηνότερο πλάνο ανά αλυσίδα supermarket.
-        </p>
+        <h1>{t("introTitle")}</h1>
+        <p>{t("introDescription")}</p>
       </div>
-      <div className="intro-facts" aria-label="Κατάσταση δεδομένων">
+      <div className="intro-facts" aria-label={t("dataStatus")}>
         <span>
           {refreshFailed
-            ? "Η τελευταία προσπάθεια απέτυχε"
+            ? t("lastAttemptFailed")
             : health.source === "snapshot"
-            ? "Ενημέρωση κάθε ώρα"
+            ? t("hourlyUpdates")
             : health.state === "online"
-              ? "Live τιμές προϊόντων"
-              : "Αναμονή live τιμών"}
+              ? t("liveProductPrices")
+              : t("waitingLivePrices")}
         </span>
-        {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus)}</span> : null}
+        {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus, t, locale)}</span> : null}
       </div>
     </section>
   );
 }
 
 function DataFreshnessNotice({ health, updateStatus }) {
+  const { locale, t } = usePreferences();
   if (health.source !== "snapshot") return null;
   const snapshotTime = formatDataTime(
     updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt || updateStatus?.lastSuccessfulRefreshAt,
+    locale,
+    t,
   );
-  const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt);
+  const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt, locale, t);
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const isAutoSnapshot = updateStatus?.status === "snapshot";
 
   return (
-    <section className="data-warning" aria-label="Προειδοποίηση φρεσκάδας δεδομένων">
+    <section className="data-warning" aria-label={t("freshnessWarning")}>
       <AlertCircle size={18} />
       <div>
         <strong>
           {refreshFailed
-            ? "Η τελευταία αυτόματη ενημέρωση απέτυχε."
+            ? t("refreshFailedTitle")
             : isAutoSnapshot
-            ? "Οι τιμές ενημερώνονται αυτόματα κάθε ώρα από το PosoKanei."
-            : "Οι τιμές εμφανίζονται από τον πιο πρόσφατο κατάλογο."}
+            ? t("refreshAutomaticTitle")
+            : t("refreshLatestTitle")}
         </strong>
         <span>
-          Το demo δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον
-          πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση
-          καταλόγου: {snapshotTime}.
+          {t("refreshSnapshotBody", { time: snapshotTime })}
           {refreshFailed
-            ? ` Τελευταία προσπάθεια: ${refreshAttemptTime} (${friendlyRefreshError(
-                updateStatus?.refreshError,
-              )}).`
+            ? t("refreshAttempt", {
+                time: refreshAttemptTime,
+                error: friendlyRefreshError(updateStatus?.refreshError, t),
+              })
             : ""}
         </span>
       </div>
@@ -1061,7 +1189,8 @@ function SearchPanel({
   onAdd,
   onLoadMore,
 }) {
-  const resultAction = `${products.length.toLocaleString("el-GR")}/${liveMeta.total.toLocaleString("el-GR")}`;
+  const { number, t } = usePreferences();
+  const resultAction = `${number(products.length)}/${number(liveMeta.total)}`;
   const canLoadMore = liveMeta.hasNext;
   const isLoadingMore = liveState === "loading_more";
 
@@ -1070,7 +1199,7 @@ function SearchPanel({
       <PanelTitle
         id="search-title"
         icon={<PackageSearch size={18} />}
-        title="Προϊόντα"
+        title={t("products")}
         action={resultAction}
       />
 
@@ -1079,19 +1208,19 @@ function SearchPanel({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Αναζήτηση προϊόντος ή barcode"
+          placeholder={t("searchPlaceholder")}
         />
         <Barcode size={17} aria-hidden="true" />
       </label>
 
-      <div className="chips" aria-label="Κατηγορίες">
+      <div className="chips" aria-label={t("categories")}>
         {categories.map((item) => (
           <button
             key={item.id}
             type="button"
             className={item.id === categoryId ? "chip active" : "chip"}
             onClick={() => setCategoryId(item.id)}
-            title={item.count ? `${item.count.toLocaleString("el-GR")} προϊόντα` : item.name}
+            title={item.count ? t("productCountTitle", { count: number(item.count) }) : item.name}
           >
             {item.name}
           </button>
@@ -1125,7 +1254,7 @@ function SearchPanel({
           disabled={isLoadingMore}
         >
           <RefreshCw size={16} />
-          {isLoadingMore ? "Φόρτωση..." : "Φόρτωση περισσότερων προϊόντων"}
+          {isLoadingMore ? t("loading") : t("loadMore")}
         </button>
       ) : null}
     </section>
@@ -1133,16 +1262,17 @@ function SearchPanel({
 }
 
 function LiveNotice({ state, total, visible, catalogSource }) {
+  const { number, t } = usePreferences();
   const labels = {
-    idle: "Κατάλογος προϊόντων",
-    loading: "Φόρτωση προϊόντων και τιμών",
-    loading_more: "Φόρτωση επιπλέον προϊόντων",
+    idle: t("catalogProducts"),
+    loading: t("loadingProducts"),
+    loading_more: t("loadingMoreProducts"),
     ready:
       catalogSource === "snapshot"
-        ? `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} προϊόντα από ενημερωμένο κατάλογο`
-        : `${visible.toLocaleString("el-GR")} από ${total.toLocaleString("el-GR")} live προϊόντα`,
-    empty: "Δεν βρέθηκαν αποτελέσματα",
-    error: "Ο κατάλογος δεν είναι διαθέσιμος",
+        ? t("catalogResults", { visible: number(visible), total: number(total) })
+        : t("liveResults", { visible: number(visible), total: number(total) }),
+    empty: t("noResults"),
+    error: t("catalogUnavailable"),
   };
   return (
     <div className={`inline-status ${state}`}>
@@ -1153,6 +1283,7 @@ function LiveNotice({ state, total, visible, catalogSource }) {
 }
 
 function ProductRow({ product, selected, onSelect, onAdd }) {
+  const { money, t } = usePreferences();
   const best = getBestProductPrice(product);
   return (
     <article className={selected ? "product-row selected" : "product-row"}>
@@ -1161,19 +1292,19 @@ function ProductRow({ product, selected, onSelect, onAdd }) {
         <span className="product-copy">
           <strong>{product.name}</strong>
           <small>
-            {product.brand || "Χωρίς brand"} · {product.unitQuantity || product.unit}
+            {product.brand || t("noBrand")} · {product.unitQuantity || product.unit}
           </small>
         </span>
       </button>
       <div className="product-price">
-        <span>{best ? formatEuro(best.price) : "-"}</span>
-        <small>best</small>
+        <span>{best ? money(best.price) : "-"}</span>
+        <small>{t("best")}</small>
       </div>
       <button
         type="button"
         className="icon-button add"
         onClick={onAdd}
-        aria-label={`Προσθήκη: ${product.name}`}
+        aria-label={t("addProduct", { name: product.name })}
       >
         <Plus size={18} />
       </button>
@@ -1197,6 +1328,7 @@ function BasketPanel({
   onSelect,
   sharedBasketStatus,
 }) {
+  const { money, t } = usePreferences();
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
   const planNames = visitPlan?.groups.map((group) => group.retailer.name).join(" + ");
@@ -1210,18 +1342,18 @@ function BasketPanel({
       <PanelTitle
         id="basket-title"
         icon={<ClipboardList size={18} />}
-        title="Καλάθι"
-        action={basket.length ? formatEuro(visitPlan?.total ?? 0) : formatEuro(0)}
+        title={t("basket")}
+        action={basket.length ? money(visitPlan?.total ?? 0) : money(0)}
       />
 
       <div className="basket-toolbar">
         <button type="button" className="text-button demo-button" onClick={onLoadDemo}>
           <Sparkles size={16} />
-          Παράδειγμα
+          {t("example")}
         </button>
         <button type="button" className="text-button" onClick={onCopy}>
           <ClipboardList size={16} />
-          Αντιγραφή
+          {t("copy")}
         </button>
         <button
           type="button"
@@ -1230,16 +1362,16 @@ function BasketPanel({
           disabled={!basket.length}
         >
           <Share2 size={16} />
-          Κοινή χρήση
+          {t("share")}
         </button>
         <button
           type="button"
           className="text-button danger-button"
           onClick={onClear}
-          aria-label="Καθαρισμός παραδείγματος και έναρξη νέου καλαθιού"
+          aria-label={t("newBasketLabel")}
         >
           <Trash2 size={17} />
-          Νέο καλάθι
+          {t("newBasket")}
         </button>
       </div>
 
@@ -1248,10 +1380,7 @@ function BasketPanel({
       {isDemoBasket && !sharedBasketStatus ? (
         <div className="demo-hint">
           <Sparkles size={15} />
-          <span>
-            Βλέπεις παράδειγμα. Πάτησε «Νέο καλάθι» για να το καθαρίσεις και να
-            ξεκινήσεις τη δική σου λίστα.
-          </span>
+          <span>{t("demoHint")}</span>
         </div>
       ) : null}
 
@@ -1278,17 +1407,17 @@ function BasketPanel({
 
       <div className="best-strip">
         <div>
-          <small>Πλάνο</small>
+          <small>{t("plan")}</small>
           <strong>
             {visitPlan?.isComplete
               ? planNames
               : hasPartialPlan
-                ? `Μερικό: ${planNames}`
-                : "Δεν υπάρχει διαθέσιμο προϊόν"}
+                ? t("partialPlan", { names: planNames })
+                : t("noAvailableProduct")}
           </strong>
         </div>
         <div>
-          <small>Στάσεις</small>
+          <small>{t("stops")}</small>
           <strong>
             {visitPlan?.groups.length
               ? `${visitPlan.chainCount}/${maxChains}`
@@ -1296,8 +1425,8 @@ function BasketPanel({
           </strong>
         </div>
         <div>
-          <small>{visitPlan?.isComplete ? "Κέρδος vs 1 στάση" : "Μερικό σύνολο"}</small>
-          <strong>{formatEuro(visitPlan?.isComplete ? oneStopSavings : visitPlan?.total ?? 0)}</strong>
+          <small>{visitPlan?.isComplete ? t("savingsVsOneStop") : t("partialTotal")}</small>
+          <strong>{money(visitPlan?.isComplete ? oneStopSavings : visitPlan?.total ?? 0)}</strong>
         </div>
       </div>
     </section>
@@ -1305,13 +1434,14 @@ function BasketPanel({
 }
 
 function SharedBasketNotice({ state }) {
+  const { number, t } = usePreferences();
   if (!state) return null;
 
   if (state.status === "loading") {
     return (
       <div className="shared-basket-notice loading" role="status">
         <RefreshCw size={15} className="spin" />
-        <span>Φόρτωση του κοινόχρηστου καλαθιού με τις σημερινές τιμές...</span>
+        <span>{t("sharedLoading")}</span>
       </div>
     );
   }
@@ -1321,13 +1451,15 @@ function SharedBasketNotice({ state }) {
       <div className={`shared-basket-notice ${state.status}`} role="status">
         {state.status === "ready" ? <Check size={15} /> : <AlertCircle size={15} />}
         <span>
-          Φορτώθηκε κοινόχρηστο καλάθι με {state.productCount.toLocaleString("el-GR")} {state.productCount === 1 ? "προϊόν" : "προϊόντα"}{" "}
-          και έως {state.maxChains} {state.maxChains === 1 ? "στάση" : "στάσεις"}.
+          {t("sharedLoaded", {
+            products: formatProductCount(state.productCount, t, number),
+            stops: formatStopLimit(state.maxChains, t),
+          })}
           {state.missingCount
-            ? ` ${state.missingCount.toLocaleString("el-GR")} ${state.missingCount === 1 ? "προϊόν δεν υπάρχει" : "προϊόντα δεν υπάρχουν"} πλέον στον κατάλογο.`
-            : " Οι τιμές και το φθηνότερο πλάνο υπολογίστηκαν ξανά τώρα."}
+            ? t("sharedMissing", { count: number(state.missingCount) })
+            : t("sharedRecalculated")}
           {state.retailerCount
-            ? ` Ο υπολογισμός χρησιμοποιεί ${state.retailerCount.toLocaleString("el-GR")} επιλεγμένες αλυσίδες.`
+            ? t("sharedRetailers", { count: number(state.retailerCount) })
             : ""}
         </span>
       </div>
@@ -1337,7 +1469,7 @@ function SharedBasketNotice({ state }) {
   return (
     <div className="shared-basket-notice error" role="alert">
       <AlertCircle size={15} />
-      <span>Ο σύνδεσμος καλαθιού δεν ήταν έγκυρος ή δεν μπόρεσε να φορτωθεί.</span>
+      <span>{t("sharedError")}</span>
     </div>
   );
 }
@@ -1350,6 +1482,7 @@ function ShareBasketDialog({
   hasRetailerFilter,
   onClose,
 }) {
+  const { number, t } = usePreferences();
   const [copyState, setCopyState] = useState("idle");
   const inputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
@@ -1376,8 +1509,11 @@ function ShareBasketDialog({
   const shareLink = async () => {
     try {
       await navigator.share({
-        title: "Καλάθι Τιμών Supermarket",
-        text: `Σύγκρινε αυτό το καλάθι ${basketCount} προϊόντων για έως ${maxChains} ${maxChains === 1 ? "στάση" : "στάσεις"}.`,
+        title: t("brandName"),
+        text: t("shareNativeText", {
+          count: number(basketCount),
+          stops: formatStopLimit(maxChains, t),
+        }),
         url,
       });
       setCopyState("shared");
@@ -1394,24 +1530,26 @@ function ShareBasketDialog({
           <span className="share-dialog-icon" aria-hidden="true">
             <Link2 size={20} />
           </span>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Κλείσιμο">
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
             <X size={18} />
           </button>
         </div>
         <div className="drawer-title">
-          <small>Κοινόχρηστη λίστα</small>
-          <h2 id="share-title">Μοιράσου το καλάθι σου</h2>
+          <small>{t("sharedList")}</small>
+          <h2 id="share-title">{t("shareTitle")}</h2>
           <p>
-            Ο παραλήπτης θα δει τα ίδια {basketCount.toLocaleString("el-GR")} προϊόντα,
-            τις ποσότητες, το όριο των {maxChains} {maxChains === 1 ? "στάσης" : "στάσεων"}
+            {t("shareSummary", {
+              count: number(basketCount),
+              stops: formatStopLimit(maxChains, t),
+            })}
             {hasRetailerFilter
-              ? ` και τις ${retailerCount.toLocaleString("el-GR")} επιλεγμένες αλυσίδες.`
-              : " και όλες τις διαθέσιμες αλυσίδες."}
+              ? t("shareSelectedRetailers", { count: number(retailerCount) })
+              : t("shareAllRetailers")}
           </p>
         </div>
 
         <label className="share-link-field">
-          <span>Σύνδεσμος καλαθιού</span>
+          <span>{t("basketLink")}</span>
           <input
             ref={inputRef}
             type="text"
@@ -1424,32 +1562,28 @@ function ShareBasketDialog({
         <div className="share-dialog-actions">
           <button type="button" className="primary-action" onClick={copyLink}>
             {copyState === "copied" ? <Check size={18} /> : <Copy size={18} />}
-            {copyState === "copied" ? "Αντιγράφηκε" : "Αντιγραφή συνδέσμου"}
+            {copyState === "copied" ? t("copied") : t("copyLink")}
           </button>
           {supportsNativeShare ? (
             <button type="button" className="text-button" onClick={shareLink}>
               <Share2 size={17} />
-              Κοινή χρήση
+              {t("share")}
             </button>
           ) : null}
         </div>
 
         {copyState === "shared" ? (
-          <p className="share-feedback success" role="status">Το καλάθι κοινοποιήθηκε.</p>
+          <p className="share-feedback success" role="status">{t("sharedSuccess")}</p>
         ) : null}
         {copyState === "manual" ? (
           <p className="share-feedback" role="status">
-            Ο σύνδεσμος επιλέχθηκε. Αντέγραψέ τον από το πεδίο.
+            {t("manualCopy")}
           </p>
         ) : null}
 
         <div className="share-privacy-note">
           <Info size={16} />
-          <span>
-            Ο σύνδεσμος περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και
-            την επιλογή αλυσίδων. Δεν περιέχει τοποθεσία ή τιμές. Οι διαθέσιμες τιμές
-            υπολογίζονται ξανά όταν ανοίξει.
-          </span>
+          <span>{t("sharePrivacy")}</span>
         </div>
       </div>
     </aside>
@@ -1457,6 +1591,7 @@ function ShareBasketDialog({
 }
 
 function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
+  const { money, t } = usePreferences();
   const step = quantityStep(product);
   const bestPrice = planItem?.price ?? null;
   return (
@@ -1473,7 +1608,7 @@ function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
           type="button"
           className="icon-button"
           onClick={() => onQuantity(product, quantity - step)}
-          aria-label={`Μείωση ποσότητας: ${product.name}`}
+          aria-label={t("decreaseQuantity", { name: product.name })}
         >
           <Minus size={15} />
         </button>
@@ -1481,23 +1616,23 @@ function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
           value={quantity}
           inputMode="decimal"
           onChange={(event) => onQuantity(product, Number(event.target.value))}
-          aria-label={`Ποσότητα: ${product.name}`}
+          aria-label={t("quantity", { name: product.name })}
         />
         <button
           type="button"
           className="icon-button"
           onClick={() => onQuantity(product, quantity + step)}
-          aria-label={`Αύξηση ποσότητας: ${product.name}`}
+          aria-label={t("increaseQuantity", { name: product.name })}
         >
           <Plus size={15} />
         </button>
       </div>
       <div className="line-total">
-        <strong>{bestPrice == null ? "-" : formatEuro(bestPrice * quantity)}</strong>
+        <strong>{bestPrice == null ? "-" : money(bestPrice * quantity)}</strong>
         <small>
           {bestPrice == null
-            ? "έλλειψη"
-            : `${formatEuro(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`}
+            ? t("missing")
+            : `${money(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`}
         </small>
       </div>
     </article>
@@ -1524,6 +1659,7 @@ function RankingsPanel({
   onSelectAllRetailers,
   onSelectNearbyRetailers,
 }) {
+  const { language, t } = usePreferences();
   const completeRankings = rankings.filter((row) => row.isComplete);
   const partialRankings = rankings.filter((row) => !row.isComplete);
   const maxTotal = Math.max(...completeRankings.map((row) => row.total), 0);
@@ -1553,7 +1689,7 @@ function RankingsPanel({
 
   const copyPlan = async () => {
     try {
-      await copyText(formatPlanText(visitPlan));
+      await copyText(formatPlanText(visitPlan, language));
       setPlanCopyState("copied");
     } catch {
       setPlanCopyState("error");
@@ -1565,8 +1701,8 @@ function RankingsPanel({
       <PanelTitle
         id="ranking-title"
         icon={<Store size={18} />}
-        title="Πλάνο"
-        action={basketSize ? formatStopLimit(maxChains) : "διάλεξε προϊόντα"}
+        title={t("plan")}
+        action={basketSize ? formatStopLimit(maxChains, t) : t("chooseProducts")}
       />
 
       <ChainLimitControl maxChains={maxChains} setMaxChains={setMaxChains} />
@@ -1620,7 +1756,7 @@ function RankingsPanel({
         <div className="rank-group">
           <div className="rank-group-title">
             <ArrowDownUp size={15} />
-            <span>Μία στάση, από φθηνότερο σε ακριβότερο</span>
+            <span>{t("oneStopRanking")}</span>
           </div>
           <div className="rank-list">
             {completeRankings.map((row, index) => (
@@ -1644,7 +1780,7 @@ function RankingsPanel({
         <div className="rank-group">
           <div className="rank-group-title muted">
             <Info size={15} />
-            <span>Αλυσίδες που δεν έχουν όλη τη λίστα</span>
+            <span>{t("incompleteChains")}</span>
           </div>
           <div className="rank-list partial">
             {partialRankings.map((row) => (
@@ -1668,6 +1804,7 @@ function RankingsPanel({
 }
 
 function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, onClear }) {
+  const { locale, number, t } = usePreferences();
   const busy = locationState.status === "locating" || locationState.status === "loading";
   const hasLocation = Boolean(locationState.position);
 
@@ -1676,20 +1813,20 @@ function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, o
       <div className="location-box-top">
         <span className="rank-group-title">
           <MapPin size={15} />
-          <span>Κοντινά supermarket</span>
+          <span>{t("nearbySupermarkets")}</span>
         </span>
         {hasLocation ? (
           <button type="button" className="quiet-button" onClick={onClear}>
-            Καθαρισμός
+            {t("clear")}
           </button>
         ) : null}
       </div>
       <div className="location-actions">
         <button type="button" className="text-button" onClick={onRequest} disabled={busy}>
           <Navigation size={16} />
-          {busy ? "Εντοπισμός..." : hasLocation ? "Ανανέωση" : "Χρήση τοποθεσίας"}
+          {busy ? t("locating") : hasLocation ? t("refresh") : t("useLocation")}
         </button>
-        <div className="radius-buttons" aria-label="Ακτίνα αναζήτησης">
+        <div className="radius-buttons" aria-label={t("searchRadius")}>
           {[2, 5, 10].map((value) => (
             <button
               key={value}
@@ -1697,21 +1834,22 @@ function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, o
               className={radiusKm === value ? "active" : ""}
               onClick={() => onChangeRadius(value)}
             >
-              {value}χλμ.
+              {t("kilometers", { value })}
             </button>
           ))}
         </div>
       </div>
-      <p>{locationStatusText(locationState, radiusKm)}</p>
+      <p>{locationStatusText(locationState, radiusKm, t, locale, number)}</p>
     </div>
   );
 }
 
 function ChainLimitControl({ maxChains, setMaxChains }) {
+  const { t } = usePreferences();
   return (
     <div className="chain-limit">
-      <span>Στάσεις</span>
-      <div className="chain-limit-buttons" aria-label="Μέγιστες αλυσίδες">
+      <span>{t("stops")}</span>
+      <div className="chain-limit-buttons" aria-label={t("maximumChains")}>
         {[1, 2, 3, 4].map((count) => (
           <button
             key={count}
@@ -1737,6 +1875,7 @@ function RetailerFilterControl({
   onSelectAll,
   onSelectNearby,
 }) {
+  const { t } = usePreferences();
   const selectedSet = new Set(selectedIds === null ? retailers.map((retailer) => retailer.id) : selectedIds);
   const selectedCount = selectedSet.size;
   const hasFilter = selectedIds !== null;
@@ -1746,7 +1885,7 @@ function RetailerFilterControl({
       <summary>
         <span className="retailer-filter-title">
           <SlidersHorizontal size={15} />
-          Αλυσίδες στον υπολογισμό
+          {t("retailersInCalculation")}
         </span>
         <span className={hasFilter ? "retailer-filter-count active" : "retailer-filter-count"}>
           {selectedCount}/{retailers.length || 0}
@@ -1756,7 +1895,7 @@ function RetailerFilterControl({
 
       <div className="retailer-filter-actions">
         <button type="button" className="quiet-button" onClick={onSelectAll} disabled={!hasFilter}>
-          Όλες οι αλυσίδες
+          {t("allRetailers")}
         </button>
         <button
           type="button"
@@ -1765,11 +1904,11 @@ function RetailerFilterControl({
           disabled={!locationReady || !nearbyIds.length}
         >
           <MapPin size={13} />
-          Μόνο κοντινές
+          {t("nearbyOnly")}
         </button>
       </div>
 
-      <div className="retailer-filter-grid" role="group" aria-label="Επιλεγμένες αλυσίδες">
+      <div className="retailer-filter-grid" role="group" aria-label={t("selectedRetailers")}>
         {retailers.map((retailer) => {
           const checked = selectedSet.has(retailer.id);
           return (
@@ -1791,14 +1930,13 @@ function RetailerFilterControl({
           );
         })}
       </div>
-      <p>
-        Το φθηνότερο πλάνο και η κατάταξη υπολογίζονται μόνο με τις επιλεγμένες αλυσίδες.
-      </p>
+      <p>{t("retailerFilterHelp")}</p>
     </details>
   );
 }
 
 function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
+  const { money, number, t } = usePreferences();
   if (!basketSize) {
     return (
       <div className="recommendation-card empty">
@@ -1806,9 +1944,9 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
           <Store size={17} />
         </span>
         <div>
-          <small>Πρώτα φτιάξε τη λίστα σου</small>
-          <strong>Διάλεξε προϊόντα και πόσες στάσεις θέλεις να κάνεις.</strong>
-          <span>Το πλάνο θα ταξινομήσει τις αλυσίδες από τη φθηνότερη επιλογή.</span>
+          <small>{t("buildListFirst")}</small>
+          <strong>{t("chooseListAndStops")}</strong>
+          <span>{t("rankingExplanation")}</span>
         </div>
       </div>
     );
@@ -1821,13 +1959,14 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
           <AlertCircle size={17} />
         </span>
         <div>
-          <small>Δεν βρέθηκε πλήρες καλάθι</small>
-          <strong>Δεν καλύπτεται όλη η λίστα με {formatStopLimit(maxChains)}.</strong>
+          <small>{t("noCompleteBasket")}</small>
+          <strong>{t("listNotCovered", { stops: formatStopLimit(maxChains, t) })}</strong>
           {plan?.availableCount ? (
-            <span>
-              Καλύπτονται {plan.availableCount}/{basketSize} προϊόντα · μερικό σύνολο{" "}
-              {formatEuro(plan.total)}
-            </span>
+            <span>{t("partialCoverage", {
+              available: number(plan.availableCount),
+              total: number(basketSize),
+              amount: money(plan.total),
+            })}</span>
           ) : null}
         </div>
       </div>
@@ -1845,21 +1984,21 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
         <div>
           <small>
             {isOneStop
-              ? "Καλύτερη επιλογή για μία στάση"
-              : `Καλύτερο πλάνο για ${formatStopLimit(maxChains)}`}
+              ? t("bestOneStop")
+              : t("bestPlan", { stops: formatStopLimit(maxChains, t) })}
           </small>
           <strong>{planName}</strong>
           <span>
             {isOneStop
-              ? formatCoverageSentence(basketSize)
-              : `Χωρίζει το καλάθι σε ${plan.chainCount} αλυσίδες.`}
+              ? formatCoverageSentence(basketSize, t)
+              : t("splitAcrossChains", { count: number(plan.chainCount) })}
           </span>
         </div>
       </div>
       <div className="recommendation-total">
-        <small>Σύνολο</small>
-        <strong>{formatEuro(plan.total)}</strong>
-        {savings > 0 ? <span>{formatEuro(savings)} κάτω από 1 στάση</span> : null}
+        <small>{t("total")}</small>
+        <strong>{money(plan.total)}</strong>
+        {savings > 0 ? <span>{t("belowOneStop", { amount: money(savings) })}</span> : null}
       </div>
     </div>
   );
@@ -1894,20 +2033,21 @@ function VisitPlanBreakdown({
   onCopyPlan,
   copyState,
 }) {
+  const { money, number, t } = usePreferences();
   return (
     <div className="route-group">
       <div className="route-group-heading">
         <div className="rank-group-title">
           <ClipboardList size={15} />
-          <span>Τι αγοράζεις σε κάθε αλυσίδα</span>
+          <span>{t("buyAtEachChain")}</span>
         </div>
         <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
           {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
           {copyState === "copied"
-            ? "Αντιγράφηκε"
+            ? t("copied")
             : copyState === "error"
-              ? "Δεν αντιγράφηκε"
-              : "Αντιγραφή πλάνου"}
+              ? t("copyFailed")
+              : t("copyPlan")}
         </button>
       </div>
       <div className="route-list">
@@ -1918,7 +2058,7 @@ function VisitPlanBreakdown({
               <div>
                 <strong>{group.retailer.name}</strong>
                 <small>
-                  {formatProductCount(group.items.length)} · {formatEuro(group.total)}
+                  {formatProductCount(group.items.length, t, number)} · {money(group.total)}
                 </small>
               </div>
               {locationReady ? (
@@ -1931,7 +2071,7 @@ function VisitPlanBreakdown({
                   }
                   onClick={() => onSelectRetailer(group.retailer.id)}
                 >
-                  Υποκαταστήματα
+                  {t("branches")}
                 </button>
               ) : null}
             </div>
@@ -1946,7 +2086,7 @@ function VisitPlanBreakdown({
                   <span>
                     {item.quantity} x {item.product.name}
                   </span>
-                  <strong>{formatEuro(item.lineTotal)}</strong>
+                  <strong>{money(item.lineTotal)}</strong>
                 </div>
               ))}
             </div>
@@ -1958,32 +2098,35 @@ function VisitPlanBreakdown({
 }
 
 function NearbyBranchesPanel({ retailer, proximity, radiusKm }) {
+  const { locale, t } = usePreferences();
   if (!retailer) return null;
 
   return (
     <div className="branches-panel">
       <div className="rank-group-title">
         <MapPin size={15} />
-        <span>Υποκαταστήματα: {retailer.name}</span>
+        <span>{t("branchesFor", { name: retailer.name })}</span>
       </div>
       {!proximity?.stores?.length ? (
         <div className="branch-empty">
-          Δεν βρέθηκε κοντινό υποκατάστημα στο OpenStreetMap σε ακτίνα {radiusKm}χλμ.
+          {t("noBranchRadius", { radius: t("kilometers", { value: radiusKm }) })}
         </div>
       ) : (
         <div className="branch-list">
           {proximity.stores.map((store) => (
             <article key={store.id} className="branch-row">
-              <span className="branch-distance">{formatDistance(store.distanceMeters)} μακριά</span>
+              <span className="branch-distance">
+                {t("away", { distance: formatDistance(store.distanceMeters, locale) })}
+              </span>
               <div>
                 <strong>{store.name}</strong>
                 <small>
-                  {store.address || "Τοποθεσία από OpenStreetMap"}
+                  {store.address || t("openStreetMapLocation")}
                   {store.openingHours ? ` · ${store.openingHours}` : ""}
                 </small>
               </div>
               <a href={mapsSearchUrl(store)} target="_blank" rel="noreferrer">
-                Χάρτης
+                {t("map")}
               </a>
             </article>
           ))}
@@ -1994,13 +2137,14 @@ function NearbyBranchesPanel({ retailer, proximity, radiusKm }) {
 }
 
 function StoreDistance({ locationReady, proximity, onSelectBranches }) {
+  const { locale, t } = usePreferences();
   if (!locationReady) return null;
   const store = proximity?.nearest;
   if (!store) {
     return (
       <div className="nearby-note missing">
         <MapPin size={14} />
-        <span>Δεν βρέθηκε κοντινό υποκατάστημα στο OpenStreetMap.</span>
+        <span>{t("noNearbyBranch")}</span>
       </div>
     );
   }
@@ -2009,7 +2153,7 @@ function StoreDistance({ locationReady, proximity, onSelectBranches }) {
     <div className="nearby-note">
       <MapPin size={14} />
       <span>
-        <strong>{formatDistance(store.distanceMeters)} μακριά</strong>
+        <strong>{t("away", { distance: formatDistance(store.distanceMeters, locale) })}</strong>
         <small>
           {store.name}
           {store.address ? ` · ${store.address}` : ""}
@@ -2017,11 +2161,11 @@ function StoreDistance({ locationReady, proximity, onSelectBranches }) {
       </span>
       <div className="nearby-actions">
         <a href={mapsSearchUrl(store)} target="_blank" rel="noreferrer">
-          Χάρτης
+          {t("map")}
         </a>
         {onSelectBranches ? (
           <button type="button" onClick={onSelectBranches}>
-            Όλα
+            {t("all")}
           </button>
         ) : null}
       </div>
@@ -2039,6 +2183,7 @@ function RetailerRank({
   selected,
   onSelectRetailer,
 }) {
+  const { money, number, t } = usePreferences();
   const percentage = maxTotal ? Math.max(10, (row.total / maxTotal) * 100) : 0;
   const missingNames = row.items
     .filter((item) => item.price == null)
@@ -2060,31 +2205,36 @@ function RetailerRank({
         <div>
           <strong>{row.retailer.name}</strong>
           <small>
-            {row.availableCount}/{basketSize} διαθέσιμα
-            {row.missingCount ? ` · ${row.missingCount} έλλειψη` : ""}
+            {t("availableCoverage", {
+              available: number(row.availableCount),
+              total: number(basketSize),
+              missing: row.missingCount ? number(row.missingCount) : "",
+            })}
           </small>
         </div>
         {highlighted ? (
           <span className="recommended-mark">
             <Check size={14} />
-            Πήγαινε εδώ
+            {t("goHere")}
           </span>
         ) : null}
       </div>
       <div className="rank-money">
-        <strong>{row.isComplete ? formatEuro(row.total) : "Δεν καλύπτει όλη τη λίστα"}</strong>
+        <strong>{row.isComplete ? money(row.total) : t("doesNotCoverList")}</strong>
         <small>
           {row.savings != null && row.savings > 0
-            ? `λιγότερα κατά ${formatEuro(row.savings)} από την ακριβότερη πλήρη αλυσίδα`
+            ? t("savingsFromHighest", { amount: money(row.savings) })
             : row.isComplete
-              ? "πλήρες καλάθι για μία στάση"
-              : `μερικό σύνολο ${formatEuro(row.total)}`}
+              ? t("completeOneStop")
+              : t("partialAmount", { amount: money(row.total) })}
         </small>
       </div>
       {missingNames.length ? (
         <div className="missing-note">
-          Λείπει: {missingNames.slice(0, 2).join(", ")}
-          {missingNames.length > 2 ? ` +${missingNames.length - 2}` : ""}
+          {t("missingProducts", {
+            names: missingNames.slice(0, 2).join(", "),
+            extra: missingNames.length > 2 ? ` +${missingNames.length - 2}` : "",
+          })}
         </div>
       ) : null}
       <StoreDistance
@@ -2100,51 +2250,52 @@ function RetailerRank({
 }
 
 function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
+  const { money, t } = usePreferences();
   const best = getBestProductPrice(product);
   return (
-    <aside className="drawer" aria-label={`Προϊόν: ${product.name}`}>
+    <aside className="drawer" aria-label={t("productLabel", { name: product.name })}>
       <div className="drawer-backdrop" onClick={onClose} />
       <div className="drawer-panel">
         <div className="drawer-head">
           <ProductThumb product={product} />
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Κλείσιμο">
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
             <X size={18} />
           </button>
         </div>
         <div className="drawer-title">
           <small>{product.category}</small>
           <h2>{product.name}</h2>
-          <p>{product.brand || "Χωρίς brand"} · {product.unitQuantity || product.unit}</p>
+          <p>{product.brand || t("noBrand")} · {product.unitQuantity || product.unit}</p>
         </div>
         <ProductPreviewImage product={product} />
         <div className="drawer-stats">
           <div>
-            <small>Καλύτερη τιμή</small>
-            <strong>{best ? formatEuro(best.price) : "-"}</strong>
+            <small>{t("bestPrice")}</small>
+            <strong>{best ? money(best.price) : "-"}</strong>
           </div>
           <div>
-            <small>Barcode</small>
+            <small>{t("barcode")}</small>
             <strong>{product.gtin || "-"}</strong>
           </div>
         </div>
         <p className="drawer-description">
-          {product.description || "Προϊόν από τον κατάλογο PosoKanei."}
+          {product.description || t("catalogProduct")}
         </p>
-        <div className="price-table" aria-label="Τιμές ανά αλυσίδα">
+        <div className="price-table" aria-label={t("pricesByChain")}>
           {retailerList.map((retailer) => {
             const price = getProductPrice(product, retailer.id);
             return (
               <div key={retailer.id} className="price-row">
                 <RetailerLogo retailer={retailer} className="tiny" ariaHidden />
                 <span>{retailer.name}</span>
-                <strong>{price == null ? "-" : formatEuro(price)}</strong>
+                <strong>{price == null ? "-" : money(price)}</strong>
               </div>
             );
           })}
         </div>
         <button type="button" className="primary-action" onClick={onAdd}>
           <Plus size={18} />
-          Προσθήκη στο καλάθι
+          {t("addToBasket")}
         </button>
       </div>
     </aside>
@@ -2191,12 +2342,13 @@ function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
 }
 
 function ProductPreviewImage({ product }) {
+  const { t } = usePreferences();
   const [failedImageUrl, setFailedImageUrl] = useState("");
   const imageUrl = proxiedProductImageUrl(product);
   const showImage = imageUrl && failedImageUrl !== imageUrl;
 
   return (
-    <div className="drawer-image-frame" aria-label={`Εικόνα προϊόντος: ${product.name}`}>
+    <div className="drawer-image-frame" aria-label={t("productImage", { name: product.name })}>
       {showImage ? (
         <img
           src={imageUrl}
@@ -2295,11 +2447,12 @@ function PanelTitle({ id, icon, title, action }) {
 }
 
 function EmptyBasket() {
+  const { t } = usePreferences();
   return (
     <div className="empty-state">
       <CircleDollarSign size={32} />
-      <strong>Άδειο καλάθι</strong>
-      <small>Πρόσθεσε προϊόντα από τον κατάλογο για να δεις το φθηνότερο πλάνο.</small>
+      <strong>{t("emptyBasket")}</strong>
+      <small>{t("emptyBasketHelp")}</small>
     </div>
   );
 }
@@ -2308,77 +2461,87 @@ function quantityStep(product) {
   return product?.unit === "kg" ? 0.5 : 1;
 }
 
-function formatCoverageSentence(count) {
-  return count === 1 ? "Έχει το προϊόν της λίστας." : `Έχει και τα ${count} προϊόντα της λίστας.`;
+function formatCoverageSentence(count, t) {
+  return count === 1 ? t("listHasOneProduct") : t("listHasProducts", { count });
 }
 
-function formatProductCount(count) {
-  return count === 1 ? "1 προϊόν" : `${count} προϊόντα`;
+function formatProductCount(count, t, number = String) {
+  return count === 1 ? t("oneProduct") : t("productsCount", { count: number(count) });
 }
 
-function formatStopLimit(count) {
-  return count === 1 ? "έως 1 στάση" : `έως ${count} στάσεις`;
+function formatStopLimit(count, t) {
+  return count === 1 ? t("upToOneStop") : t("upToStops", { count });
 }
 
-function locationStatusText(locationState, radiusKm) {
+function locationStatusText(locationState, radiusKm, t, locale, number) {
   switch (locationState.status) {
     case "locating":
-      return "Ο browser ζητά άδεια τοποθεσίας.";
+      return t("locationPermission");
     case "loading":
-      return "Αναζήτηση κοντινών supermarket στο OpenStreetMap.";
+      return t("searchingNearby");
     case "ready": {
       const accuracy = locationState.position?.accuracyMeters
-        ? ` · ακρίβεια περίπου ${formatDistance(locationState.position.accuracyMeters)}`
+        ? t("approximateAccuracy", {
+            distance: formatDistance(locationState.position.accuracyMeters, locale),
+          })
         : "";
-      return `${locationState.stores.length.toLocaleString("el-GR")} supermarket σε ακτίνα ${radiusKm}χλμ.${accuracy}`;
+      return t("nearbyResult", {
+        count: number(locationState.stores.length),
+        radius: t("kilometers", { value: radiusKm }),
+        accuracy,
+      });
     }
     case "denied":
-      return "Η άδεια τοποθεσίας απορρίφθηκε από τον browser.";
+      return t("locationDenied");
     case "error":
-      return "Δεν ήταν δυνατός ο εντοπισμός κοντινών supermarket.";
+      return t("locationError");
     default:
-      return "Προαιρετικό: απόσταση κοντινών καταστημάτων μέσω browser location.";
+      return t("locationOptional");
   }
 }
 
-function formatUpdateStatus(updateStatus) {
-  if (!updateStatus?.checkedAt) return "Έλεγχος ενημερώσεων: κατά τη χρήση";
+function formatUpdateStatus(updateStatus, t, locale) {
+  if (!updateStatus?.checkedAt) return t("updateOnUse");
   if (updateStatus.refreshStatus === "failed") {
-    return `Τελευταία επιτυχής ενημέρωση: ${formatDataTime(
-      updateStatus.lastSuccessfulRefreshAt || updateStatus.snapshotGeneratedAt,
-    )}`;
+    return t("lastSuccessfulUpdate", {
+      time: formatDataTime(
+        updateStatus.lastSuccessfulRefreshAt || updateStatus.snapshotGeneratedAt,
+        locale,
+        t,
+      ),
+    });
   }
   const checkedAt = new Date(updateStatus.checkedAt);
-  if (Number.isNaN(checkedAt.getTime())) return "Έλεγχος ενημερώσεων: ενεργός";
-  const formatted = formatDateTime(checkedAt);
+  if (Number.isNaN(checkedAt.getTime())) return t("updateActive");
+  const formatted = formatDateTime(checkedAt, locale);
   if (updateStatus.status === "snapshot") {
-    return `Τελευταία ενημέρωση: ${formatted}`;
+    return t("lastUpdate", { time: formatted });
   }
   if (updateStatus.status === "stale" || updateStatus.error) {
-    return `Απέτυχε live έλεγχος: ${formatted}`;
+    return t("liveCheckFailed", { time: formatted });
   }
   return updateStatus.changedSinceLastCheck
-    ? `Νέες αλλαγές τιμών: ${formatted}`
-    : `Τελευταίος έλεγχος τιμών: ${formatted}`;
+    ? t("newPriceChanges", { time: formatted })
+    : t("lastPriceCheck", { time: formatted });
 }
 
-function formatDataTime(value) {
-  if (!value) return "άγνωστη";
+function formatDataTime(value, locale, t) {
+  if (!value) return t("unknown");
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "άγνωστη";
-  return formatDateTime(date);
+  if (Number.isNaN(date.getTime())) return t("unknown");
+  return formatDateTime(date, locale);
 }
 
-function formatDateTime(date) {
+function formatDateTime(date, locale) {
   try {
-    return new Intl.DateTimeFormat("el-GR", {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: "short",
       timeStyle: "short",
     }).format(date);
   } catch {
     try {
-      const datePart = date.toLocaleDateString("el-GR");
-      const timePart = date.toLocaleTimeString("el-GR", {
+      const datePart = date.toLocaleDateString(locale);
+      const timePart = date.toLocaleTimeString(locale, {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -2389,10 +2552,19 @@ function formatDateTime(date) {
   }
 }
 
-function friendlyRefreshError(error) {
-  if (!error) return "ο έλεγχος δεν ολοκληρώθηκε";
-  if (String(error).includes("HTTP 403")) return "μπλοκαρίστηκε από το upstream API";
-  return "ο έλεγχος δεν ολοκληρώθηκε";
+function friendlyRefreshError(error, t) {
+  if (!error) return t("checkIncomplete");
+  if (String(error).includes("HTTP 403")) return t("upstreamBlocked");
+  return t("checkIncomplete");
+}
+
+function healthStatusLabel(health, t, number) {
+  if (health.state === "checking") return t("healthChecking");
+  if (health.state === "offline") return t("healthOffline");
+  const count = number(health.activeProducts);
+  return health.source === "snapshot"
+    ? t("healthCatalog", { count })
+    : t("healthLive", { count });
 }
 
 function buildPlanAssignmentMap(plan) {

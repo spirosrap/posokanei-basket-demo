@@ -42,6 +42,14 @@ test("shopping-plan text is grouped by chain with quantities and totals", () => 
   assert.doesNotMatch(text, /Lidl/u);
 });
 
+test("shopping-plan text can be exported in English", () => {
+  const text = formatPlanText(plan, "en");
+  assert.match(text, /Supermarket Price Basket/u);
+  assert.match(text, /Shopping plan · 2 stops/u);
+  assert.match(text, /1\. Σκλαβενίτης/u);
+  assert.match(text, /Total/u);
+});
+
 test("incomplete plans are not exported as shopping instructions", () => {
   assert.equal(formatPlanText({ ...plan, isComplete: false }), "");
 });

@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.4.0`
+**Τρέχουσα έκδοση:** `v0.5.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -25,6 +25,14 @@
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
 Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα είναι πιο ρεαλιστικό εβδομαδιαίο καλάθι ελληνικής οικογένειας, με γάλα, γιαούρτι, τυριά, αυγά, κοτόπουλο, ζυμαρικά, όσπρια, χυμούς, νερά, καθαριστικά και χαρτικά. Τα προϊόντα έχουν επιλεγεί ώστε να υπάρχουν αρκετές πλήρεις επιλογές και στο σενάριο της μίας στάσης, αλλά και να φαίνεται καθαρά πότε συμφέρει να μοιραστεί η λίστα σε δύο, τρεις ή τέσσερις αλυσίδες. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
+
+### Γλώσσα και θέμα εμφάνισης
+
+Η έκδοση `v0.5.0` προσθέτει πλήρη επιλογή ελληνικών ή αγγλικών απευθείας από την κορυφή της εφαρμογής. Μεταφράζονται όλες οι ενέργειες, οι καταστάσεις φόρτωσης και ενημέρωσης, οι επεξηγήσεις, τα στοιχεία προσβασιμότητας, οι ημερομηνίες, τα ποσά και το πλάνο αγορών που αντιγράφεται. Η προτίμηση αποθηκεύεται μόνο στον browser και παραμένει ενεργή μετά από ανανέωση της σελίδας. Τα ονόματα, οι κατηγορίες και οι περιγραφές προϊόντων παραμένουν όπως δημοσιεύονται από το PosoKanei, ώστε να μην αλλοιώνεται ο επίσημος κατάλογος.
+
+Στην ίδια έκδοση υπάρχει επιλογή θέματος `Σύστημα`, `Φωτεινό` ή `Σκοτεινό`. Το `Σύστημα` ακολουθεί αυτόματα την τρέχουσα ρύθμιση του λειτουργικού, ακόμη κι αν αλλάξει όσο η εφαρμογή είναι ανοιχτή. Η επιλογή αποθηκεύεται ανεξάρτητα από τη γλώσσα και εφαρμόζεται πριν φορτώσει το React, αποφεύγοντας λευκό flash ή λάθος θέμα κατά την εκκίνηση, ιδιαίτερα στο Safari.
+
+![Αγγλική διεπαφή με το σκοτεινό θέμα της έκδοσης 0.5.0](screenshots/english-dark.png)
 
 ### Επιλογή αλυσίδων και πρακτικό πλάνο
 
@@ -76,7 +84,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.4.0`
+**Current version:** `v0.5.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -87,6 +95,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 ### What It Does
 
 - Search or filter products by category or barcode.
+- Switch the complete interface between Greek and English, including dates, currency, accessibility labels, and copied shopping plans.
+- Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
@@ -113,6 +123,14 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show the last product/price update check in the UI.
 - Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
+
+### Language and Appearance
+
+Version `v0.5.0` adds a persistent Greek/English selector to the app header. All app-owned controls, loading and freshness states, explanations, accessibility labels, dates, currency values, sharing text, and copied shopping plans follow the selected language. Product names, catalogue categories, and descriptions remain exactly as published by PosoKanei rather than being machine-translated.
+
+The same release adds independent `System`, `Light`, and `Dark` appearance settings. `System` follows the operating-system colour preference live, while explicit Light or Dark choices override it. Both language and theme are saved locally in the browser. A small pre-render theme bootstrap applies the saved choice before React starts, preventing a mismatched flash and making startup more reliable in Safari.
+
+![English interface using the dark theme in version 0.5.0](screenshots/english-dark.png)
 
 ### Supermarket Selection and Practical Plans
 
@@ -240,6 +258,14 @@ The production React build uses the absolute subpath base `/demo/posokanei-baske
 
 ### Screenshots
 
+English interface with Dark appearance and the new language/theme selectors:
+
+![English interface using the dark appearance](screenshots/english-dark.png)
+
+Mobile English interface with Dark appearance:
+
+![Mobile English interface using the dark appearance](screenshots/english-dark-mobile.png)
+
 Desktop homepage, with the featured daily product and the new
 `Περισσότερες ευκαιρίες` entry point:
 
@@ -316,6 +342,9 @@ Browser QA covers:
 - Mobile 390px viewport.
 - No horizontal overflow on mobile.
 - No browser console errors.
+- Greek/English interface switching and local preference persistence.
+- Locale-aware dates, currency, accessibility labels, and copied plan text.
+- System/Light/Dark theme switching, saved preference restoration, and system-theme resolution.
 - Product add flow.
 - Quantity update flow.
 - Supermarket include/exclude filtering and local preference persistence.
