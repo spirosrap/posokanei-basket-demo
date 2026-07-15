@@ -12,6 +12,7 @@ import {
   Info,
   Languages,
   Link2,
+  ListChecks,
   MapPin,
   Minus,
   Monitor,
@@ -20,6 +21,7 @@ import {
   PackageSearch,
   Plus,
   RefreshCw,
+  RotateCcw,
   Route,
   Search,
   Share2,
@@ -57,11 +59,13 @@ import {
   getProductPrice,
 } from "./pricing";
 import {
+  buildPlanRoute,
   buildRetailerProximity,
   fetchNearbySupermarkets,
   filterRetailersByProximity,
   formatDistance,
   getBrowserLocation,
+  mapsDirectionsUrl,
   mapsSearchUrl,
 } from "./locationStores";
 import { formatPlanText } from "./planText";
@@ -85,6 +89,12 @@ import {
   getInitialExtraStopCost,
   saveExtraStopCost,
 } from "./stopComparison";
+import {
+  buildShoppingPlanId,
+  loadShoppingProgress,
+  saveShoppingProgress,
+  shoppingItemId,
+} from "./shoppingProgress";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -1807,6 +1817,7 @@ function RankingsPanel({
         <VisitPlanBreakdown
           plan={visitPlan}
           locationReady={locationReady}
+          locationPosition={locationState.position}
           retailerProximity={retailerProximity}
           selectedRetailerId={effectiveRetailerId}
           onSelectRetailer={setSelectedRetailerId}
@@ -2206,6 +2217,7 @@ function RetailerStack({ groups }) {
 function VisitPlanBreakdown({
   plan,
   locationReady,
+  locationPosition,
   retailerProximity,
   selectedRetailerId,
   onSelectRetailer,
@@ -2213,6 +2225,55 @@ function VisitPlanBreakdown({
   copyState,
 }) {
   const { money, number, t } = usePreferences();
+  const planId = useMemo(() => buildShoppingPlanId(plan), [plan]);
+  const planItemIds = useMemo(
+    () =>
+      plan.groups.flatMap((group) =>
+        group.items.map((item) => shoppingItemId(group.retailer.id, item.product.id)),
+      ),
+    [plan],
+  );
+  const [checkedItemIds, setCheckedItemIds] = useState(() =>
+    loadShoppingProgress(planId),
+  );
+  const checkedItems = useMemo(() => {
+    const validIds = new Set(planItemIds);
+    return new Set(checkedItemIds.filter((id) => validIds.has(id)));
+  }, [checkedItemIds, planItemIds]);
+  const planRoute = useMemo(
+    () =>
+      locationReady
+        ? buildPlanRoute(plan, retailerProximity, locationPosition)
+        : null,
+    [locationPosition, locationReady, plan, retailerProximity],
+  );
+  const directionsUrl = useMemo(
+    () => mapsDirectionsUrl(planRoute, locationPosition),
+    [locationPosition, planRoute],
+  );
+  const completedCount = checkedItems.size;
+  const checklistComplete = completedCount === planItemIds.length;
+
+  useEffect(() => {
+    setCheckedItemIds(loadShoppingProgress(planId));
+  }, [planId]);
+
+  const toggleShoppingItem = (itemId) => {
+    setCheckedItemIds((current) => {
+      const next = new Set(current.filter((id) => planItemIds.includes(id)));
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      const nextIds = [...next];
+      saveShoppingProgress(planId, nextIds);
+      return nextIds;
+    });
+  };
+
+  const resetShoppingProgress = () => {
+    setCheckedItemIds([]);
+    saveShoppingProgress(planId, []);
+  };
+
   return (
     <div className="route-group">
       <div className="route-group-heading">
@@ -2220,15 +2281,57 @@ function VisitPlanBreakdown({
           <ClipboardList size={15} />
           <span>{t("buyAtEachChain")}</span>
         </div>
-        <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
-          {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
-          {copyState === "copied"
-            ? t("copied")
-            : copyState === "error"
-              ? t("copyFailed")
-              : t("copyPlan")}
-        </button>
+        <div className="route-group-actions">
+          <span
+            className={checklistComplete ? "shopping-progress complete" : "shopping-progress"}
+            title={t("shoppingProgressSaved")}
+          >
+            <ListChecks size={14} />
+            {checklistComplete
+              ? t("shoppingComplete")
+              : t("shoppingProgress", {
+                  checked: number(completedCount),
+                  total: number(planItemIds.length),
+                })}
+          </span>
+          {completedCount ? (
+            <button
+              type="button"
+              className="quiet-button reset-progress-button"
+              onClick={resetShoppingProgress}
+              title={t("resetShoppingProgress")}
+              aria-label={t("resetShoppingProgress")}
+            >
+              <RotateCcw size={14} />
+            </button>
+          ) : null}
+          <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
+            {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
+            {copyState === "copied"
+              ? t("copied")
+              : copyState === "error"
+                ? t("copyFailed")
+                : t("copyPlan")}
+          </button>
+        </div>
       </div>
+      {planRoute && directionsUrl ? (
+        <div className="plan-route-bar">
+          <Route size={17} aria-hidden="true" />
+          <span>
+            <strong>{t("nearbyRouteTitle")}</strong>
+            <small>
+              {t("nearbyRouteSummary", {
+                stops: planRoute.stops.map((stop) => stop.retailer.name).join(" → "),
+              })}
+            </small>
+          </span>
+          <a href={directionsUrl} target="_blank" rel="noreferrer">
+            <Navigation size={15} />
+            {t("openRoute")}
+          </a>
+        </div>
+      ) : null}
       <div className="route-list">
         {plan.groups.map((group) => (
           <article key={group.retailer.id} className="route-card">
@@ -2260,14 +2363,29 @@ function VisitPlanBreakdown({
               onSelectBranches={() => onSelectRetailer(group.retailer.id)}
             />
             <div className="route-items">
-              {group.items.map((item) => (
-                <div key={item.product.id} className="route-item">
-                  <span>
-                    {item.quantity} x {item.product.name}
-                  </span>
-                  <strong>{money(item.lineTotal)}</strong>
-                </div>
-              ))}
+              {group.items.map((item) => {
+                const itemId = shoppingItemId(group.retailer.id, item.product.id);
+                const checked = checkedItems.has(itemId);
+                return (
+                  <label
+                    key={item.product.id}
+                    className={checked ? "route-item checked" : "route-item"}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleShoppingItem(itemId)}
+                      aria-label={t(checked ? "markNotPurchased" : "markPurchased", {
+                        name: item.product.name,
+                      })}
+                    />
+                    <span>
+                      {item.quantity} x {item.product.name}
+                    </span>
+                    <strong>{money(item.lineTotal)}</strong>
+                  </label>
+                );
+              })}
             </div>
           </article>
         ))}

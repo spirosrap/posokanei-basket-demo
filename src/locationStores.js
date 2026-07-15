@@ -107,6 +107,56 @@ export function mapsSearchUrl(store) {
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
+export function buildPlanRoute(plan, retailerProximity, origin) {
+  if (!plan?.isComplete || !origin || !plan.groups?.length) return null;
+  const remaining = plan.groups.map((group) => {
+    const store = retailerProximity[group.retailer.id]?.nearest;
+    return store ? { retailer: group.retailer, store } : null;
+  });
+  if (remaining.some((entry) => !entry)) return null;
+
+  const stops = [];
+  let current = origin;
+  let totalDistanceMeters = 0;
+  while (remaining.length) {
+    remaining.sort((a, b) =>
+      distanceMeters(current.lat, current.lon, a.store.lat, a.store.lon) -
+      distanceMeters(current.lat, current.lon, b.store.lat, b.store.lon));
+    const next = remaining.shift();
+    const legDistanceMeters = distanceMeters(
+      current.lat,
+      current.lon,
+      next.store.lat,
+      next.store.lon,
+    );
+    stops.push({ ...next, legDistanceMeters });
+    totalDistanceMeters += legDistanceMeters;
+    current = next.store;
+  }
+
+  return { stops, totalDistanceMeters };
+}
+
+export function mapsDirectionsUrl(route, origin) {
+  if (!route?.stops?.length || !origin) return "";
+  const destination = route.stops[route.stops.length - 1].store;
+  const url = new URL("https://www.google.com/maps/dir/");
+  url.searchParams.set("api", "1");
+  url.searchParams.set("origin", `${origin.lat},${origin.lon}`);
+  url.searchParams.set("destination", `${destination.lat},${destination.lon}`);
+  url.searchParams.set("travelmode", "driving");
+  if (route.stops.length > 1) {
+    url.searchParams.set(
+      "waypoints",
+      route.stops
+        .slice(0, -1)
+        .map(({ store }) => `${store.lat},${store.lon}`)
+        .join("|"),
+    );
+  }
+  return url.toString();
+}
+
 function normalizeStores(elements, origin) {
   return elements
     .map((element) => {

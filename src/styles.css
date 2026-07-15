@@ -1905,10 +1905,98 @@ button {
   gap: 8px;
 }
 
+.route-group-actions,
+.shopping-progress,
+.reset-progress-button,
+.plan-route-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-group-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.shopping-progress {
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.shopping-progress.complete {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #ecfdf5;
+  color: var(--green-dark);
+}
+
+.reset-progress-button {
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
 .copy-plan-button {
   flex: 0 0 auto;
   min-height: 28px;
   color: #0f766e;
+}
+
+.plan-route-bar {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius);
+  background: #eff6ff;
+  color: var(--blue);
+  padding: 9px 10px;
+}
+
+.plan-route-bar > span,
+.plan-route-bar strong,
+.plan-route-bar small {
+  display: block;
+  min-width: 0;
+}
+
+.plan-route-bar strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.plan-route-bar small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-route-bar a {
+  min-height: 30px;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--blue);
+  padding: 5px 8px;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .route-list {
@@ -1969,7 +2057,7 @@ button {
 
 .route-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   min-height: 28px;
@@ -1977,17 +2065,32 @@ button {
   background: var(--surface-strong);
   padding: 6px 8px;
   font-size: 12px;
+  cursor: pointer;
 }
 
 .route-item span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
 }
 
 .route-item strong {
   font-size: 12px;
+}
+
+.route-item input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.route-item.checked {
+  color: var(--muted);
+  opacity: 0.72;
+}
+
+.route-item.checked span {
+  text-decoration: line-through;
 }
 
 .branches-panel {
@@ -2402,6 +2505,17 @@ button {
   color: #a7f3d0;
 }
 
+[data-theme="dark"] .plan-route-bar {
+  border-color: rgba(117, 167, 255, 0.25);
+  background: #17283f;
+}
+
+[data-theme="dark"] .shopping-progress.complete {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: #132821;
+  color: var(--green-dark);
+}
+
 [data-theme="dark"] .location-filter-status.empty {
   border-color: rgba(251, 191, 36, 0.25);
   background: rgba(120, 53, 15, 0.28);
@@ -2667,6 +2781,24 @@ button {
   .route-group-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .route-group-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .plan-route-bar {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .plan-route-bar a {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .plan-route-bar small {
+    white-space: normal;
   }
 
   .branch-row {

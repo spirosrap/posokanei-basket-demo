@@ -33,6 +33,14 @@ test("core interface text and dynamic values are translated", () => {
     translate("en", "locationFilterActive", { count: "4", radius: "2 km" }),
     /only 4 nearby chains.*2 km.*are hidden/,
   );
+  assert.equal(
+    translate("el", "shoppingProgress", { checked: "3", total: "12" }),
+    "3/12 αγορασμένα",
+  );
+  assert.equal(
+    translate("en", "nearbyRouteSummary", { stops: "Lidl → Masoutis" }),
+    "From your location: Lidl → Masoutis",
+  );
 });
 
 test("language selection controls locale-sensitive formatting", () => {

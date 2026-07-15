@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.6.2`
+**Τρέχουσα έκδοση:** `v0.7.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -36,6 +36,8 @@
 
 Η έκδοση `v0.6.2` κάνει την ενεργή τοποθεσία πραγματικό φίλτρο διαθεσιμότητας: οι τιμές, η κατάταξη, τα πλάνα στάσεων, οι καλύτερες τιμές προϊόντων και η καθημερινή πρόταση χρησιμοποιούν μόνο αλυσίδες με αναγνωρισμένο κοντινό υποκατάστημα μέσα στην επιλεγμένη ακτίνα.
 
+Η έκδοση `v0.7.0` μετατρέπει το αποτέλεσμα σε πρακτικό εργαλείο αγορών: κάθε προϊόν του επιλεγμένου πλάνου έχει checkbox, η πρόοδος αποθηκεύεται τοπικά για το συγκεκριμένο πλάνο και, όταν είναι ενεργή η τοποθεσία, δημιουργείται κοινή διαδρομή προς τα πλησιέστερα υποκαταστήματα όλων των στάσεων.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -55,6 +57,14 @@
 Το κουμπί «Αντιγραφή πλάνου» δημιουργεί έτοιμη λίστα αγορών ομαδοποιημένη ανά supermarket, με ποσότητες, υποσύνολα, συνολικό κόστος και αριθμό στάσεων. Έτσι το αποτέλεσμα της σύγκρισης μπορεί να χρησιμοποιηθεί πρακτικά μέσα στο κατάστημα ή να σταλεί ως απλό κείμενο.
 
 ![Αυτόματο φίλτρο κοντινών αλυσίδων και τοπικό πλάνο αγορών](screenshots/retailer-filter.png)
+
+### Λίστα αγορών και διαδρομή
+
+Στην έκδοση `v0.7.0`, τα προϊόντα του πλάνου λειτουργούν ως λίστα αγορών. Ο χρήστης μπορεί να σημειώνει όσα αγόρασε, να βλέπει τη συνολική πρόοδο και να μηδενίζει τη λίστα από το σχετικό εικονίδιο. Η πρόοδος συνδέεται με τα συγκεκριμένα προϊόντα, τις ποσότητες και την ανάθεση ανά αλυσίδα, αποθηκεύεται μόνο στον browser και δεν περιλαμβάνεται σε κοινόχρηστους συνδέσμους.
+
+Με ενεργή την τοποθεσία, η εφαρμογή επιλέγει το πλησιέστερο αναγνωρισμένο υποκατάστημα για κάθε αλυσίδα του πλάνου και προτείνει σειρά στάσεων ξεκινώντας από την τρέχουσα θέση. Το κουμπί «Άνοιγμα διαδρομής» στέλνει την αφετηρία και τα υποκαταστήματα στο Google Maps, το οποίο υπολογίζει την πραγματική οδική διαδρομή. Η εφαρμογή δεν αποθηκεύει την τοποθεσία ή τη διαδρομή.
+
+![Λίστα αγορών με πρόοδο και κοινή διαδρομή κοντινών στάσεων](screenshots/shopping-checklist-route.png)
 
 ### Κοινόχρηστα καλάθια
 
@@ -96,7 +106,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.6.2`
+**Current version:** `v0.7.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -114,6 +124,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Adjust quantities with steppers, including `kg` products.
 - Include or exclude supermarket chains from every ranking and optimized plan.
 - Automatically limit prices and plans to chains with a nearby branch after enabling location.
+- Check off products while shopping, with plan-specific progress stored locally.
+- Open the nearest branches for every selected stop as one Google Maps route.
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
@@ -148,6 +160,8 @@ Version `v0.6.1` renames and explains this control as “When is another stop wo
 
 Version `v0.6.2` turns enabled location into an eligibility filter: rankings, stop plans, product best-price labels, product detail prices, and the daily suggestion use only chains with a matched branch inside the selected radius.
 
+Version `v0.7.0` turns the result into a practical shopping companion: every assigned product is checkable, progress is stored locally for the exact plan, and enabled location can generate one route through the nearest branch for each selected stop.
+
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
 ### Language and Appearance
@@ -176,6 +190,20 @@ including products, quantities, store subtotals, the full total, and the number 
 stops.
 
 ![Automatic nearby-chain filter and local shopping plan](screenshots/retailer-filter.png)
+
+### Shopping Checklist and Route
+
+In `v0.7.0`, every product assigned to the selected plan becomes a checklist item.
+The app shows overall progress and provides an icon control to reset it. Progress is
+keyed to the exact products, quantities, and retailer assignments, stored only in
+the current browser, and excluded from shared basket links.
+
+With location enabled, the app chooses the nearest matched branch for each chain in
+the plan and suggests an order starting from the current position. `Open route`
+sends the origin and branch coordinates to Google Maps, which calculates the actual
+road route. The app does not persist the location or route.
+
+![Shopping checklist progress and a combined nearby-stop route](screenshots/shopping-checklist-route.png)
 
 ### Shareable Baskets
 
@@ -267,6 +295,8 @@ How it works:
   the daily suggestion automatically exclude chains without a matched nearby branch.
 - Rankings and multi-stop plans show nearest-branch labels like `57 μ. μακριά`.
 - Selecting a chain shows nearby branches for that chain with Google Maps links.
+- A complete location-aware plan orders its nearest branches from the user's position
+  and can open all selected stops in one Google Maps directions link.
 
 Important limitations:
 
@@ -330,6 +360,10 @@ Supermarket selection and grouped plan export:
 
 ![Automatic nearby-chain filter and local shopping plan](screenshots/retailer-filter.png)
 
+Shopping checklist and combined nearby-stop route:
+
+![Shopping checklist progress and route](screenshots/shopping-checklist-route.png)
+
 ### Local Development
 
 Requirements:
@@ -388,7 +422,9 @@ Browser QA covers:
 - Product add flow.
 - Quantity update flow.
 - Supermarket include/exclude filtering and local preference persistence.
-- Nearby-chain preset after location is enabled.
+- Automatic nearby-chain eligibility after location is enabled.
+- Plan-specific shopping checklist persistence and reset behavior.
+- Multi-stop Google Maps route generation from matched nearby branches.
 - Grouped shopping-plan copy output.
 - Share-link generation, copy feedback, and privacy explanation.
 - Shared-basket restoration with quantities, selected stop limit, and retailer filter.

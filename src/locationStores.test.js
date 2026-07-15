@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildPlanRoute,
   buildRetailerProximity,
   filterRetailersByProximity,
+  mapsDirectionsUrl,
 } from "./locationStores.js";
 
 const retailers = [
@@ -37,4 +39,44 @@ test("location eligibility keeps only chains with a matched nearby branch", () =
 test("location filtering is inactive before permission is granted", () => {
   const proximity = buildRetailerProximity(retailers, nearbyStores);
   assert.equal(filterRetailersByProximity(retailers, proximity, false), retailers);
+});
+
+test("nearby plan routes start with the closest branch and include every stop", () => {
+  const plan = {
+    isComplete: true,
+    groups: [
+      { retailer: retailers[1] },
+      { retailer: retailers[2] },
+      { retailer: retailers[3] },
+    ],
+  };
+  const proximity = {
+    lidl: { nearest: { id: "lidl", lat: 40.01, lon: 23 } },
+    masoutis: { nearest: { id: "masoutis", lat: 40.02, lon: 23 } },
+    sklavenitis: { nearest: { id: "sklavenitis", lat: 40.03, lon: 23 } },
+  };
+  const origin = { lat: 40, lon: 23 };
+  const route = buildPlanRoute(plan, proximity, origin);
+
+  assert.deepEqual(
+    route.stops.map((stop) => stop.retailer.id),
+    ["lidl", "masoutis", "sklavenitis"],
+  );
+  assert.ok(route.totalDistanceMeters > 0);
+
+  const mapsUrl = new URL(mapsDirectionsUrl(route, origin));
+  assert.equal(mapsUrl.searchParams.get("origin"), "40,23");
+  assert.equal(mapsUrl.searchParams.get("destination"), "40.03,23");
+  assert.equal(mapsUrl.searchParams.get("waypoints"), "40.01,23|40.02,23");
+});
+
+test("nearby plan routes require a matched branch for every selected chain", () => {
+  const plan = {
+    isComplete: true,
+    groups: [{ retailer: retailers[1] }, { retailer: retailers[4] }],
+  };
+  assert.equal(
+    buildPlanRoute(plan, { lidl: { nearest: nearbyStores[1] } }, { lat: 40, lon: 23 }),
+    null,
+  );
 });
