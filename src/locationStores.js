@@ -85,6 +85,11 @@ export function buildRetailerProximity(retailers, stores) {
   return proximity;
 }
 
+export function filterRetailersByProximity(retailers, proximity, enabled = false) {
+  if (!enabled) return retailers;
+  return retailers.filter((retailer) => proximity[retailer.id]?.stores?.length);
+}
+
 export function formatDistance(meters, locale = "el-GR") {
   if (!Number.isFinite(meters)) return "";
   const english = locale.startsWith("en");
@@ -135,7 +140,6 @@ function retailerMatchesStore(retailer, store) {
   const aliases = [
     retailer.id,
     retailer.name,
-    retailer.shortName,
     ...(RETAILER_ALIASES[retailer.id] || []),
   ]
     .filter(Boolean)

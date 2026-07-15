@@ -136,11 +136,15 @@ const messages = {
         : `Προϊόντα ${groceries} + ${extraStops} ${extraStops === 1 ? "επιπλέον στάση" : "επιπλέον στάσεις"} × ${perStop} = πρακτικό κόστος ${effective}`,
     recommendationNeedsBasket: "Φτιάξε καλάθι για να συγκρίνεις τις στάσεις.",
     retailersInCalculation: "Αλυσίδες στον υπολογισμό",
+    nearbyRetailersInCalculation: "Κοντινές αλυσίδες στον υπολογισμό",
     allRetailers: "Όλες οι αλυσίδες",
+    allNearbyRetailers: "Όλες οι κοντινές",
     nearbyOnly: "Μόνο κοντινές",
     selectedRetailers: "Επιλεγμένες αλυσίδες",
     retailerFilterHelp:
       "Το φθηνότερο πλάνο και η κατάταξη υπολογίζονται μόνο με τις επιλεγμένες αλυσίδες.",
+    locationRetailerFilterHelp:
+      "Εμφανίζονται μόνο αλυσίδες με κοντινό υποκατάστημα. Μπορείς να αφαιρέσεις κι άλλες από τον υπολογισμό.",
     buildListFirst: "Πρώτα φτιάξε τη λίστα σου",
     chooseListAndStops: "Διάλεξε προϊόντα και πόσες στάσεις θέλεις να κάνεις.",
     rankingExplanation: "Το πλάνο θα ταξινομήσει τις αλυσίδες από τη φθηνότερη επιλογή.",
@@ -194,6 +198,10 @@ const messages = {
     searchingNearby: "Αναζήτηση κοντινών supermarket στο OpenStreetMap.",
     nearbyResult: ({ count, radius, accuracy }) =>
       `${count} supermarket σε ακτίνα ${radius}${accuracy}`,
+    locationFilterActive: ({ count, radius }) =>
+      `Η τοποθεσία εφαρμόστηκε: οι τιμές και τα πλάνα χρησιμοποιούν μόνο ${count} κοντινές αλυσίδες έως ${radius} Αλυσίδες χωρίς κοντινό υποκατάστημα δεν εμφανίζονται.`,
+    locationFilterEmpty: ({ radius }) =>
+      `Δεν βρέθηκε υποστηριζόμενη αλυσίδα έως ${radius}. Δοκίμασε μεγαλύτερη ακτίνα για να υπολογιστεί πλάνο.`,
     approximateAccuracy: ({ distance }) => ` · ακρίβεια περίπου ${distance}`,
     locationDenied: "Η άδεια τοποθεσίας απορρίφθηκε από τον browser.",
     locationError: "Δεν ήταν δυνατός ο εντοπισμός κοντινών supermarket.",
@@ -367,10 +375,14 @@ const messages = {
         : `Groceries ${groceries} + ${extraStops} extra ${extraStops === 1 ? "stop" : "stops"} × ${perStop} = practical cost ${effective}`,
     recommendationNeedsBasket: "Build a basket to compare stop limits.",
     retailersInCalculation: "Chains in calculation",
+    nearbyRetailersInCalculation: "Nearby chains in calculation",
     allRetailers: "All chains",
+    allNearbyRetailers: "All nearby chains",
     nearbyOnly: "Nearby only",
     selectedRetailers: "Selected chains",
     retailerFilterHelp: "The cheapest plan and ranking use only the selected chains.",
+    locationRetailerFilterHelp:
+      "Only chains with a nearby branch are shown. You can remove additional chains from the calculation.",
     buildListFirst: "Build your list first",
     chooseListAndStops: "Choose products and how many stops you are willing to make.",
     rankingExplanation: "The plan will rank chains from the cheapest option.",
@@ -421,6 +433,10 @@ const messages = {
     locationPermission: "The browser is requesting location permission.",
     searchingNearby: "Searching OpenStreetMap for nearby supermarkets.",
     nearbyResult: ({ count, radius, accuracy }) => `${count} supermarkets within ${radius}${accuracy}`,
+    locationFilterActive: ({ count, radius }) =>
+      `Location applied: prices and plans now use only ${count} nearby chains within ${radius}. Chains without a nearby branch are hidden.`,
+    locationFilterEmpty: ({ radius }) =>
+      `No supported chain was found within ${radius}. Try a larger radius to calculate a plan.`,
     approximateAccuracy: ({ distance }) => ` · approximate accuracy ${distance}`,
     locationDenied: "Location permission was denied by the browser.",
     locationError: "Nearby supermarkets could not be located.",

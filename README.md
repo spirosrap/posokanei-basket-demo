@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.6.1`
+**Τρέχουσα έκδοση:** `v0.6.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -34,6 +34,8 @@
 
 Η έκδοση `v0.6.1` μετονομάζει και επεξηγεί αυτό το εργαλείο ως «Πότε αξίζει άλλη στάση;», ώστε η χρησιμότητά του να γίνεται άμεσα κατανοητή πριν ο χρήστης επιλέξει ποσό.
 
+Η έκδοση `v0.6.2` κάνει την ενεργή τοποθεσία πραγματικό φίλτρο διαθεσιμότητας: οι τιμές, η κατάταξη, τα πλάνα στάσεων, οι καλύτερες τιμές προϊόντων και η καθημερινή πρόταση χρησιμοποιούν μόνο αλυσίδες με αναγνωρισμένο κοντινό υποκατάστημα μέσα στην επιλεγμένη ακτίνα.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -48,11 +50,11 @@
 
 Από την έκδοση `v0.4.0`, ο χρήστης μπορεί να ανοίξει την ενότητα «Αλυσίδες στον υπολογισμό» και να επιλέξει ποιες αλυσίδες θέλει πραγματικά να εξετάσει. Η κατάταξη, τα πλήρη καλάθια μίας στάσης και η βελτιστοποίηση έως τεσσάρων στάσεων υπολογίζονται αμέσως μόνο με τις επιλεγμένες αλυσίδες. Παραμένει πάντα ενεργή τουλάχιστον μία αλυσίδα και η επιλογή αποθηκεύεται τοπικά στον browser.
 
-Μετά την προαιρετική ενεργοποίηση τοποθεσίας, το κουμπί «Μόνο κοντινές» επιλέγει ως αρχικό φίλτρο μόνο τις αλυσίδες που έχουν διαθέσιμο υποκατάστημα μέσα στην τρέχουσα ακτίνα. Πρόκειται για στιγμιαία επιλογή βάσει των αποτελεσμάτων εγγύτητας: ο χρήστης μπορεί μετά να προσθέσει ή να αφαιρέσει αλυσίδες χειροκίνητα. Η τοποθεσία δεν αποθηκεύεται στον σύνδεσμο ή στο καλάθι.
+Μετά την προαιρετική ενεργοποίηση τοποθεσίας, η εφαρμογή αποκλείει αυτόματα από τον υπολογισμό τις αλυσίδες χωρίς αναγνωρισμένο υποκατάστημα μέσα στην τρέχουσα ακτίνα. Η σχετική ένδειξη εξηγεί πόσες κοντινές αλυσίδες συμμετέχουν, ενώ η λίστα επιλογής εμφανίζει μόνο αυτές. Ο χρήστης μπορεί να αφαιρέσει επιπλέον κοντινές αλυσίδες χειροκίνητα. Ο καθαρισμός της τοποθεσίας επαναφέρει όλες τις αλυσίδες. Η τοποθεσία δεν αποθηκεύεται στον σύνδεσμο ή στο καλάθι.
 
 Το κουμπί «Αντιγραφή πλάνου» δημιουργεί έτοιμη λίστα αγορών ομαδοποιημένη ανά supermarket, με ποσότητες, υποσύνολα, συνολικό κόστος και αριθμό στάσεων. Έτσι το αποτέλεσμα της σύγκρισης μπορεί να χρησιμοποιηθεί πρακτικά μέσα στο κατάστημα ή να σταλεί ως απλό κείμενο.
 
-![Επιλογή αλυσίδων και ομαδοποιημένο πλάνο αγορών](screenshots/retailer-filter.png)
+![Αυτόματο φίλτρο κοντινών αλυσίδων και τοπικό πλάνο αγορών](screenshots/retailer-filter.png)
 
 ### Κοινόχρηστα καλάθια
 
@@ -78,9 +80,9 @@
 
 Τα λογότυπα των αλυσίδων διαβάζονται από τα retailer metadata του PosoKanei και περνούν από το ίδιο same-origin proxy, ώστε το πλάνο να δείχνει πραγματικά supermarket logos αντί για αρχικά γραμμάτων. Για λίγες αλυσίδες υπάρχουν fallback logo URLs από επίσημες ή δημόσιες πηγές, αν η upstream εικόνα δεν φορτώσει.
 
-Προαιρετικά, ο χρήστης μπορεί να πατήσει «Χρήση τοποθεσίας» για να δει κοντινά υποκαταστήματα και αποστάσεις τύπου `57 μ. μακριά` δίπλα στις αλυσίδες. Η τοποθεσία ζητείται από τον browser μόνο μετά από ενέργεια του χρήστη, το app τη στέλνει στο δικό του `api/branches.php` endpoint με `no-store` cache, και το endpoint αναζητά supermarket στο OpenStreetMap/Overpass. Οι αποστάσεις είναι ευθεία γραμμή και βοηθητικές, όχι πλοήγηση με διαδρομή/κίνηση.
+Προαιρετικά, ο χρήστης μπορεί να πατήσει «Χρήση τοποθεσίας» για να περιορίσει τη σύγκριση σε κοντινές αλυσίδες και να δει αποστάσεις τύπου `57 μ. μακριά`. Η τοποθεσία ζητείται από τον browser μόνο μετά από ενέργεια του χρήστη, το app τη στέλνει στο δικό του `api/branches.php` endpoint με `no-store` cache, και το endpoint αναζητά supermarket στο OpenStreetMap/Overpass. Οι αποστάσεις είναι ευθεία γραμμή και βοηθητικές, όχι πλοήγηση με διαδρομή/κίνηση.
 
-Με ενεργή την τοποθεσία, το πλάνο δεν δείχνει μόνο ποια αλυσίδα είναι φθηνότερη. Δείχνει και αν υπάρχει κοντινό υποκατάστημα για την αλυσίδα που σε ενδιαφέρει, ώστε να μπορείς να αποφασίσεις αν αξίζει μία, δύο ή περισσότερες στάσεις. Ο χρήστης μπορεί να αλλάξει ακτίνα αναζήτησης (`2χλμ.`, `5χλμ.`, `10χλμ.`), να δει κοντινά υποκαταστήματα ανά αλυσίδα, και να ανοίξει σύνδεσμο χάρτη.
+Με ενεργή την τοποθεσία, αλυσίδες χωρίς κοντινό υποκατάστημα δεν εμφανίζονται ούτε επηρεάζουν το φθηνότερο πλάνο. Ο χρήστης μπορεί να αλλάξει ακτίνα αναζήτησης (`2χλμ.`, `5χλμ.`, `10χλμ.`), να δει τα κοντινά υποκαταστήματα ανά επιλέξιμη αλυσίδα και να ανοίξει σύνδεσμο χάρτη. Επειδή τα στοιχεία καταστημάτων προέρχονται από το OpenStreetMap, η κάλυψη εξαρτάται από την πληρότητα και την ονομασία των καταχωρίσεων της περιοχής.
 
 Στις 2026-06-23 ο upstream API είναι προσβάσιμος από ορισμένα περιβάλλοντα, αλλά ο Plesk server του demo παίρνει `HTTP 403` από `api.posokanei.gov.gr`. Δοκιμάστηκαν επίσης Vercel Node/Edge και Cloudflare Worker, και μπλοκαρίστηκαν με `HTTP 403`. Γι' αυτό το live demo χρησιμοποιεί αυτόματα ανανεωμένο κατάλογο από περιβάλλον που μπορεί να φτάσει το API, δείχνει την ώρα τελευταίας ενημέρωσης στην κορυφή, και σερβίρει αναζήτηση/σελίδες προϊόντων από PHP fallback.
 
@@ -94,7 +96,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.6.1`
+**Current version:** `v0.6.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -111,7 +113,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Add products to a basket.
 - Adjust quantities with steppers, including `kg` products.
 - Include or exclude supermarket chains from every ranking and optimized plan.
-- Use a nearby-chains preset after enabling location, then adjust the selection manually.
+- Automatically limit prices and plans to chains with a nearby branch after enabling location.
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
@@ -144,6 +146,8 @@ Users can choose how much grocery saving is needed to make each extra supermarke
 
 Version `v0.6.1` renames and explains this control as “When is another stop worth it?” so its purpose is clear before the user chooses an amount.
 
+Version `v0.6.2` turns enabled location into an eligibility filter: rankings, stop plans, product best-price labels, product detail prices, and the daily suggestion use only chains with a matched branch inside the selected radius.
+
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
 ### Language and Appearance
@@ -161,16 +165,17 @@ supermarket chains should participate. One-stop rankings and multi-stop optimiza
 recalculate immediately using only those chains. At least one chain remains enabled,
 and the preference is stored locally in the browser.
 
-After the user explicitly enables location, `Μόνο κοντινές` provides a one-time
-preset containing chains with a known branch inside the current search radius. The
-user can still add or remove chains afterward. The app never saves coordinates in
-the basket or a share link.
+After the user explicitly enables location, the app automatically removes chains
+without a matched branch inside the current search radius. The selector lists only
+eligible nearby chains, and the user can still remove additional chains. Clearing
+location restores the national chain list. The app never saves coordinates in the
+basket or a share link.
 
 The optimized result can now be copied as a practical store-by-store shopping plan,
 including products, quantities, store subtotals, the full total, and the number of
 stops.
 
-![Supermarket selection and grouped shopping plan](screenshots/retailer-filter.png)
+![Automatic nearby-chain filter and local shopping plan](screenshots/retailer-filter.png)
 
 ### Shareable Baskets
 
@@ -258,6 +263,8 @@ How it works:
   Overpass for nearby `shop=supermarket` places.
 - The frontend matches nearby stores to supported chains by retailer name, brand,
   operator, and known Greek/Latin aliases.
+- Rankings, multi-stop plans, product best-price labels, product detail prices, and
+  the daily suggestion automatically exclude chains without a matched nearby branch.
 - Rankings and multi-stop plans show nearest-branch labels like `57 μ. μακριά`.
 - Selecting a chain shows nearby branches for that chain with Google Maps links.
 
@@ -265,8 +272,8 @@ Important limitations:
 
 - Distances are straight-line estimates, not driving/walking route distance.
 - Branch data comes from OpenStreetMap, so coverage and naming can vary by area.
-- Proximity is a decision aid; the price ranking remains based on the PosoKanei
-  product catalogue and basket calculation.
+- Prices still come from the PosoKanei catalogue; location only determines which
+  chains are eligible for the calculation.
 
 ### Live Target
 
@@ -321,7 +328,7 @@ Shareable basket dialog:
 
 Supermarket selection and grouped plan export:
 
-![Supermarket selection and grouped shopping plan](screenshots/retailer-filter.png)
+![Automatic nearby-chain filter and local shopping plan](screenshots/retailer-filter.png)
 
 ### Local Development
 
@@ -568,8 +575,8 @@ npm run live:deploy
 - As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest script-built `data/catalog.json` snapshot from PosoKanei API data and shows that state in the UI. This means generated by the refresh script, not AI-generated.
 - The UI paginates the official catalog; it does not render all 8k+ products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
-- Multi-stop plans optimize product price only; optional branch proximity is shown as context, but the optimizer does not yet include travel time, parking, delivery fees, or route distance.
-- It does not handle delivery fees, loyalty cards, geographic availability, substitutions, coupons, or in-store stock.
+- Multi-stop plans optimize product price within the location-eligible chains, but the optimizer does not yet include route time, parking, delivery fees, or road distance.
+- It does not handle delivery fees, loyalty cards, substitutions, coupons, or in-store stock; geographic eligibility depends on OpenStreetMap branch coverage and naming.
 - The daily bargain compares current prices across chains; without historical price data it must not be interpreted as proof of a previous-price discount.
 - Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
 

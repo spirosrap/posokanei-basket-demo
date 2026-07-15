@@ -16,9 +16,11 @@ export function getProductPrice(product, retailerId) {
   return Number.isFinite(value) ? value : null;
 }
 
-export function getBestProductPrice(product) {
+export function getBestProductPrice(product, retailerIds = null) {
+  const allowedRetailers = Array.isArray(retailerIds) ? new Set(retailerIds) : null;
   const values = Object.entries(product.prices || {})
-    .filter(([, price]) => Number.isFinite(price))
+    .filter(([retailerId, price]) =>
+      Number.isFinite(price) && (!allowedRetailers || allowedRetailers.has(retailerId)))
     .map(([retailerId, price]) => ({ retailerId, price }));
   return values.sort((a, b) => a.price - b.price)[0] ?? null;
 }

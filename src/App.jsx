@@ -59,6 +59,7 @@ import {
 import {
   buildRetailerProximity,
   fetchNearbySupermarkets,
+  filterRetailersByProximity,
   formatDistance,
   getBrowserLocation,
   mapsSearchUrl,
@@ -508,11 +509,6 @@ function AppContent() {
     ];
   }, [liveCategories, liveMeta.activeProducts, liveMeta.total, t]);
 
-  const activeRetailers = useMemo(() => {
-    if (retailerFilterIds === null) return liveRetailers;
-    const selectedIds = new Set(retailerFilterIds);
-    return liveRetailers.filter((retailer) => selectedIds.has(retailer.id));
-  }, [liveRetailers, retailerFilterIds]);
   const retailerProximity = useMemo(
     () => buildRetailerProximity(liveRetailers, locationState.stores),
     [liveRetailers, locationState.stores],
@@ -524,6 +520,38 @@ function AppContent() {
         .map((retailer) => retailer.id),
     [liveRetailers, retailerProximity],
   );
+  const locationFiltersRetailers =
+    locationState.status === "ready" ||
+    (locationState.status === "loading" && locationState.stores.length > 0);
+  const locationEligibleRetailers = useMemo(
+    () =>
+      filterRetailersByProximity(
+        liveRetailers,
+        retailerProximity,
+        locationFiltersRetailers,
+      ),
+    [liveRetailers, locationFiltersRetailers, retailerProximity],
+  );
+  const activeRetailers = useMemo(() => {
+    if (retailerFilterIds === null) return locationEligibleRetailers;
+    const selectedIds = new Set(retailerFilterIds);
+    return locationEligibleRetailers.filter((retailer) => selectedIds.has(retailer.id));
+  }, [locationEligibleRetailers, retailerFilterIds]);
+  const displayedDailyBargain = useMemo(() => {
+    if (!dailyBargain || !locationFiltersRetailers) return dailyBargain;
+    const eligibleIds = new Set(locationEligibleRetailers.map((retailer) => retailer.id));
+    if (eligibleIds.has(dailyBargain.evidence.bestRetailerId)) return dailyBargain;
+    const localPick = dailyBargain.bargains.find((pick) =>
+      eligibleIds.has(pick.evidence.bestRetailerId),
+    );
+    return localPick
+      ? {
+          ...localPick,
+          generatedAt: dailyBargain.generatedAt,
+          bargains: dailyBargain.bargains,
+        }
+      : null;
+  }, [dailyBargain, locationEligibleRetailers, locationFiltersRetailers]);
 
   const productMap = useMemo(
     () => new Map(allProducts.map((product) => [product.id, product])),
@@ -690,6 +718,7 @@ function AppContent() {
         checkedAt: new Date().toISOString(),
         error: "",
       });
+      setRetailerFilterIds(null);
     } catch (error) {
       const message = String(error?.message || error);
       setLocationState((current) => ({
@@ -715,11 +744,12 @@ function AppContent() {
       checkedAt: "",
       error: "",
     });
+    setRetailerFilterIds(null);
   };
 
   const toggleRetailerFilter = (retailerId) => {
     setRetailerFilterIds((current) => {
-      const allIds = liveRetailers.map((retailer) => retailer.id);
+      const allIds = locationEligibleRetailers.map((retailer) => retailer.id);
       const selectedIds = new Set(current === null ? allIds : current);
       if (selectedIds.has(retailerId)) {
         if (selectedIds.size === 1) return current;
@@ -730,13 +760,6 @@ function AppContent() {
       const next = allIds.filter((id) => selectedIds.has(id));
       return next.length === allIds.length ? null : next;
     });
-  };
-
-  const selectNearbyRetailers = () => {
-    if (!nearbyRetailerIds.length) return;
-    setRetailerFilterIds(
-      nearbyRetailerIds.length === liveRetailers.length ? null : nearbyRetailerIds,
-    );
   };
 
   if (IS_BARGAINS_PAGE) {
@@ -772,12 +795,12 @@ function AppContent() {
       <AppIntro health={health} updateStatus={updateStatus} />
       <DataFreshnessNotice health={health} updateStatus={updateStatus} />
 
-      {dailyBargain ? (
+      {displayedDailyBargain ? (
         <DailyBargain
-          pick={dailyBargain}
-          retailers={liveRetailers}
-          onSelect={() => setSelectedProduct(dailyBargain.product)}
-          onAdd={() => addToBasket(dailyBargain.product)}
+          pick={displayedDailyBargain}
+          retailers={locationEligibleRetailers}
+          onSelect={() => setSelectedProduct(displayedDailyBargain.product)}
+          onAdd={() => addToBasket(displayedDailyBargain.product)}
           moreHref={BARGAINS_PATH}
         />
       ) : null}
@@ -790,6 +813,7 @@ function AppContent() {
           setCategoryId={setCategoryId}
           categories={categories}
           products={displayProducts}
+          retailers={activeRetailers}
           catalogSource={liveMeta.source || health.source}
           liveState={liveState}
           liveMeta={liveMeta}
@@ -829,22 +853,21 @@ function AppContent() {
           locationState={locationState}
           locationRadiusKm={locationRadiusKm}
           retailerProximity={retailerProximity}
-          retailers={liveRetailers}
+          retailers={locationEligibleRetailers}
           retailerFilterIds={retailerFilterIds}
-          nearbyRetailerIds={nearbyRetailerIds}
+          nearbyRetailerCount={nearbyRetailerIds.length}
           onRequestLocation={() => loadNearbyStores()}
           onChangeLocationRadius={changeLocationRadius}
           onClearLocation={clearLocation}
           onToggleRetailer={toggleRetailerFilter}
           onSelectAllRetailers={() => setRetailerFilterIds(null)}
-          onSelectNearbyRetailers={selectNearbyRetailers}
         />
       </main>
 
       {selectedProduct ? (
         <ProductDrawer
           product={selectedProduct}
-          retailers={liveRetailers}
+          retailers={locationEligibleRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
         />
@@ -1209,6 +1232,7 @@ function SearchPanel({
   setCategoryId,
   categories,
   products,
+  retailers,
   catalogSource,
   liveState,
   liveMeta,
@@ -1267,6 +1291,7 @@ function SearchPanel({
           <ProductRow
             key={product.id}
             product={product}
+            retailers={retailers}
             selected={selectedProduct?.id === product.id}
             onSelect={() => onSelect(product)}
             onAdd={() => onAdd(product)}
@@ -1310,9 +1335,12 @@ function LiveNotice({ state, total, visible, catalogSource }) {
   );
 }
 
-function ProductRow({ product, selected, onSelect, onAdd }) {
+function ProductRow({ product, retailers, selected, onSelect, onAdd }) {
   const { money, t } = usePreferences();
-  const best = getBestProductPrice(product);
+  const best = getBestProductPrice(
+    product,
+    retailers.map((retailer) => retailer.id),
+  );
   return (
     <article className={selected ? "product-row selected" : "product-row"}>
       <button type="button" className="product-main" onClick={onSelect}>
@@ -1682,13 +1710,12 @@ function RankingsPanel({
   retailerProximity,
   retailers,
   retailerFilterIds,
-  nearbyRetailerIds,
+  nearbyRetailerCount,
   onRequestLocation,
   onChangeLocationRadius,
   onClearLocation,
   onToggleRetailer,
   onSelectAllRetailers,
-  onSelectNearbyRetailers,
 }) {
   const { language, t } = usePreferences();
   const completeRankings = rankings.filter((row) => row.isComplete);
@@ -1744,22 +1771,21 @@ function RankingsPanel({
         setExtraStopCost={setExtraStopCost}
       />
 
-      <RetailerFilterControl
-        retailers={retailers}
-        selectedIds={retailerFilterIds}
-        nearbyIds={nearbyRetailerIds}
-        locationReady={locationReady}
-        onToggle={onToggleRetailer}
-        onSelectAll={onSelectAllRetailers}
-        onSelectNearby={onSelectNearbyRetailers}
-      />
-
       <LocationControl
         locationState={locationState}
         radiusKm={locationRadiusKm}
+        nearbyRetailerCount={nearbyRetailerCount}
         onRequest={onRequestLocation}
         onChangeRadius={onChangeLocationRadius}
         onClear={onClearLocation}
+      />
+
+      <RetailerFilterControl
+        retailers={retailers}
+        selectedIds={retailerFilterIds}
+        locationReady={locationReady}
+        onToggle={onToggleRetailer}
+        onSelectAll={onSelectAllRetailers}
       />
 
       <RecommendationCard
@@ -1840,7 +1866,14 @@ function RankingsPanel({
   );
 }
 
-function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, onClear }) {
+function LocationControl({
+  locationState,
+  radiusKm,
+  nearbyRetailerCount,
+  onRequest,
+  onChangeRadius,
+  onClear,
+}) {
   const { locale, number, t } = usePreferences();
   const busy = locationState.status === "locating" || locationState.status === "loading";
   const hasLocation = Boolean(locationState.position);
@@ -1877,6 +1910,24 @@ function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, o
         </div>
       </div>
       <p>{locationStatusText(locationState, radiusKm, t, locale, number)}</p>
+      {locationState.status === "ready" ? (
+        <div
+          className={`location-filter-status ${nearbyRetailerCount ? "active" : "empty"}`}
+          role="status"
+        >
+          {nearbyRetailerCount ? <Check size={15} /> : <AlertCircle size={15} />}
+          <span>
+            {nearbyRetailerCount
+              ? t("locationFilterActive", {
+                  count: number(nearbyRetailerCount),
+                  radius: t("kilometers", { value: radiusKm }),
+                })
+              : t("locationFilterEmpty", {
+                  radius: t("kilometers", { value: radiusKm }),
+                })}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2006,11 +2057,9 @@ function StopComparisonControl({
 function RetailerFilterControl({
   retailers,
   selectedIds,
-  nearbyIds,
   locationReady,
   onToggle,
   onSelectAll,
-  onSelectNearby,
 }) {
   const { t } = usePreferences();
   const selectedSet = new Set(selectedIds === null ? retailers.map((retailer) => retailer.id) : selectedIds);
@@ -2022,7 +2071,7 @@ function RetailerFilterControl({
       <summary>
         <span className="retailer-filter-title">
           <SlidersHorizontal size={15} />
-          {t("retailersInCalculation")}
+          {locationReady ? t("nearbyRetailersInCalculation") : t("retailersInCalculation")}
         </span>
         <span className={hasFilter ? "retailer-filter-count active" : "retailer-filter-count"}>
           {selectedCount}/{retailers.length || 0}
@@ -2032,16 +2081,7 @@ function RetailerFilterControl({
 
       <div className="retailer-filter-actions">
         <button type="button" className="quiet-button" onClick={onSelectAll} disabled={!hasFilter}>
-          {t("allRetailers")}
-        </button>
-        <button
-          type="button"
-          className="quiet-button nearby-filter-button"
-          onClick={onSelectNearby}
-          disabled={!locationReady || !nearbyIds.length}
-        >
-          <MapPin size={13} />
-          {t("nearbyOnly")}
+          {locationReady ? t("allNearbyRetailers") : t("allRetailers")}
         </button>
       </div>
 
@@ -2067,7 +2107,9 @@ function RetailerFilterControl({
           );
         })}
       </div>
-      <p>{t("retailerFilterHelp")}</p>
+      <p>
+        {locationReady ? t("locationRetailerFilterHelp") : t("retailerFilterHelp")}
+      </p>
     </details>
   );
 }
@@ -2388,7 +2430,10 @@ function RetailerRank({
 
 function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
   const { money, t } = usePreferences();
-  const best = getBestProductPrice(product);
+  const best = getBestProductPrice(
+    product,
+    retailerList.map((retailer) => retailer.id),
+  );
   return (
     <aside className="drawer" aria-label={t("productLabel", { name: product.name })}>
       <div className="drawer-backdrop" onClick={onClose} />

@@ -1565,6 +1565,31 @@ button {
   line-height: 1.4;
 }
 
+.location-filter-status {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 7px;
+  background: #ecfdf5;
+  color: #047857;
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+.location-filter-status svg {
+  margin-top: 1px;
+}
+
+.location-filter-status.empty {
+  border-color: rgba(217, 119, 6, 0.22);
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .location-box.denied,
 .location-box.error {
   border-color: rgba(220, 38, 38, 0.18);
@@ -2371,6 +2396,18 @@ button {
   color: var(--green-dark);
 }
 
+[data-theme="dark"] .location-filter-status {
+  border-color: rgba(52, 211, 153, 0.24);
+  background: rgba(6, 78, 59, 0.3);
+  color: #a7f3d0;
+}
+
+[data-theme="dark"] .location-filter-status.empty {
+  border-color: rgba(251, 191, 36, 0.25);
+  background: rgba(120, 53, 15, 0.28);
+  color: #fde68a;
+}
+
 [data-theme="dark"] .title-icon,
 [data-theme="dark"] .inline-status.loading_more,
 [data-theme="dark"] .text-button.demo-button,
@@ -2404,7 +2441,7 @@ button {
   color: var(--red);
 }
 
-[data-theme="dark"] .recommendation-card.recommended {
+[data-theme="dark"] .recommendation-card:not(.empty):not(.warning) {
   background: linear-gradient(180deg, #17251f, #132821);
 }
 

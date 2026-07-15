@@ -25,6 +25,14 @@ test("core interface text and dynamic values are translated", () => {
     translate("en", "extraStopEstimateNote", { amount: "€5.00", isFree: false }),
     /each extra supermarket.*more than €5.00.*fewer stops/,
   );
+  assert.match(
+    translate("el", "locationFilterActive", { count: "4", radius: "2χλμ." }),
+    /μόνο 4 κοντινές αλυσίδες.*2χλμ.*δεν εμφανίζονται/,
+  );
+  assert.match(
+    translate("en", "locationFilterActive", { count: "4", radius: "2 km" }),
+    /only 4 nearby chains.*2 km.*are hidden/,
+  );
 });
 
 test("language selection controls locale-sensitive formatting", () => {
