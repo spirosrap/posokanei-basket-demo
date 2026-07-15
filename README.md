@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.5.0`
+**Τρέχουσα έκδοση:** `v0.6.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -25,6 +25,14 @@
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
 Η εφαρμογή ανοίγει με καλάθι παραδείγματος, ώστε να φαίνεται αμέσως γιατί έχει νόημα η σύγκριση `1`, `2`, `3` ή `4` στάσεων. Το παράδειγμα είναι πιο ρεαλιστικό εβδομαδιαίο καλάθι ελληνικής οικογένειας, με γάλα, γιαούρτι, τυριά, αυγά, κοτόπουλο, ζυμαρικά, όσπρια, χυμούς, νερά, καθαριστικά και χαρτικά. Τα προϊόντα έχουν επιλεγεί ώστε να υπάρχουν αρκετές πλήρεις επιλογές και στο σενάριο της μίας στάσης, αλλά και να φαίνεται καθαρά πότε συμφέρει να μοιραστεί η λίστα σε δύο, τρεις ή τέσσερις αλυσίδες. Ο χρήστης μπορεί να πατήσει καθαρισμό και να ξεκινήσει δική του λίστα χωρίς να χρειάζεται να καταλάβει κάποιο ξεχωριστό demo mode.
+
+### Σύγκριση στάσεων και πρακτική πρόταση
+
+Η έκδοση `v0.6.0` εμφανίζει ταυτόχρονα το φθηνότερο πλήρες σύνολο για όριο `1`, `2`, `3` και `4` στάσεων. Κάθε επιλογή δείχνει την πραγματική τιμή των προϊόντων και την οικονομία σε σχέση με μία στάση. Τα όρια σημαίνουν «έως»: αν το ίδιο φθηνότερο πλάνο χρειάζεται λιγότερες αλυσίδες, ο optimizer δεν προσθέτει άσκοπη στάση. Ο χρήστης επιλέγει οποιοδήποτε αποτέλεσμα και το αναλυτικό πλάνο, το καλάθι και η αντιγραφή λίστας ενημερώνονται αμέσως.
+
+Για πιο ρεαλιστική απόφαση, ο χρήστης μπορεί προαιρετικά να εκτιμήσει τον χρόνο, τα καύσιμα ή τα εισιτήρια κάθε επιπλέον στάσης ως `0 €`, `2 €`, `5 €` ή `10 €`. Η «Πρακτική πρόταση» συγκρίνει την τιμή προϊόντων μαζί με αυτή την προσωπική εκτίμηση και επισημαίνει το καταλληλότερο όριο. Η εκτίμηση δεν αλλάζει ποτέ το σύνολο αγορών, δεν αποτελεί τιμή του PosoKanei και δεν αποστέλλεται σε κοινόχρηστους συνδέσμους. Η εκτίμηση και το επιλεγμένο όριο στάσεων αποθηκεύονται μόνο τοπικά στον browser.
+
+![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
 
@@ -84,7 +92,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.5.0`
+**Current version:** `v0.6.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -109,6 +117,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show coverage and missing-item counts per chain.
 - Highlight the cheapest complete one-stop basket.
 - Optimize the basket for up to `1`, `2`, `3`, or `4` supermarket stops.
+- Compare the cheapest complete totals for all four stop limits at the same time.
+- Estimate the time, fuel, or fare cost of each extra stop and highlight a practical recommendation without changing grocery prices.
 - Show which products to buy from each chain in a multi-stop plan.
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
@@ -123,6 +133,14 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show the last product/price update check in the UI.
 - Publish one featured and eight additional daily AI-assisted bargains with exact product images, verified chain prices, price spreads, details, and add-to-basket actions.
 - Provide scheduler-friendly update and snapshot refresh scripts.
+
+### Stop Comparison and Practical Recommendation
+
+Version `v0.6.0` shows the cheapest complete grocery total for `1`, `2`, `3`, and `4` stop limits together. Each selectable option includes its real product total and savings against one stop. These are “up to” limits: when the same cheapest plan uses fewer chains, the optimizer does not add an unnecessary visit. Selecting an option immediately updates the detailed route, basket assignment, and copied shopping plan.
+
+Users can optionally value the time, fuel, or fares for each additional stop at `€0`, `€2`, `€5`, or `€10`. The practical recommendation minimizes `grocery total + estimated extra-stop cost`, while the basket itself continues to show only actual grocery prices. This personal estimate is stored locally, is not PosoKanei price data, and is deliberately excluded from shared basket links. The chosen stop limit is now persistent as well.
+
+![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
 ### Language and Appearance
 
@@ -258,6 +276,14 @@ The production React build uses the absolute subpath base `/demo/posokanei-baske
 
 ### Screenshots
 
+Stop-limit comparison with a practical recommendation:
+
+![Stop comparison in the plan panel](screenshots/stop-comparison.png)
+
+Focused mobile plan view:
+
+![Mobile stop comparison and practical recommendation](screenshots/stop-comparison-mobile.png)
+
 English interface with Dark appearance and the new language/theme selectors:
 
 ![English interface using the dark appearance](screenshots/english-dark.png)
@@ -345,6 +371,9 @@ Browser QA covers:
 - Greek/English interface switching and local preference persistence.
 - Locale-aware dates, currency, accessibility labels, and copied plan text.
 - System/Light/Dark theme switching, saved preference restoration, and system-theme resolution.
+- Simultaneous one-to-four-stop total calculation and plan selection.
+- Extra-stop estimate recommendation at `€0`, `€2`, `€5`, and `€10`.
+- Persistence of the chosen stop limit and extra-stop estimate.
 - Product add flow.
 - Quantity update flow.
 - Supermarket include/exclude filtering and local preference persistence.

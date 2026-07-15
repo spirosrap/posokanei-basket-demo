@@ -20,6 +20,7 @@ import {
   PackageSearch,
   Plus,
   RefreshCw,
+  Route,
   Search,
   Share2,
   ShoppingBasket,
@@ -51,7 +52,6 @@ import {
 } from "./demoBasket";
 import {
   calculateRankings,
-  calculateVisitPlan,
   formatEuro,
   getBestProductPrice,
   getProductPrice,
@@ -78,10 +78,17 @@ import {
   saveTheme,
   SUPPORTED_THEMES,
 } from "./theme";
+import {
+  calculateStopComparison,
+  EXTRA_STOP_COST_OPTIONS,
+  getInitialExtraStopCost,
+  saveExtraStopCost,
+} from "./stopComparison";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 const RETAILER_FILTER_KEY = "posokanei-retailer-filter";
+const MAX_CHAINS_KEY = "posokanei-max-chains";
 const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
 const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
@@ -182,6 +189,15 @@ const savedRetailerFilter = () => {
       /^[a-zA-Z0-9_-]{1,120}$/.test(id),
     );
     return retailerIds.length ? retailerIds : null;
+  } catch {
+    return null;
+  }
+};
+
+const savedMaxChains = () => {
+  try {
+    const value = Number(JSON.parse(localStorage.getItem(MAX_CHAINS_KEY) || "null"));
+    return [1, 2, 3, 4].includes(value) ? value : null;
   } catch {
     return null;
   }
@@ -293,10 +309,9 @@ function AppContent() {
   const [maxChains, setMaxChains] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.maxChains
-      : shouldStartWithDemoBasket()
-        ? 4
-        : 1,
+      : savedMaxChains() ?? (shouldStartWithDemoBasket() ? 4 : 1),
   );
+  const [extraStopCost, setExtraStopCost] = useState(getInitialExtraStopCost);
   const [sharedBasketHydrating, setSharedBasketHydrating] = useState(
     INITIAL_SHARED_BASKET?.status === "valid",
   );
@@ -332,6 +347,14 @@ function AppContent() {
   useEffect(() => {
     saveLocalJson(RETAILER_FILTER_KEY, retailerFilterIds);
   }, [retailerFilterIds]);
+
+  useEffect(() => {
+    saveLocalJson(MAX_CHAINS_KEY, maxChains);
+  }, [maxChains]);
+
+  useEffect(() => {
+    saveExtraStopCost(extraStopCost);
+  }, [extraStopCost]);
 
   useEffect(() => {
     if (!INITIAL_SHARED_BASKET) return undefined;
@@ -558,10 +581,12 @@ function AppContent() {
     [rankings],
   );
 
-  const visitPlan = useMemo(
-    () => calculateVisitPlan(basket, allProducts, activeRetailers, maxChains),
-    [activeRetailers, allProducts, basket, maxChains],
+  const stopComparison = useMemo(
+    () => calculateStopComparison(basket, allProducts, activeRetailers, extraStopCost),
+    [activeRetailers, allProducts, basket, extraStopCost],
   );
+  const visitPlan =
+    stopComparison.options.find((option) => option.limit === maxChains)?.plan ?? null;
 
   const addToBasket = (product) => {
     rememberCatalogProduct(product, setLiveBasketProducts);
@@ -797,6 +822,9 @@ function AppContent() {
           visitPlan={visitPlan}
           maxChains={maxChains}
           setMaxChains={setMaxChains}
+          stopComparison={stopComparison}
+          extraStopCost={extraStopCost}
+          setExtraStopCost={setExtraStopCost}
           basketSize={basket.length}
           locationState={locationState}
           locationRadiusKm={locationRadiusKm}
@@ -1645,6 +1673,9 @@ function RankingsPanel({
   visitPlan,
   maxChains,
   setMaxChains,
+  stopComparison,
+  extraStopCost,
+  setExtraStopCost,
   basketSize,
   locationState,
   locationRadiusKm,
@@ -1705,7 +1736,13 @@ function RankingsPanel({
         action={basketSize ? formatStopLimit(maxChains, t) : t("chooseProducts")}
       />
 
-      <ChainLimitControl maxChains={maxChains} setMaxChains={setMaxChains} />
+      <StopComparisonControl
+        comparison={stopComparison}
+        maxChains={maxChains}
+        setMaxChains={setMaxChains}
+        extraStopCost={extraStopCost}
+        setExtraStopCost={setExtraStopCost}
+      />
 
       <RetailerFilterControl
         retailers={retailers}
@@ -1844,25 +1881,119 @@ function LocationControl({ locationState, radiusKm, onRequest, onChangeRadius, o
   );
 }
 
-function ChainLimitControl({ maxChains, setMaxChains }) {
-  const { t } = usePreferences();
+function StopComparisonControl({
+  comparison,
+  maxChains,
+  setMaxChains,
+  extraStopCost,
+  setExtraStopCost,
+}) {
+  const { money, t } = usePreferences();
+  const recommended = comparison.recommended;
   return (
-    <div className="chain-limit">
-      <span>{t("stops")}</span>
-      <div className="chain-limit-buttons" aria-label={t("maximumChains")}>
-        {[1, 2, 3, 4].map((count) => (
-          <button
-            key={count}
-            type="button"
-            className={maxChains === count ? "active" : ""}
-            aria-pressed={maxChains === count}
-            onClick={() => setMaxChains(count)}
-          >
-            {count}
-          </button>
-        ))}
+    <section className="stop-comparison" aria-labelledby="stop-comparison-title">
+      <div className="stop-comparison-heading">
+        <span>
+          <Route size={16} aria-hidden="true" />
+          <strong id="stop-comparison-title">{t("stopComparisonTitle")}</strong>
+        </span>
+        <small>{t("stopComparisonHelp")}</small>
       </div>
-    </div>
+
+      <div className="stop-option-grid" role="group" aria-label={t("maximumChains")}>
+        {comparison.options.map((option) => {
+          const isRecommended = recommended?.limit === option.limit;
+          const classes = [
+            "stop-option",
+            maxChains === option.limit ? "active" : "",
+            isRecommended ? "recommended" : "",
+            option.isComplete ? "" : "incomplete",
+          ].filter(Boolean).join(" ");
+          const detail = !option.isComplete
+            ? t("notCovered")
+            : option.limit === 1
+              ? t("oneStopBaseline")
+              : option.savingsVsOneStop > 0
+                ? t("saveAgainstOneStop", { amount: money(option.savingsVsOneStop) })
+                : t("sameAsOneStop");
+
+          return (
+          <button
+            key={option.limit}
+            type="button"
+            className={classes}
+            aria-pressed={maxChains === option.limit}
+            aria-label={t("selectStopPlan", {
+              stops: formatStopLimit(option.limit, t),
+              total: option.isComplete ? money(option.groceryTotal) : t("notCovered"),
+            })}
+            onClick={() => setMaxChains(option.limit)}
+          >
+            <span className="stop-option-top">
+              <span>{formatStopLimit(option.limit, t)}</span>
+              {isRecommended ? (
+                <span className="stop-recommended-mark">
+                  <Check size={11} aria-hidden="true" />
+                  {t("recommended")}
+                </span>
+              ) : null}
+            </span>
+            <strong>{option.isComplete ? money(option.groceryTotal) : "-"}</strong>
+            <small>{detail}</small>
+          </button>
+          );
+        })}
+      </div>
+
+      <div className="extra-stop-estimate">
+        <div className="extra-stop-copy">
+          <CircleDollarSign size={17} aria-hidden="true" />
+          <span>
+            <strong>{t("extraStopEstimate")}</strong>
+            <small>{t("extraStopEstimateHelp")}</small>
+          </span>
+        </div>
+        <div className="extra-stop-buttons" role="group" aria-label={t("extraStopCostOptions")}>
+          {EXTRA_STOP_COST_OPTIONS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={extraStopCost === value ? "active" : ""}
+              aria-pressed={extraStopCost === value}
+              onClick={() => setExtraStopCost(value)}
+            >
+              {money(value)}
+            </button>
+          ))}
+        </div>
+        <p>{t("extraStopEstimateNote")}</p>
+      </div>
+
+      <div className={recommended ? "practical-recommendation" : "practical-recommendation empty"}>
+        <Sparkles size={16} aria-hidden="true" />
+        <span>
+          <small>{t("practicalChoice")}</small>
+          {recommended ? (
+            <>
+              <strong>
+                {t("recommendStopLimit", {
+                  stops: formatStopLimit(recommended.limit, t),
+                })}
+              </strong>
+              <span>
+                {t("recommendationMath", {
+                  groceries: money(recommended.groceryTotal),
+                  extra: money(recommended.estimatedExtraCost),
+                  effective: money(recommended.effectiveTotal),
+                })}
+              </span>
+            </>
+          ) : (
+            <strong>{t("recommendationNeedsBasket")}</strong>
+          )}
+        </span>
+      </div>
+    </section>
   );
 }
 
