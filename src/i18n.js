@@ -120,15 +120,20 @@ const messages = {
     sameAsOneStop: "Ίδιο με 1 στάση",
     recommended: "Πρόταση",
     selectStopPlan: ({ stops, total }) => `Επιλογή ${stops}, σύνολο ${total}`,
-    extraStopEstimate: "Εκτίμηση ανά επιπλέον στάση",
-    extraStopEstimateHelp: "Χρόνος, καύσιμα ή εισιτήρια",
-    extraStopCostOptions: "Εκτίμηση κόστους επιπλέον στάσης",
-    extraStopEstimateNote:
-      "Χρησιμοποιείται μόνο για την πρόταση και δεν προστίθεται στο σύνολο αγορών.",
+    extraStopEstimate: "Πότε αξίζει άλλη στάση;",
+    extraStopEstimateHelp:
+      "Διάλεξε πόσα πρέπει να γλιτώσεις ανά επιπλέον supermarket.",
+    extraStopCostOptions: "Ελάχιστη εξοικονόμηση ανά επιπλέον supermarket",
+    extraStopEstimateNote: ({ amount, isFree }) =>
+      isFree
+        ? "Με 0 €: προτείνεται το φθηνότερο πλάνο, ακόμη κι αν χρειάζεται περισσότερες στάσεις. Δεν αλλάζει το σύνολο αγορών."
+        : `Με ${amount}: κάθε επιπλέον supermarket πρέπει να σου γλιτώνει πάνω από ${amount} στα προϊόντα. Αλλιώς προτείνονται λιγότερες στάσεις. Δεν αλλάζει το σύνολο αγορών.`,
     practicalChoice: "Πρακτική πρόταση",
     recommendStopLimit: ({ stops }) => `Προτείνονται ${stops}`,
-    recommendationMath: ({ groceries, extra, effective }) =>
-      `Προϊόντα ${groceries} + εκτίμηση στάσεων ${extra} = ${effective}`,
+    recommendationMath: ({ groceries, extraStops, perStop, effective }) =>
+      extraStops === 0
+        ? `Προϊόντα ${groceries} · χωρίς επιπλέον στάση = ${effective}`
+        : `Προϊόντα ${groceries} + ${extraStops} ${extraStops === 1 ? "επιπλέον στάση" : "επιπλέον στάσεις"} × ${perStop} = πρακτικό κόστος ${effective}`,
     recommendationNeedsBasket: "Φτιάξε καλάθι για να συγκρίνεις τις στάσεις.",
     retailersInCalculation: "Αλυσίδες στον υπολογισμό",
     allRetailers: "Όλες οι αλυσίδες",
@@ -346,15 +351,20 @@ const messages = {
     sameAsOneStop: "Same as one stop",
     recommended: "Best fit",
     selectStopPlan: ({ stops, total }) => `Select ${stops}, total ${total}`,
-    extraStopEstimate: "Estimate per extra stop",
-    extraStopEstimateHelp: "Time, fuel, or fares",
-    extraStopCostOptions: "Estimated extra-stop cost",
-    extraStopEstimateNote:
-      "Used only for the recommendation; it is not added to the grocery total.",
+    extraStopEstimate: "When is another stop worth it?",
+    extraStopEstimateHelp:
+      "Choose the minimum grocery saving needed per extra supermarket.",
+    extraStopCostOptions: "Minimum saving per extra supermarket",
+    extraStopEstimateNote: ({ amount, isFree }) =>
+      isFree
+        ? "At €0: the lowest grocery total is recommended, even when it needs more stops. This never changes the grocery total."
+        : `At ${amount}: each extra supermarket must save you more than ${amount} on groceries. Otherwise, fewer stops are recommended. This never changes the grocery total.`,
     practicalChoice: "Practical recommendation",
     recommendStopLimit: ({ stops }) => `Choose ${stops}`,
-    recommendationMath: ({ groceries, extra, effective }) =>
-      `Groceries ${groceries} + stop estimate ${extra} = ${effective}`,
+    recommendationMath: ({ groceries, extraStops, perStop, effective }) =>
+      extraStops === 0
+        ? `Groceries ${groceries} · no extra stop = ${effective}`
+        : `Groceries ${groceries} + ${extraStops} extra ${extraStops === 1 ? "stop" : "stops"} × ${perStop} = practical cost ${effective}`,
     recommendationNeedsBasket: "Build a basket to compare stop limits.",
     retailersInCalculation: "Chains in calculation",
     allRetailers: "All chains",

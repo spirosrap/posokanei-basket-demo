@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.6.0`
+**Τρέχουσα έκδοση:** `v0.6.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -30,7 +30,9 @@
 
 Η έκδοση `v0.6.0` εμφανίζει ταυτόχρονα το φθηνότερο πλήρες σύνολο για όριο `1`, `2`, `3` και `4` στάσεων. Κάθε επιλογή δείχνει την πραγματική τιμή των προϊόντων και την οικονομία σε σχέση με μία στάση. Τα όρια σημαίνουν «έως»: αν το ίδιο φθηνότερο πλάνο χρειάζεται λιγότερες αλυσίδες, ο optimizer δεν προσθέτει άσκοπη στάση. Ο χρήστης επιλέγει οποιοδήποτε αποτέλεσμα και το αναλυτικό πλάνο, το καλάθι και η αντιγραφή λίστας ενημερώνονται αμέσως.
 
-Για πιο ρεαλιστική απόφαση, ο χρήστης μπορεί προαιρετικά να εκτιμήσει τον χρόνο, τα καύσιμα ή τα εισιτήρια κάθε επιπλέον στάσης ως `0 €`, `2 €`, `5 €` ή `10 €`. Η «Πρακτική πρόταση» συγκρίνει την τιμή προϊόντων μαζί με αυτή την προσωπική εκτίμηση και επισημαίνει το καταλληλότερο όριο. Η εκτίμηση δεν αλλάζει ποτέ το σύνολο αγορών, δεν αποτελεί τιμή του PosoKanei και δεν αποστέλλεται σε κοινόχρηστους συνδέσμους. Η εκτίμηση και το επιλεγμένο όριο στάσεων αποθηκεύονται μόνο τοπικά στον browser.
+Για πιο ρεαλιστική απόφαση, ο χρήστης μπορεί να επιλέξει πόση εξοικονόμηση χρειάζεται για να αξίζει κάθε επιπλέον supermarket: `0 €`, `2 €`, `5 €` ή `10 €`. Για παράδειγμα, με επιλογή `5 €`, μία ακόμη στάση προτείνεται μόνο αν η χαμηλότερη τιμή των προϊόντων καλύπτει πάνω από `5 €` επιπλέον χρόνου, καυσίμων ή εισιτηρίων. Η «Πρακτική πρόταση» δείχνει καθαρά τον αριθμό επιπλέον στάσεων και τον σχετικό υπολογισμό. Η εκτίμηση δεν αλλάζει ποτέ το σύνολο αγορών, δεν αποτελεί τιμή του PosoKanei και δεν αποστέλλεται σε κοινόχρηστους συνδέσμους. Η εκτίμηση και το επιλεγμένο όριο στάσεων αποθηκεύονται μόνο τοπικά στον browser.
+
+Η έκδοση `v0.6.1` μετονομάζει και επεξηγεί αυτό το εργαλείο ως «Πότε αξίζει άλλη στάση;», ώστε η χρησιμότητά του να γίνεται άμεσα κατανοητή πριν ο χρήστης επιλέξει ποσό.
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -92,7 +94,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.6.0`
+**Current version:** `v0.6.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -138,7 +140,9 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 
 Version `v0.6.0` shows the cheapest complete grocery total for `1`, `2`, `3`, and `4` stop limits together. Each selectable option includes its real product total and savings against one stop. These are “up to” limits: when the same cheapest plan uses fewer chains, the optimizer does not add an unnecessary visit. Selecting an option immediately updates the detailed route, basket assignment, and copied shopping plan.
 
-Users can optionally value the time, fuel, or fares for each additional stop at `€0`, `€2`, `€5`, or `€10`. The practical recommendation minimizes `grocery total + estimated extra-stop cost`, while the basket itself continues to show only actual grocery prices. This personal estimate is stored locally, is not PosoKanei price data, and is deliberately excluded from shared basket links. The chosen stop limit is now persistent as well.
+Users can choose how much grocery saving is needed to make each extra supermarket worthwhile: `€0`, `€2`, `€5`, or `€10`. For example, at `€5`, another stop is recommended only when its lower grocery prices compensate for more than `€5` of extra time, fuel, or fares. The practical recommendation now states the number of additional stops and shows the calculation explicitly, while the basket continues to display only actual grocery prices. This personal estimate is stored locally, is not PosoKanei price data, and is deliberately excluded from shared basket links. The chosen stop limit is persistent as well.
+
+Version `v0.6.1` renames and explains this control as “When is another stop worth it?” so its purpose is clear before the user chooses an amount.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 

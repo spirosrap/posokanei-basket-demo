@@ -1966,7 +1966,12 @@ function StopComparisonControl({
             </button>
           ))}
         </div>
-        <p>{t("extraStopEstimateNote")}</p>
+        <p>
+          {t("extraStopEstimateNote", {
+            amount: money(extraStopCost),
+            isFree: extraStopCost === 0,
+          })}
+        </p>
       </div>
 
       <div className={recommended ? "practical-recommendation" : "practical-recommendation empty"}>
@@ -1983,7 +1988,8 @@ function StopComparisonControl({
               <span>
                 {t("recommendationMath", {
                   groceries: money(recommended.groceryTotal),
-                  extra: money(recommended.estimatedExtraCost),
+                  extraStops: Math.max(0, recommended.actualStops - 1),
+                  perStop: money(extraStopCost),
                   effective: money(recommended.effectiveTotal),
                 })}
               </span>

@@ -17,6 +17,14 @@ test("core interface text and dynamic values are translated", () => {
     translate("en", "catalogResults", { visible: "30", total: "8,551" }),
     "30 of 8,551 products from the updated catalogue",
   );
+  assert.match(
+    translate("el", "extraStopEstimateNote", { amount: "5,00 €", isFree: false }),
+    /κάθε επιπλέον supermarket.*πάνω από 5,00 €.*λιγότερες στάσεις/,
+  );
+  assert.match(
+    translate("en", "extraStopEstimateNote", { amount: "€5.00", isFree: false }),
+    /each extra supermarket.*more than €5.00.*fewer stops/,
+  );
 });
 
 test("language selection controls locale-sensitive formatting", () => {
