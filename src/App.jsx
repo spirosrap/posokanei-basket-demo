@@ -310,6 +310,7 @@ function AppContent() {
       ? INITIAL_SHARED_BASKET.basket
       : savedBasket(),
   );
+  const [mobileView, setMobileView] = useState(() => (basket.length ? "plan" : "products"));
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -361,6 +362,7 @@ function AppContent() {
     error: "",
   });
   const refreshedDemoProducts = useRef(false);
+  const mobileWorkspaceNav = useRef(null);
 
   useEffect(() => {
     if (!sharedBasketHydrating) saveLocalJson(BASKET_KEY, basket);
@@ -404,6 +406,7 @@ function AppContent() {
         } else {
           setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
           setBasket(availableBasket);
+          setMobileView("plan");
           setSharedBasketStatus({
             status: missingCount ? "partial" : "ready",
             productCount: availableBasket.length,
@@ -675,6 +678,7 @@ function AppContent() {
     setBasket([]);
     setMaxChains(1);
     setSharedBasketStatus(null);
+    setMobileView("products");
   };
 
   const loadDemoBasket = () => {
@@ -683,6 +687,7 @@ function AppContent() {
     setBasket(DEFAULT_DEMO_BASKET);
     setMaxChains(4);
     setSharedBasketStatus(null);
+    setMobileView("plan");
     refreshedDemoProducts.current = false;
   };
 
@@ -726,6 +731,7 @@ function AppContent() {
     setExtraStopCost(saved.extraStopCost);
     setSharedBasketStatus(null);
     setSelectedProduct(null);
+    setMobileView("plan");
     setSavedBasketNotice({
       status: "loaded",
       name: saved.name,
@@ -834,6 +840,13 @@ function AppContent() {
     });
   };
 
+  const changeMobileView = (nextView) => {
+    setMobileView(nextView);
+    window.requestAnimationFrame(() => {
+      mobileWorkspaceNav.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   if (IS_BARGAINS_PAGE) {
     return (
       <div className="app-shell bargains-shell">
@@ -872,13 +885,26 @@ function AppContent() {
           pick={displayedDailyBargain}
           retailers={locationEligibleRetailers}
           onSelect={() => setSelectedProduct(displayedDailyBargain.product)}
-          onAdd={() => addToBasket(displayedDailyBargain.product)}
+          onAdd={() => {
+            addToBasket(displayedDailyBargain.product);
+            setMobileView("basket");
+          }}
           moreHref={BARGAINS_PATH}
         />
       ) : null}
 
+      <MobileWorkspaceNav
+        navRef={mobileWorkspaceNav}
+        activeView={mobileView}
+        productCount={displayProducts.length}
+        basketCount={basket.length}
+        planStopCount={visitPlan?.isComplete ? visitPlan.chainCount : 0}
+        onChange={changeMobileView}
+      />
+
       <main className="workspace" aria-label={t("workspace")}>
         <SearchPanel
+          mobileActive={mobileView === "products"}
           query={query}
           setQuery={setQuery}
           categoryId={categoryId}
@@ -896,6 +922,7 @@ function AppContent() {
         />
 
         <BasketPanel
+          mobileActive={mobileView === "basket"}
           basket={basket}
           productMap={productMap}
           rankings={rankings}
@@ -917,6 +944,7 @@ function AppContent() {
         />
 
         <RankingsPanel
+          mobileActive={mobileView === "plan"}
           rankings={rankings}
           bestCompleteRanking={bestCompleteRanking}
           visitPlan={visitPlan}
@@ -1288,31 +1316,88 @@ function DataFreshnessNotice({ health, updateStatus }) {
   const isAutoSnapshot = updateStatus?.status === "snapshot";
 
   return (
-    <section className="data-warning" aria-label={t("freshnessWarning")}>
-      <AlertCircle size={18} />
-      <div>
-        <strong>
+    <details
+      className="data-warning"
+      aria-label={t("freshnessWarning")}
+      defaultOpen={refreshFailed}
+    >
+      <summary>
+        <span className="freshness-icon" aria-hidden="true">
+          <AlertCircle size={17} />
+        </span>
+        <span className="freshness-summary">
+          <strong>
           {refreshFailed
             ? t("refreshFailedTitle")
             : isAutoSnapshot
             ? t("refreshAutomaticTitle")
             : t("refreshLatestTitle")}
-        </strong>
-        <span>
-          {t("refreshSnapshotBody", { time: snapshotTime })}
+          </strong>
+          <small>{t("lastCatalogueUpdate", { time: snapshotTime })}</small>
+        </span>
+        <ChevronRight size={17} className="freshness-chevron" aria-hidden="true" />
+      </summary>
+      <div className="freshness-details">
+        <p>
+          {t("refreshSnapshotExplanation")}
           {refreshFailed
             ? t("refreshAttempt", {
                 time: refreshAttemptTime,
                 error: friendlyRefreshError(updateStatus?.refreshError, t),
               })
             : ""}
-        </span>
+        </p>
       </div>
-    </section>
+    </details>
+  );
+}
+
+function MobileWorkspaceNav({
+  navRef,
+  activeView,
+  productCount,
+  basketCount,
+  planStopCount,
+  onChange,
+}) {
+  const { number, t } = usePreferences();
+  const items = [
+    { id: "products", label: t("products"), icon: <PackageSearch size={17} />, count: productCount },
+    { id: "basket", label: t("basket"), icon: <ClipboardList size={17} />, count: basketCount },
+    { id: "plan", label: t("plan"), icon: <Store size={17} />, count: planStopCount || "-" },
+  ];
+  return (
+    <nav
+      ref={navRef}
+      className="mobile-workspace-nav"
+      aria-label={t("mobileWorkspaceNavigation")}
+      role="tablist"
+    >
+      {items.map((item) => {
+        const active = activeView === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            className={active ? "active" : ""}
+            aria-selected={active}
+            aria-controls={`${item.id}-panel`}
+            tabIndex={active ? 0 : -1}
+            onClick={() => onChange(item.id)}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+            <small>{typeof item.count === "number" ? number(item.count) : item.count}</small>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
 function SearchPanel({
+  mobileActive,
   query,
   setQuery,
   categoryId,
@@ -1334,7 +1419,11 @@ function SearchPanel({
   const isLoadingMore = liveState === "loading_more";
 
   return (
-    <section className="panel search-panel" aria-labelledby="search-title">
+    <section
+      id="products-panel"
+      className={`panel search-panel${mobileActive ? " mobile-active" : ""}`}
+      aria-labelledby="search-title"
+    >
       <PanelTitle
         id="search-title"
         icon={<PackageSearch size={18} />}
@@ -1456,6 +1545,7 @@ function ProductRow({ product, retailers, selected, onSelect, onAdd }) {
 }
 
 function BasketPanel({
+  mobileActive,
   basket,
   productMap,
   rankings,
@@ -1485,7 +1575,11 @@ function BasketPanel({
       ? Math.max(0, bestCompleteRanking.total - visitPlan.total)
       : 0;
   return (
-    <section className="panel basket-panel" aria-labelledby="basket-title">
+    <section
+      id="basket-panel"
+      className={`panel basket-panel${mobileActive ? " mobile-active" : ""}`}
+      aria-labelledby="basket-title"
+    >
       <PanelTitle
         id="basket-title"
         icon={<ClipboardList size={18} />}
@@ -2044,6 +2138,7 @@ function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
 }
 
 function RankingsPanel({
+  mobileActive,
   rankings,
   bestCompleteRanking,
   visitPlan,
@@ -2103,7 +2198,11 @@ function RankingsPanel({
   };
 
   return (
-    <section className="panel rankings-panel" aria-labelledby="ranking-title">
+    <section
+      id="plan-panel"
+      className={`panel rankings-panel${mobileActive ? " mobile-active" : ""}`}
+      aria-labelledby="ranking-title"
+    >
       <PanelTitle
         id="ranking-title"
         icon={<Store size={18} />}

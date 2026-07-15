@@ -37,10 +37,14 @@ const messages = {
     refreshFailedTitle: "Η τελευταία αυτόματη ενημέρωση απέτυχε.",
     refreshAutomaticTitle: "Οι τιμές ενημερώνονται αυτόματα κάθε ώρα από το PosoKanei.",
     refreshLatestTitle: "Οι τιμές εμφανίζονται από τον πιο πρόσφατο κατάλογο.",
+    lastCatalogueUpdate: ({ time }) => `Τελευταία ενημέρωση: ${time}`,
+    refreshSnapshotExplanation:
+      "Η εφαρμογή δεν ρωτά το PosoKanei σε κάθε άνοιγμα. Χρησιμοποιεί τον πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο.",
     refreshSnapshotBody: ({ time }) =>
       `Η εφαρμογή δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση καταλόγου: ${time}.`,
     refreshAttempt: ({ time, error }) => ` Τελευταία προσπάθεια: ${time} (${error}).`,
     workspace: "Εφαρμογή σύγκρισης καλαθιού",
+    mobileWorkspaceNavigation: "Προβολή εφαρμογής",
     products: "Προϊόντα",
     all: "Όλα",
     searchPlaceholder: "Αναζήτηση προϊόντος ή barcode",
@@ -330,10 +334,14 @@ const messages = {
     refreshFailedTitle: "The latest automatic update failed.",
     refreshAutomaticTitle: "Prices are updated automatically every hour from PosoKanei.",
     refreshLatestTitle: "Prices are shown from the latest catalogue.",
+    lastCatalogueUpdate: ({ time }) => `Last updated: ${time}`,
+    refreshSnapshotExplanation:
+      "The app does not contact PosoKanei on every page load. It uses the latest automatically synchronized catalogue.",
     refreshSnapshotBody: ({ time }) =>
       `The app does not contact PosoKanei on every page load. It uses the latest automatically synchronized catalogue. Latest catalogue update: ${time}.`,
     refreshAttempt: ({ time, error }) => ` Latest attempt: ${time} (${error}).`,
     workspace: "Basket comparison app",
+    mobileWorkspaceNavigation: "App view",
     products: "Products",
     all: "All",
     searchPlaceholder: "Search by product or barcode",

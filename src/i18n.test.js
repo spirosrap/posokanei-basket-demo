@@ -13,6 +13,11 @@ test("Greek and English expose the same translation keys", () => {
 test("core interface text and dynamic values are translated", () => {
   assert.equal(translate("el", "themeSelector"), "Θέμα εμφάνισης");
   assert.equal(translate("en", "themeSelector"), "Appearance theme");
+  assert.equal(translate("el", "mobileWorkspaceNavigation"), "Προβολή εφαρμογής");
+  assert.equal(
+    translate("en", "lastCatalogueUpdate", { time: "15 Jul, 20:23" }),
+    "Last updated: 15 Jul, 20:23",
+  );
   assert.equal(
     translate("en", "catalogResults", { visible: "30", total: "8,551" }),
     "30 of 8,551 products from the updated catalogue",

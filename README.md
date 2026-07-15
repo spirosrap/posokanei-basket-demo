@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.9.0`
+**Τρέχουσα έκδοση:** `v0.10.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -42,6 +42,8 @@
 
 Η έκδοση `v0.9.0` προσθέτει επαναχρησιμοποιούμενες αποθηκευμένες λίστες. Ο χρήστης μπορεί να δώσει όνομα στο τρέχον καλάθι, να το ανοίξει ξανά αργότερα και να πάρει νέο υπολογισμό με τις διαθέσιμες τιμές του πιο πρόσφατου καταλόγου.
 
+Η έκδοση `v0.10.0` ανασχεδιάζει την καθημερινή χρήση της εφαρμογής. Στο κινητό, τα «Προϊόντα», «Καλάθι» και «Πλάνο» λειτουργούν ως τρεις άμεσες προβολές με σταθερό επιλογέα, αντί να εμφανίζονται διαδοχικά σε μία πολύ μεγάλη σελίδα. Σε desktop και mobile βελτιώνονται η οπτική ιεραρχία, η πυκνότητα, η ανάγνωση ονομάτων προϊόντων, οι ομάδες ενεργειών, τα σύνολα και οι καταστάσεις εστίασης.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -51,6 +53,16 @@
 Στην ίδια έκδοση υπάρχει επιλογή θέματος `Σύστημα`, `Φωτεινό` ή `Σκοτεινό`. Το `Σύστημα` ακολουθεί αυτόματα την τρέχουσα ρύθμιση του λειτουργικού, ακόμη κι αν αλλάξει όσο η εφαρμογή είναι ανοιχτή. Η επιλογή αποθηκεύεται ανεξάρτητα από τη γλώσσα και εφαρμόζεται πριν φορτώσει το React, αποφεύγοντας λευκό flash ή λάθος θέμα κατά την εκκίνηση, ιδιαίτερα στο Safari.
 
 ![Αγγλική διεπαφή με το σκοτεινό θέμα της έκδοσης 0.5.0](screenshots/english-dark.png)
+
+### Ανασχεδιασμός και mobile workspace
+
+Η έκδοση `v0.10.0` διατηρεί την πυκνή, λειτουργική διάταξη σύγκρισης αλλά αφαιρεί περιττό οπτικό βάρος. Η εισαγωγή δεν εμφανίζεται πλέον σαν ξεχωριστή αιωρούμενη κάρτα, οι τρεις κύριες στήλες έχουν καθαρότερες επικεφαλίδες και αναλογίες, τα προϊόντα χωρούν έως δύο γραμμές τίτλου και το συνοπτικό αποτέλεσμα του καλαθιού εμφανίζεται ως μία ενιαία γραμμή με διαχωριστικά. Τα κουμπιά, τα πεδία, οι κάρτες αποτελεσμάτων και οι καταστάσεις hover/focus έχουν συνεπή αντίθεση σε φωτεινό και σκοτεινό θέμα.
+
+Στο κινητό εμφανίζεται σταθερός επιλογέας «Προϊόντα / Καλάθι / Πλάνο» με τους αντίστοιχους μετρητές. Προβάλλεται μόνο η ενεργή ενότητα, οπότε ο χρήστης μετακινείται άμεσα από την αναζήτηση στη λίστα και στο αποτέλεσμα χωρίς μεγάλο scroll. Όταν υπάρχει καλάθι, η αρχική mobile προβολή είναι το πλάνο, ώστε η οικονομικότερη επιλογή να είναι άμεσα ορατή. Η ένδειξη ενημέρωσης καταλόγου έγινε συμπαγής και επεκτάσιμη: η τελευταία επιτυχής ώρα παραμένει πάντα ορατή, ενώ οι τεχνικές λεπτομέρειες ανοίγουν μόνο όταν χρειάζονται. Σε αποτυχία ενημέρωσης ανοίγει αυτόματα.
+
+![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.10.0](screenshots/desktop.png)
+
+![Mobile workspace με άμεση επιλογή Προϊόντων, Καλαθιού και Πλάνου](screenshots/mobile.png)
 
 ### Επιλογή αλυσίδων και πρακτικό πλάνο
 
@@ -124,7 +136,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.9.0`
+**Current version:** `v0.10.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -193,6 +205,27 @@ Version `v0.5.0` adds a persistent Greek/English selector to the app header. All
 The same release adds independent `System`, `Light`, and `Dark` appearance settings. `System` follows the operating-system colour preference live, while explicit Light or Dark choices override it. Both language and theme are saved locally in the browser. A small pre-render theme bootstrap applies the saved choice before React starts, preventing a mismatched flash and making startup more reliable in Safari.
 
 ![English interface using the dark theme in version 0.5.0](screenshots/english-dark.png)
+
+### Redesign and Mobile Workspace
+
+Version `v0.10.0` keeps the comparison interface dense and work-focused while
+removing unnecessary visual weight. The introduction is no longer presented as a
+floating card, the three main columns have clearer hierarchy and proportions,
+product names can use two lines, action groups are easier to scan, and basket totals
+form one continuous summary. Buttons, fields, result cards, hover states, and focus
+treatments now use consistent contrast in both Light and Dark themes.
+
+On phones, `Products`, `Basket`, and `Plan` are three immediate views controlled by
+a sticky segmented selector with live counts. Only the selected panel is shown, so
+users can move from search to basket to recommendation without scrolling through one
+very long page. A basket opens on the Plan view by default, putting the cheapest
+result first. Catalogue freshness is now a compact disclosure: the latest successful
+timestamp stays visible, supporting details expand on demand, and a failed refresh
+opens the disclosure automatically.
+
+![Redesigned version 0.10.0 desktop workspace](screenshots/desktop.png)
+
+![Mobile workspace switcher for Products, Basket, and Plan](screenshots/mobile.png)
 
 ### Supermarket Selection and Practical Plans
 
@@ -466,6 +499,9 @@ Browser QA covers:
 - Desktop first viewport.
 - Mobile 390px viewport.
 - No horizontal overflow on mobile.
+- Sticky Products/Basket/Plan mobile navigation, live counts, active-panel switching, and default Plan view.
+- Compact catalogue freshness disclosure in collapsed and expanded states.
+- Product-name wrapping, stable control dimensions, keyboard focus visibility, and Greek/English tab fit.
 - No browser console errors.
 - Greek/English interface switching and local preference persistence.
 - Locale-aware dates, currency, accessibility labels, and copied plan text.
