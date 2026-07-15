@@ -15,7 +15,18 @@ const ftpHost = requiredEnv("FTP_HOST");
 const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
 const ftpUser = requiredEnv("FTP_USER");
 const password = process.env.FTP_PASS || (await readKeychainPassword());
-const files = await listFiles(distRoot);
+const includeData = process.env.DEPLOY_INCLUDE_DATA === "1";
+const buildFiles = await listFiles(distRoot);
+const files = buildFiles.filter((filePath) => {
+  const buildPath = relative(distRoot, filePath).split("\\").join("/");
+  return includeData || !buildPath.startsWith("data/");
+});
+
+if (!includeData && files.length !== buildFiles.length) {
+  console.log(
+    `Preserving ${buildFiles.length - files.length} live data files. Use npm run live:refresh to update catalogue data.`,
+  );
+}
 
 for (const filePath of files) {
   const remotePath = relative(distRoot, filePath).split("/").map(encodeURIComponent).join("/");

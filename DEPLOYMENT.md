@@ -57,7 +57,7 @@ The production build uses absolute subpath assets via `vite.config.js`
 The generated `.htaccess` disables PageSpeed and sets `index.html` as the
 directory index.
 
-Live catalog support also deploys:
+Live catalogue support uses these build outputs:
 
 ```text
 dist/api/posokanei.php
@@ -131,11 +131,19 @@ reach the upstream API:
 npm run live:refresh
 ```
 
-Build and deploy the complete static app, PHP endpoints, and data directory:
+Build and deploy the static app and PHP endpoints while preserving the current
+production data directory:
 
 ```bash
 npm run build
 npm run live:deploy
+```
+
+For a first installation or an intentional complete restore, include the built
+data directory explicitly:
+
+```bash
+DEPLOY_INCLUDE_DATA=1 npm run live:deploy
 ```
 
 `live:deploy` parses `.env.local` without sourcing it as shell code and reads the
@@ -143,8 +151,11 @@ FTP password from either `FTP_PASS` or the configured macOS Keychain item.
 Every file is first uploaded under a unique temporary FTP name and then renamed
 over the destination. This keeps the previous complete file available throughout
 the transfer and prevents PHP or a browser from reading partially uploaded JSON.
+By default, the script excludes `dist/data/` so a UI release cannot replace a newer
+live catalogue with an older local build artifact. Use `npm run live:refresh` for
+normal catalogue, refresh-status, and daily-bargain publishing.
 
-The script writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
+`live:refresh` writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
 updates `dist/data/daily-bargain.json` once per Athens calendar day, uploads the
 data files under `demo/posokanei-basket/data/`, and verifies the public catalogue
 and suggestion timestamps. Configure FTP and public URL settings with environment

@@ -53,6 +53,19 @@ test("core interface text and dynamic values are translated", () => {
     translate("el", "remainingRouteSummary", { next: "Lidl", later: "" }),
     "Επόμενη: Lidl",
   );
+  assert.equal(
+    translate("el", "savedBasketSaved", { name: "Εβδομαδιαία" }),
+    "Αποθηκεύτηκε η λίστα «Εβδομαδιαία».",
+  );
+  assert.equal(
+    translate("en", "savedBasketLoaded", {
+      name: "Weekly",
+      products: "5 products",
+      missing: "2",
+    }),
+    "Loaded “Weekly” with 5 products and today's prices. 2 products are no longer available.",
+  );
+  assert.match(translate("el", "savedBasketsPrivacy"), /Δεν αποθηκεύουν τοποθεσία, τιμές ή πρόοδο/);
 });
 
 test("language selection controls locale-sensitive formatting", () => {

@@ -1052,6 +1052,25 @@ button {
   color: #0f766e;
 }
 
+.text-button.saved-baskets-button {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: #f8fbff;
+  color: var(--blue);
+}
+
+.saved-basket-count {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #ffffff;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 950;
+}
+
 .text-button.danger-button {
   border-color: rgba(220, 38, 38, 0.22);
   background: #fff5f5;
@@ -1099,6 +1118,28 @@ button {
   font-size: 12px;
   font-weight: 800;
   line-height: 1.4;
+}
+
+.saved-basket-notice {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 28px;
+  gap: 8px;
+  align-items: center;
+  margin: -2px 0 12px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius);
+  background: #f8fbff;
+  color: var(--blue);
+  padding: 8px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.saved-basket-notice .icon-button {
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
 }
 
 .shared-basket-notice svg {
@@ -2402,7 +2443,12 @@ button {
   max-height: calc(100vh - 36px);
 }
 
-.share-dialog-icon {
+.saved-baskets-panel {
+  width: min(560px, calc(100vw - 36px));
+}
+
+.share-dialog-icon,
+.saved-baskets-dialog-icon {
   display: grid;
   width: 38px;
   height: 38px;
@@ -2410,6 +2456,196 @@ button {
   border-radius: var(--radius);
   background: #ecfdf5;
   color: #0f766e;
+}
+
+.saved-baskets-dialog-icon {
+  background: #eff6ff;
+  color: var(--blue);
+}
+
+.save-basket-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 20px 0 10px;
+}
+
+.save-basket-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.save-basket-form input {
+  width: 100%;
+  height: 42px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 0 11px;
+  font: inherit;
+  font-weight: 650;
+}
+
+.save-basket-form input:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  outline: 2px solid rgba(37, 99, 235, 0.12);
+}
+
+.save-basket-form .primary-action {
+  align-self: end;
+  min-width: 154px;
+  margin: 0;
+}
+
+.save-basket-form > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.saved-dialog-status {
+  margin: 10px 0;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.saved-dialog-status.success {
+  background: #ecfdf5;
+  color: var(--green-dark);
+}
+
+.saved-dialog-status.error {
+  background: #fff5f5;
+  color: var(--red);
+}
+
+.saved-baskets-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 18px 0 8px;
+}
+
+.saved-baskets-heading strong {
+  font-size: 13px;
+}
+
+.saved-baskets-heading span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.saved-baskets-list {
+  display: grid;
+  gap: 7px;
+}
+
+.saved-basket-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 9px;
+}
+
+.saved-basket-copy strong,
+.saved-basket-copy small,
+.saved-basket-copy span {
+  display: block;
+  min-width: 0;
+}
+
+.saved-basket-copy strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-basket-copy small,
+.saved-basket-copy span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.saved-basket-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.saved-basket-actions .text-button {
+  color: var(--blue);
+}
+
+.saved-delete-confirm {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.saved-delete-confirm span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.saved-baskets-empty {
+  display: grid;
+  min-height: 130px;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  padding: 16px;
+  text-align: center;
+}
+
+.saved-baskets-empty strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.saved-baskets-empty span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.saved-baskets-privacy {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  padding-top: 13px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .share-link-field {
@@ -2695,10 +2931,23 @@ button {
 }
 
 [data-theme="dark"] .chip.active,
-[data-theme="dark"] .text-button.share-button {
+[data-theme="dark"] .text-button.share-button,
+[data-theme="dark"] .saved-dialog-status.success {
   border-color: rgba(72, 215, 176, 0.3);
   background: #132821;
   color: var(--green-dark);
+}
+
+[data-theme="dark"] .text-button.saved-baskets-button,
+[data-theme="dark"] .saved-basket-notice,
+[data-theme="dark"] .saved-baskets-dialog-icon {
+  border-color: rgba(117, 167, 255, 0.28);
+  background: #17283f;
+  color: var(--blue);
+}
+
+[data-theme="dark"] .saved-dialog-status.error {
+  background: #311b24;
 }
 
 [data-theme="dark"] .inline-status,
@@ -3020,6 +3269,38 @@ button {
   .share-panel {
     bottom: auto;
     max-height: calc(100vh - 20px);
+  }
+
+  .saved-baskets-panel {
+    max-height: none;
+  }
+
+  .save-basket-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .save-basket-form .primary-action {
+    width: 100%;
+  }
+
+  .saved-basket-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .saved-basket-actions {
+    justify-content: space-between;
+  }
+
+  .saved-basket-actions .text-button {
+    flex: 1 1 auto;
+  }
+
+  .saved-delete-confirm {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .saved-delete-confirm span {
+    grid-column: 1 / -1;
   }
 
   .share-dialog-actions {

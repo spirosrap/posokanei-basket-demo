@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.8.0`
+**Τρέχουσα έκδοση:** `v0.9.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -40,6 +40,8 @@
 
 Η έκδοση `v0.8.0` προσθέτει λειτουργία αγορών για χρήση μέσα στα καταστήματα: εμφανίζει το ποσό που απομένει, πρόοδο ανά αλυσίδα, γρήγορη ολοκλήρωση ολόκληρης στάσης και προβολή μόνο των προϊόντων που δεν έχουν αγοραστεί. Όταν ολοκληρωθεί μία αλυσίδα, αφαιρείται αυτόματα από τη διαδρομή των υπόλοιπων στάσεων.
 
+Η έκδοση `v0.9.0` προσθέτει επαναχρησιμοποιούμενες αποθηκευμένες λίστες. Ο χρήστης μπορεί να δώσει όνομα στο τρέχον καλάθι, να το ανοίξει ξανά αργότερα και να πάρει νέο υπολογισμό με τις διαθέσιμες τιμές του πιο πρόσφατου καταλόγου.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -71,6 +73,14 @@
 ![Λίστα αγορών με πρόοδο και κοινή διαδρομή κοντινών στάσεων](screenshots/shopping-checklist-route.png)
 
 ![Λειτουργία αγορών με υπόλοιπο, πρόοδο ανά αλυσίδα και ενημερωμένη διαδρομή](screenshots/shopping-mode.png)
+
+### Αποθηκευμένες λίστες
+
+Στην έκδοση `v0.9.0`, το κουμπί «Λίστες» αποθηκεύει έως 12 καλάθια με όνομα στον συγκεκριμένο browser. Κάθε λίστα κρατά τους κωδικούς προϊόντων, τις ποσότητες, το όριο στάσεων, τις επιλεγμένες αλυσίδες και την προσωπική εκτίμηση κόστους επιπλέον στάσης. Η αποθήκευση με το ίδιο όνομα ενημερώνει την υπάρχουσα λίστα, ενώ η διαγραφή έχει ξεχωριστή επιβεβαίωση.
+
+Όταν ανοίγει μια λίστα, η εφαρμογή αναζητά τα προϊόντα στον τρέχοντα κατάλογο και υπολογίζει ξανά τιμές, κατάταξη και φθηνότερο πλάνο. Δεν αποθηκεύεται παλιό στιγμιότυπο τιμών. Αν κάποιο προϊόν δεν υπάρχει πλέον, τα υπόλοιπα φορτώνονται κανονικά και εμφανίζεται σχετική ενημέρωση. Οι λίστες μένουν μόνο στον browser και δεν περιέχουν τοποθεσία, κοντινά υποκαταστήματα ή πρόοδο αγορών.
+
+![Αποθηκευμένη εβδομαδιαία λίστα με άνοιγμα στις τρέχουσες τιμές](screenshots/saved-baskets.png)
 
 ### Κοινόχρηστα καλάθια
 
@@ -106,13 +116,15 @@
 
 Ο συγχρονισμός του καταλόγου είναι πλέον ανθεκτικός σε διακοπές κατά το ανέβασμα. Το νέο μεγάλο αρχείο ανεβαίνει πρώτα με προσωρινό όνομα και αντικαθιστά τον προηγούμενο κατάλογο μόνο όταν έχει ολοκληρωθεί ολόκληρη η μεταφορά. Έτσι, όσο γίνεται η ωριαία ενημέρωση, οι επισκέπτες συνεχίζουν να βλέπουν τον τελευταίο πλήρη κατάλογο αντί για άδειο ή μισογραμμένο JSON. Αν υπάρξει προσωρινό σφάλμα δικτύου ή server, ο browser επαναλαμβάνει αυτόματα το request και μπορεί να ανακτήσει ξανά το snapshot μέσα στην ίδια συνεδρία, κάτι που καλύπτει και τα περιστασιακά blank/empty states του Safari.
 
+Από την έκδοση `v0.9.0`, ένα συνηθισμένο `npm run live:deploy` ενημερώνει μόνο την εφαρμογή και τα PHP endpoints, διατηρώντας τα τρέχοντα αρχεία καταλόγου της παραγωγής. Οι τιμές ενημερώνονται ξεχωριστά με `npm run live:refresh`, ώστε μια έκδοση UI να μην αντικαταστήσει κατά λάθος νεότερο κατάλογο με παλιότερο build artifact. Μόνο το ρητό `DEPLOY_INCLUDE_DATA=1 npm run live:deploy` περιλαμβάνει το `dist/data/`, για αρχική εγκατάσταση ή ελεγχόμενη πλήρη επαναφορά.
+
 ## English
 
 **Live app:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.8.0`
+**Current version:** `v0.9.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -136,6 +148,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
+- Save up to 12 named baskets locally and reopen them against the latest catalogue prices.
 - Rank supermarket chains by total basket price.
 - Show coverage and missing-item counts per chain.
 - Highlight the cheapest complete one-stop basket.
@@ -221,6 +234,22 @@ checked.
 ![Shopping checklist progress and a combined nearby-stop route](screenshots/shopping-checklist-route.png)
 
 ![Shopping mode with remaining spend, per-chain progress, and an updated route](screenshots/shopping-mode.png)
+
+### Reusable Saved Lists
+
+Version `v0.9.0` adds a `Lists` action for keeping up to 12 named baskets in the
+current browser. A saved list preserves product IDs, quantities, the selected stop
+limit, the participating supermarket chains, and the user's extra-stop estimate.
+Saving the same name updates the existing entry, and deletion uses an inline
+confirmation.
+
+Opening a list fetches its products from the current catalogue and recalculates all
+prices, rankings, and optimized plans. It does not restore an old price snapshot. If
+a product is no longer available, the remaining products still load and the app
+reports how many were omitted. Saved lists contain no location, nearby-branch data,
+shopping progress, or stored prices, and they never leave the browser.
+
+![A reusable weekly basket that will reopen using current catalogue prices](screenshots/saved-baskets.png)
 
 ### Shareable Baskets
 
@@ -385,6 +414,10 @@ Shopping mode with remaining spend and unfinished-stop routing:
 
 ![Shopping mode and remaining-stop route](screenshots/shopping-mode.png)
 
+Reusable saved baskets with current-price restoration:
+
+![Saved basket library](screenshots/saved-baskets.png)
+
 ### Local Development
 
 Requirements:
@@ -451,6 +484,8 @@ Browser QA covers:
 - Grouped shopping-plan copy output.
 - Share-link generation, copy feedback, and privacy explanation.
 - Shared-basket restoration with quantities, selected stop limit, and retailer filter.
+- Saved-list creation, same-name update, refresh persistence, current-catalogue restoration, and delete confirmation.
+- Saved-list desktop/mobile layout, Greek/English copy, local-only privacy notice, and storage-failure feedback.
 - Backward compatibility with version 1 share links.
 - Invalid-link and missing-product handling.
 - Product detail drawer open/close.
@@ -626,6 +661,15 @@ Short version:
 ```bash
 npm run build
 npm run live:deploy
+```
+
+`live:deploy` publishes the app and PHP endpoints but deliberately preserves the
+current production `data/` directory. Update catalogue, freshness status, and daily
+bargain data through the independently verified `npm run live:refresh` pipeline.
+For a first installation or an intentional complete restore, opt in explicitly:
+
+```bash
+DEPLOY_INCLUDE_DATA=1 npm run live:deploy
 ```
 
 ### Limitations

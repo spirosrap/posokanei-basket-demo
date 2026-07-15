@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowDownUp,
   Barcode,
+  Bookmark,
   Check,
   CheckCheck,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   ClipboardList,
   Copy,
   Github,
+  FolderOpen,
   Info,
   Languages,
   Link2,
@@ -24,6 +26,7 @@ import {
   RefreshCw,
   RotateCcw,
   Route,
+  Save,
   Search,
   Share2,
   ShoppingBasket,
@@ -98,6 +101,12 @@ import {
   shoppingItemId,
   summarizeShoppingPlan,
 } from "./shoppingProgress";
+import {
+  loadSavedBaskets,
+  persistSavedBaskets,
+  removeSavedBasket,
+  upsertSavedBasket,
+} from "./savedBaskets";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -335,6 +344,9 @@ function AppContent() {
     return null;
   });
   const [shareUrl, setShareUrl] = useState("");
+  const [savedBaskets, setSavedBaskets] = useState(loadSavedBaskets);
+  const [savedBasketsOpen, setSavedBasketsOpen] = useState(false);
+  const [savedBasketNotice, setSavedBasketNotice] = useState(null);
   const [retailerFilterIds, setRetailerFilterIds] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.retailerIds
@@ -630,6 +642,7 @@ function AppContent() {
     stopComparison.options.find((option) => option.limit === maxChains)?.plan ?? null;
 
   const addToBasket = (product) => {
+    setSavedBasketNotice(null);
     rememberCatalogProduct(product, setLiveBasketProducts);
     setBasket((current) => {
       const found = current.find((entry) => entry.productId === product.id);
@@ -646,6 +659,7 @@ function AppContent() {
   };
 
   const updateQuantity = (product, nextQuantity) => {
+    setSavedBasketNotice(null);
     const quantity = Math.max(0, roundQuantity(nextQuantity));
     setBasket((current) =>
       quantity === 0
@@ -657,12 +671,14 @@ function AppContent() {
   };
 
   const clearBasket = () => {
+    setSavedBasketNotice(null);
     setBasket([]);
     setMaxChains(1);
     setSharedBasketStatus(null);
   };
 
   const loadDemoBasket = () => {
+    setSavedBasketNotice(null);
     setLiveBasketProducts((current) => mergeCatalogProducts(current, DEFAULT_DEMO_PRODUCTS));
     setBasket(DEFAULT_DEMO_BASKET);
     setMaxChains(4);
@@ -674,6 +690,49 @@ function AppContent() {
     if (!basket.length) return;
     const baseUrl = new URL(APP_BASE_PATH, window.location.origin).toString();
     setShareUrl(buildSharedBasketUrl(baseUrl, basket, maxChains, retailerFilterIds));
+  };
+
+  const saveCurrentBasket = (name) => {
+    if (!basket.length) throw new Error("empty_saved_basket");
+    const next = upsertSavedBasket(savedBaskets, {
+      name,
+      basket,
+      maxChains,
+      retailerIds: retailerFilterIds,
+      extraStopCost,
+    });
+    const persisted = persistSavedBaskets(next);
+    setSavedBaskets(persisted);
+    setSavedBasketNotice({ status: "saved", name: persisted[0].name });
+    return persisted[0];
+  };
+
+  const deleteSavedBasket = (id) => {
+    const next = persistSavedBaskets(removeSavedBasket(savedBaskets, id));
+    setSavedBaskets(next);
+  };
+
+  const restoreSavedBasket = async (saved) => {
+    const products = await fetchProductsByIds(saved.basket.map((entry) => entry.productId));
+    const foundIds = new Set(products.map((product) => product.id));
+    const availableBasket = saved.basket.filter((entry) => foundIds.has(entry.productId));
+    if (!availableBasket.length) throw new Error("saved_basket_products_unavailable");
+    const missingCount = saved.basket.length - availableBasket.length;
+
+    setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
+    setBasket(availableBasket);
+    setMaxChains(saved.maxChains);
+    setRetailerFilterIds(saved.retailerIds);
+    setExtraStopCost(saved.extraStopCost);
+    setSharedBasketStatus(null);
+    setSelectedProduct(null);
+    setSavedBasketNotice({
+      status: "loaded",
+      name: saved.name,
+      productCount: availableBasket.length,
+      missingCount,
+    });
+    refreshedDemoProducts.current = false;
   };
 
   const copyBasket = async () => {
@@ -848,9 +907,13 @@ function AppContent() {
           onClear={clearBasket}
           onCopy={copyBasket}
           onShare={openShareBasket}
+          onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
           onLoadDemo={loadDemoBasket}
           onSelect={setSelectedProduct}
           sharedBasketStatus={sharedBasketStatus}
+          savedBasketCount={savedBaskets.length}
+          savedBasketNotice={savedBasketNotice}
+          onDismissSavedBasketNotice={() => setSavedBasketNotice(null)}
         />
 
         <RankingsPanel
@@ -894,6 +957,17 @@ function AppContent() {
           retailerCount={activeRetailers.length}
           hasRetailerFilter={retailerFilterIds !== null}
           onClose={() => setShareUrl("")}
+        />
+      ) : null}
+
+      {savedBasketsOpen ? (
+        <SavedBasketsDialog
+          baskets={savedBaskets}
+          currentBasketCount={basket.length}
+          onSave={saveCurrentBasket}
+          onLoad={restoreSavedBasket}
+          onDelete={deleteSavedBasket}
+          onClose={() => setSavedBasketsOpen(false)}
         />
       ) : null}
     </div>
@@ -1393,11 +1467,15 @@ function BasketPanel({
   onClear,
   onCopy,
   onShare,
+  onOpenSavedBaskets,
   onLoadDemo,
   onSelect,
   sharedBasketStatus,
+  savedBasketCount,
+  savedBasketNotice,
+  onDismissSavedBasketNotice,
 }) {
-  const { money, t } = usePreferences();
+  const { money, number, t } = usePreferences();
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
   const planNames = visitPlan?.groups.map((group) => group.retailer.name).join(" + ");
@@ -1419,6 +1497,17 @@ function BasketPanel({
         <button type="button" className="text-button demo-button" onClick={onLoadDemo}>
           <Sparkles size={16} />
           {t("example")}
+        </button>
+        <button
+          type="button"
+          className="text-button saved-baskets-button"
+          onClick={onOpenSavedBaskets}
+        >
+          <Bookmark size={16} />
+          {t("savedBaskets")}
+          {savedBasketCount ? (
+            <span className="saved-basket-count">{number(savedBasketCount)}</span>
+          ) : null}
         </button>
         <button type="button" className="text-button" onClick={onCopy}>
           <ClipboardList size={16} />
@@ -1445,6 +1534,10 @@ function BasketPanel({
       </div>
 
       <SharedBasketNotice state={sharedBasketStatus} />
+      <SavedBasketNotice
+        state={savedBasketNotice}
+        onDismiss={onDismissSavedBasketNotice}
+      />
 
       {isDemoBasket && !sharedBasketStatus ? (
         <div className="demo-hint">
@@ -1499,6 +1592,33 @@ function BasketPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function SavedBasketNotice({ state, onDismiss }) {
+  const { number, t } = usePreferences();
+  if (!state) return null;
+  return (
+    <div className="saved-basket-notice" role="status">
+      <Bookmark size={15} />
+      <span>
+        {state.status === "saved"
+          ? t("savedBasketSaved", { name: state.name })
+          : t("savedBasketLoaded", {
+              name: state.name,
+              products: formatProductCount(state.productCount, t, number),
+              missing: number(state.missingCount),
+            })}
+      </span>
+      <button
+        type="button"
+        className="icon-button"
+        onClick={onDismiss}
+        aria-label={t("dismiss")}
+      >
+        <X size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -1653,6 +1773,221 @@ function ShareBasketDialog({
         <div className="share-privacy-note">
           <Info size={16} />
           <span>{t("sharePrivacy")}</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function SavedBasketsDialog({
+  baskets,
+  currentBasketCount,
+  onSave,
+  onLoad,
+  onDelete,
+  onClose,
+}) {
+  const { locale, number, t } = usePreferences();
+  const [name, setName] = useState("");
+  const [loadingId, setLoadingId] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState("");
+  const [actionStatus, setActionStatus] = useState(null);
+  const normalizedName = name.replace(/\s+/gu, " ").trim();
+  const updatesExisting = baskets.some(
+    (saved) =>
+      saved.name.toLocaleLowerCase("el-GR") === normalizedName.toLocaleLowerCase("el-GR"),
+  );
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  const saveBasket = (event) => {
+    event.preventDefault();
+    try {
+      const saved = onSave(normalizedName);
+      setName("");
+      setActionStatus({ status: "saved", name: saved.name });
+    } catch {
+      setActionStatus({ status: "error" });
+    }
+  };
+
+  const loadBasket = async (saved) => {
+    setLoadingId(saved.id);
+    setActionStatus(null);
+    try {
+      await onLoad(saved);
+      onClose();
+    } catch {
+      setLoadingId("");
+      setActionStatus({ status: "load_error" });
+    }
+  };
+
+  const deleteBasket = (id) => {
+    try {
+      onDelete(id);
+      setConfirmDeleteId("");
+      setActionStatus(null);
+    } catch {
+      setActionStatus({ status: "delete_error" });
+    }
+  };
+
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <aside
+      className="drawer saved-baskets-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="saved-baskets-title"
+    >
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-panel saved-baskets-panel">
+        <div className="drawer-head">
+          <span className="saved-baskets-dialog-icon" aria-hidden="true">
+            <Bookmark size={20} />
+          </span>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="drawer-title">
+          <small>{t("savedBaskets")}</small>
+          <h2 id="saved-baskets-title">{t("savedBasketsTitle")}</h2>
+          <p>{t("savedBasketsDescription")}</p>
+        </div>
+
+        <form className="save-basket-form" onSubmit={saveBasket}>
+          <label>
+            <span>{t("savedBasketName")}</span>
+            <input
+              type="text"
+              value={name}
+              maxLength={48}
+              placeholder={t("savedBasketNamePlaceholder")}
+              disabled={!currentBasketCount}
+              onChange={(event) => {
+                setName(event.target.value);
+                setActionStatus(null);
+              }}
+            />
+          </label>
+          <button
+            type="submit"
+            className="primary-action"
+            disabled={!currentBasketCount || !normalizedName}
+          >
+            <Save size={17} />
+            {updatesExisting ? t("updateSavedBasket") : t("saveCurrentBasket")}
+          </button>
+          <small>
+            {currentBasketCount ? t("savedBasketLimit") : t("addProductsBeforeSaving")}
+          </small>
+        </form>
+
+        {actionStatus ? (
+          <p
+            className={actionStatus.status === "saved" ? "saved-dialog-status success" : "saved-dialog-status error"}
+            role="status"
+          >
+            {actionStatus.status === "saved"
+              ? t("savedBasketSaved", { name: actionStatus.name })
+              : actionStatus.status === "load_error"
+                ? t("savedBasketLoadError")
+                : actionStatus.status === "delete_error"
+                  ? t("savedBasketDeleteError")
+                : t("savedBasketSaveError")}
+          </p>
+        ) : null}
+
+        <div className="saved-baskets-heading">
+          <strong>{t("savedBasketsLibrary")}</strong>
+          <span>{number(baskets.length)}/12</span>
+        </div>
+
+        <div className="saved-baskets-list">
+          {baskets.length ? (
+            baskets.map((saved) => (
+              <article key={saved.id} className="saved-basket-row">
+                <div className="saved-basket-copy">
+                  <strong>{saved.name}</strong>
+                  <small>
+                    {formatProductCount(saved.basket.length, t, number)} · {formatStopLimit(saved.maxChains, t)} · {dateFormatter.format(new Date(saved.updatedAt))}
+                  </small>
+                  <span>
+                    {saved.retailerIds
+                      ? t("savedBasketRetailers", { count: number(saved.retailerIds.length) })
+                      : t("allRetailers")}
+                  </span>
+                </div>
+                <div className="saved-basket-actions">
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={Boolean(loadingId)}
+                    onClick={() => loadBasket(saved)}
+                  >
+                    {loadingId === saved.id ? (
+                      <RefreshCw size={15} className="spin" />
+                    ) : (
+                      <FolderOpen size={15} />
+                    )}
+                    {t("openSavedBasket")}
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button danger"
+                    onClick={() => setConfirmDeleteId(saved.id)}
+                    title={t("deleteSavedBasket", { name: saved.name })}
+                    aria-label={t("deleteSavedBasket", { name: saved.name })}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                {confirmDeleteId === saved.id ? (
+                  <div className="saved-delete-confirm">
+                    <span>{t("deleteSavedBasketPrompt", { name: saved.name })}</span>
+                    <button
+                      type="button"
+                      className="text-button danger-button"
+                      onClick={() => deleteBasket(saved.id)}
+                    >
+                      {t("delete")}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setConfirmDeleteId("")}
+                    >
+                      {t("cancel")}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <div className="saved-baskets-empty">
+              <Bookmark size={20} />
+              <strong>{t("noSavedBaskets")}</strong>
+              <span>{t("noSavedBasketsHelp")}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="saved-baskets-privacy">
+          <Info size={16} />
+          <span>{t("savedBasketsPrivacy")}</span>
         </div>
       </div>
     </aside>
