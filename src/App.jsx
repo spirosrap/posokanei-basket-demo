@@ -4,6 +4,7 @@ import {
   ArrowDownUp,
   Barcode,
   Check,
+  CheckCheck,
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
@@ -90,10 +91,12 @@ import {
   saveExtraStopCost,
 } from "./stopComparison";
 import {
+  buildRemainingShoppingPlan,
   buildShoppingPlanId,
   loadShoppingProgress,
   saveShoppingProgress,
   shoppingItemId,
+  summarizeShoppingPlan,
 } from "./shoppingProgress";
 
 const BASKET_KEY = "posokanei-basket";
@@ -2236,23 +2239,40 @@ function VisitPlanBreakdown({
   const [checkedItemIds, setCheckedItemIds] = useState(() =>
     loadShoppingProgress(planId),
   );
+  const [shoppingView, setShoppingView] = useState("all");
   const checkedItems = useMemo(() => {
     const validIds = new Set(planItemIds);
     return new Set(checkedItemIds.filter((id) => validIds.has(id)));
   }, [checkedItemIds, planItemIds]);
+  const shoppingSummary = useMemo(
+    () => summarizeShoppingPlan(plan, checkedItemIds),
+    [checkedItemIds, plan],
+  );
+  const groupProgress = useMemo(
+    () => new Map(shoppingSummary.groups.map((group) => [group.retailerId, group])),
+    [shoppingSummary.groups],
+  );
+  const remainingShoppingPlan = useMemo(
+    () => buildRemainingShoppingPlan(plan, shoppingSummary),
+    [plan, shoppingSummary],
+  );
   const planRoute = useMemo(
     () =>
-      locationReady
-        ? buildPlanRoute(plan, retailerProximity, locationPosition)
+      locationReady && remainingShoppingPlan
+        ? buildPlanRoute(remainingShoppingPlan, retailerProximity, locationPosition)
         : null,
-    [locationPosition, locationReady, plan, retailerProximity],
+    [locationPosition, locationReady, remainingShoppingPlan, retailerProximity],
   );
   const directionsUrl = useMemo(
     () => mapsDirectionsUrl(planRoute, locationPosition),
     [locationPosition, planRoute],
   );
-  const completedCount = checkedItems.size;
-  const checklistComplete = completedCount === planItemIds.length;
+  const completedCount = shoppingSummary.completedCount;
+  const checklistComplete = shoppingSummary.isComplete;
+  const visibleGroups =
+    shoppingView === "remaining"
+      ? plan.groups.filter((group) => !groupProgress.get(group.retailer.id)?.isComplete)
+      : plan.groups;
 
   useEffect(() => {
     setCheckedItemIds(loadShoppingProgress(planId));
@@ -2274,6 +2294,22 @@ function VisitPlanBreakdown({
     saveShoppingProgress(planId, []);
   };
 
+  const setGroupCompletion = (group, complete) => {
+    const groupItemIds = group.items.map((item) =>
+      shoppingItemId(group.retailer.id, item.product.id),
+    );
+    setCheckedItemIds((current) => {
+      const next = new Set(current.filter((id) => planItemIds.includes(id)));
+      groupItemIds.forEach((itemId) => {
+        if (complete) next.add(itemId);
+        else next.delete(itemId);
+      });
+      const nextIds = [...next];
+      saveShoppingProgress(planId, nextIds);
+      return nextIds;
+    });
+  };
+
   return (
     <div className="route-group">
       <div className="route-group-heading">
@@ -2282,6 +2318,18 @@ function VisitPlanBreakdown({
           <span>{t("buyAtEachChain")}</span>
         </div>
         <div className="route-group-actions">
+          <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
+            {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
+            {copyState === "copied"
+              ? t("copied")
+              : copyState === "error"
+                ? t("copyFailed")
+                : t("copyPlan")}
+          </button>
+        </div>
+      </div>
+      <div className="shopping-toolbar">
+        <div className="shopping-metrics">
           <span
             className={checklistComplete ? "shopping-progress complete" : "shopping-progress"}
             title={t("shoppingProgressSaved")}
@@ -2294,6 +2342,30 @@ function VisitPlanBreakdown({
                   total: number(planItemIds.length),
                 })}
           </span>
+          <span className="remaining-spend">
+            <CircleDollarSign size={14} />
+            {t("remainingSpend", { amount: money(shoppingSummary.remainingTotal) })}
+          </span>
+        </div>
+        <div className="shopping-toolbar-actions">
+          <div className="shopping-view-control" role="group" aria-label={t("shoppingViewLabel")}>
+            <button
+              type="button"
+              className={shoppingView === "all" ? "active" : ""}
+              aria-pressed={shoppingView === "all"}
+              onClick={() => setShoppingView("all")}
+            >
+              {t("showAllItems")}
+            </button>
+            <button
+              type="button"
+              className={shoppingView === "remaining" ? "active" : ""}
+              aria-pressed={shoppingView === "remaining"}
+              onClick={() => setShoppingView("remaining")}
+            >
+              {t("showRemainingItems")}
+            </button>
+          </div>
           {completedCount ? (
             <button
               type="button"
@@ -2305,24 +2377,28 @@ function VisitPlanBreakdown({
               <RotateCcw size={14} />
             </button>
           ) : null}
-          <button type="button" className="quiet-button copy-plan-button" onClick={onCopyPlan}>
-            {copyState === "copied" ? <Check size={14} /> : <Copy size={14} />}
-            {copyState === "copied"
-              ? t("copied")
-              : copyState === "error"
-                ? t("copyFailed")
-                : t("copyPlan")}
-          </button>
         </div>
       </div>
-      {planRoute && directionsUrl ? (
+      {checklistComplete ? (
+        <div className="shopping-complete-banner" role="status">
+          <CheckCheck size={18} aria-hidden="true" />
+          <span>
+            <strong>{t("shoppingDoneTitle")}</strong>
+            <small>{t("shoppingDoneBody")}</small>
+          </span>
+        </div>
+      ) : planRoute && directionsUrl ? (
         <div className="plan-route-bar">
           <Route size={17} aria-hidden="true" />
           <span>
-            <strong>{t("nearbyRouteTitle")}</strong>
+            <strong>{t("remainingRouteTitle")}</strong>
             <small>
-              {t("nearbyRouteSummary", {
-                stops: planRoute.stops.map((stop) => stop.retailer.name).join(" → "),
+              {t("remainingRouteSummary", {
+                next: planRoute.stops[0].retailer.name,
+                later: planRoute.stops
+                  .slice(1)
+                  .map((stop) => stop.retailer.name)
+                  .join(" → "),
               })}
             </small>
           </span>
@@ -2333,8 +2409,20 @@ function VisitPlanBreakdown({
         </div>
       ) : null}
       <div className="route-list">
-        {plan.groups.map((group) => (
-          <article key={group.retailer.id} className="route-card">
+        {visibleGroups.map((group) => {
+          const progress = groupProgress.get(group.retailer.id);
+          const visibleItems =
+            shoppingView === "remaining"
+              ? group.items.filter(
+                  (item) =>
+                    !checkedItems.has(shoppingItemId(group.retailer.id, item.product.id)),
+                )
+              : group.items;
+          return (
+            <article
+              key={group.retailer.id}
+              className={progress?.isComplete ? "route-card completed" : "route-card"}
+            >
             <div className="route-store-top">
               <RetailerLogo retailer={group.retailer} />
               <div>
@@ -2343,19 +2431,69 @@ function VisitPlanBreakdown({
                   {formatProductCount(group.items.length, t, number)} · {money(group.total)}
                 </small>
               </div>
-              {locationReady ? (
+              <div className="route-store-actions">
+                {locationReady ? (
+                  <button
+                    type="button"
+                    className={
+                      selectedRetailerId === group.retailer.id
+                        ? "branch-select active"
+                        : "branch-select"
+                    }
+                    onClick={() => onSelectRetailer(group.retailer.id)}
+                  >
+                    {t("branches")}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className={
-                    selectedRetailerId === group.retailer.id
-                      ? "branch-select active"
-                      : "branch-select"
+                    progress?.isComplete
+                      ? "store-check-button complete"
+                      : "store-check-button"
                   }
-                  onClick={() => onSelectRetailer(group.retailer.id)}
+                  onClick={() => setGroupCompletion(group, !progress?.isComplete)}
+                  title={t(
+                    progress?.isComplete ? "resetStoreProgress" : "markStorePurchased",
+                    { name: group.retailer.name },
+                  )}
+                  aria-label={t(
+                    progress?.isComplete ? "resetStoreProgress" : "markStorePurchased",
+                    { name: group.retailer.name },
+                  )}
                 >
-                  {t("branches")}
+                  {progress?.isComplete ? <RotateCcw size={14} /> : <CheckCheck size={14} />}
                 </button>
-              ) : null}
+              </div>
+            </div>
+            <div
+              className={
+                progress?.isComplete
+                  ? "route-store-progress complete"
+                  : "route-store-progress"
+              }
+              aria-label={t("storeProgress", {
+                checked: number(progress?.completedCount || 0),
+                total: number(progress?.totalCount || 0),
+              })}
+            >
+              <span>
+                <i
+                  style={{
+                    width: `${progress?.totalCount
+                      ? (progress.completedCount / progress.totalCount) * 100
+                      : 0}%`,
+                  }}
+                />
+              </span>
+              <small>
+                {progress?.isComplete
+                  ? t("storeComplete")
+                  : t("storeProgress", {
+                      checked: number(progress?.completedCount || 0),
+                      total: number(progress?.totalCount || 0),
+                    })}
+              </small>
             </div>
             <StoreDistance
               locationReady={locationReady}
@@ -2363,7 +2501,7 @@ function VisitPlanBreakdown({
               onSelectBranches={() => onSelectRetailer(group.retailer.id)}
             />
             <div className="route-items">
-              {group.items.map((item) => {
+              {visibleItems.map((item) => {
                 const itemId = shoppingItemId(group.retailer.id, item.product.id);
                 const checked = checkedItems.has(itemId);
                 return (
@@ -2387,8 +2525,9 @@ function VisitPlanBreakdown({
                 );
               })}
             </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.7.0`
+**Τρέχουσα έκδοση:** `v0.8.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -38,6 +38,8 @@
 
 Η έκδοση `v0.7.0` μετατρέπει το αποτέλεσμα σε πρακτικό εργαλείο αγορών: κάθε προϊόν του επιλεγμένου πλάνου έχει checkbox, η πρόοδος αποθηκεύεται τοπικά για το συγκεκριμένο πλάνο και, όταν είναι ενεργή η τοποθεσία, δημιουργείται κοινή διαδρομή προς τα πλησιέστερα υποκαταστήματα όλων των στάσεων.
 
+Η έκδοση `v0.8.0` προσθέτει λειτουργία αγορών για χρήση μέσα στα καταστήματα: εμφανίζει το ποσό που απομένει, πρόοδο ανά αλυσίδα, γρήγορη ολοκλήρωση ολόκληρης στάσης και προβολή μόνο των προϊόντων που δεν έχουν αγοραστεί. Όταν ολοκληρωθεί μία αλυσίδα, αφαιρείται αυτόματα από τη διαδρομή των υπόλοιπων στάσεων.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -64,7 +66,11 @@
 
 Με ενεργή την τοποθεσία, η εφαρμογή επιλέγει το πλησιέστερο αναγνωρισμένο υποκατάστημα για κάθε αλυσίδα του πλάνου και προτείνει σειρά στάσεων ξεκινώντας από την τρέχουσα θέση. Το κουμπί «Άνοιγμα διαδρομής» στέλνει την αφετηρία και τα υποκαταστήματα στο Google Maps, το οποίο υπολογίζει την πραγματική οδική διαδρομή. Η εφαρμογή δεν αποθηκεύει την τοποθεσία ή τη διαδρομή.
 
+Στην έκδοση `v0.8.0`, η γραμμή αγορών δείχνει πόσα προϊόντα και πόση αξία απομένουν. Η επιλογή «Υπόλοιπα» κρύβει όσα έχουν ήδη αγοραστεί, ενώ κάθε κάρτα αλυσίδας έχει δική της μπάρα προόδου και εικονίδιο για ολοκλήρωση ή επαναφορά ολόκληρης στάσης. Η διαδρομή ενημερώνεται από την ίδια πρόοδο: ολοκληρωμένες αλυσίδες παραλείπονται, η επόμενη στάση αναφέρεται καθαρά και, όταν ολοκληρωθεί όλη η λίστα, εμφανίζεται τελική επιβεβαίωση αντί για άχρηστη διαδρομή.
+
 ![Λίστα αγορών με πρόοδο και κοινή διαδρομή κοντινών στάσεων](screenshots/shopping-checklist-route.png)
+
+![Λειτουργία αγορών με υπόλοιπο, πρόοδο ανά αλυσίδα και ενημερωμένη διαδρομή](screenshots/shopping-mode.png)
 
 ### Κοινόχρηστα καλάθια
 
@@ -106,7 +112,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.7.0`
+**Current version:** `v0.8.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -124,8 +130,9 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Adjust quantities with steppers, including `kg` products.
 - Include or exclude supermarket chains from every ranking and optimized plan.
 - Automatically limit prices and plans to chains with a nearby branch after enabling location.
-- Check off products while shopping, with plan-specific progress stored locally.
-- Open the nearest branches for every selected stop as one Google Maps route.
+- Check off products while shopping, see remaining spend, and filter the plan to unfinished items.
+- Track each supermarket stop independently and complete or restore a whole stop in one action.
+- Open the nearest unfinished branches as one Google Maps route that updates with progress.
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
@@ -161,6 +168,8 @@ Version `v0.6.1` renames and explains this control as “When is another stop wo
 Version `v0.6.2` turns enabled location into an eligibility filter: rankings, stop plans, product best-price labels, product detail prices, and the daily suggestion use only chains with a matched branch inside the selected radius.
 
 Version `v0.7.0` turns the result into a practical shopping companion: every assigned product is checkable, progress is stored locally for the exact plan, and enabled location can generate one route through the nearest branch for each selected stop.
+
+Version `v0.8.0` adds an in-store shopping mode with remaining spend, per-chain progress, whole-stop completion, an unfinished-items view, and a Google Maps route that automatically skips completed supermarkets.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
@@ -203,7 +212,15 @@ the plan and suggests an order starting from the current position. `Open route`
 sends the origin and branch coordinates to Google Maps, which calculates the actual
 road route. The app does not persist the location or route.
 
+Version `v0.8.0` adds a remaining-spend total and an `All` / `Remaining` view. Each
+chain card has its own progress bar and an icon control for completing or restoring
+the entire stop. The route uses the same progress state, removes completed chains,
+names the next stop, and is replaced by a completion confirmation when every item is
+checked.
+
 ![Shopping checklist progress and a combined nearby-stop route](screenshots/shopping-checklist-route.png)
+
+![Shopping mode with remaining spend, per-chain progress, and an updated route](screenshots/shopping-mode.png)
 
 ### Shareable Baskets
 
@@ -364,6 +381,10 @@ Shopping checklist and combined nearby-stop route:
 
 ![Shopping checklist progress and route](screenshots/shopping-checklist-route.png)
 
+Shopping mode with remaining spend and unfinished-stop routing:
+
+![Shopping mode and remaining-stop route](screenshots/shopping-mode.png)
+
 ### Local Development
 
 Requirements:
@@ -425,6 +446,8 @@ Browser QA covers:
 - Automatic nearby-chain eligibility after location is enabled.
 - Plan-specific shopping checklist persistence and reset behavior.
 - Multi-stop Google Maps route generation from matched nearby branches.
+- Remaining-spend calculation and All/Remaining checklist filtering.
+- Per-chain completion controls and automatic removal of completed route stops.
 - Grouped shopping-plan copy output.
 - Share-link generation, copy feedback, and privacy explanation.
 - Shared-basket restoration with quantities, selected stop limit, and retailer filter.

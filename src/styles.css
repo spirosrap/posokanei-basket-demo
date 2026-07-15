@@ -1919,6 +1919,32 @@ button {
   flex-wrap: wrap;
 }
 
+.shopping-toolbar,
+.shopping-metrics,
+.shopping-toolbar-actions,
+.remaining-spend,
+.shopping-complete-banner,
+.route-store-actions,
+.store-check-button {
+  display: flex;
+  align-items: center;
+}
+
+.shopping-toolbar {
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 7px 8px;
+}
+
+.shopping-metrics,
+.shopping-toolbar-actions {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .shopping-progress {
   min-height: 28px;
   border: 1px solid var(--line);
@@ -1935,6 +1961,45 @@ button {
   border-color: rgba(15, 118, 110, 0.24);
   background: #ecfdf5;
   color: var(--green-dark);
+}
+
+.remaining-spend {
+  min-height: 28px;
+  gap: 6px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--blue);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.shopping-view-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 132px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 2px;
+}
+
+.shopping-view-control button {
+  min-height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.shopping-view-control button.active {
+  background: var(--blue);
+  color: #ffffff;
 }
 
 .reset-progress-button {
@@ -1999,6 +2064,32 @@ button {
   white-space: nowrap;
 }
 
+.shopping-complete-banner {
+  gap: 9px;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: var(--radius);
+  background: #ecfdf5;
+  color: var(--green-dark);
+  padding: 10px;
+}
+
+.shopping-complete-banner strong,
+.shopping-complete-banner small {
+  display: block;
+}
+
+.shopping-complete-banner strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.shopping-complete-banner small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
 .route-list {
   display: grid;
   gap: 8px;
@@ -2009,6 +2100,11 @@ button {
   border-radius: var(--radius);
   background: var(--surface);
   padding: 10px;
+}
+
+.route-card.completed {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #f2fbf7;
 }
 
 .route-store-top {
@@ -2022,6 +2118,11 @@ button {
   display: block;
 }
 
+.route-store-actions {
+  gap: 5px;
+  margin-left: auto;
+}
+
 .route-store-top strong {
   font-size: 14px;
 }
@@ -2033,7 +2134,6 @@ button {
 }
 
 .branch-select {
-  margin-left: auto;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
@@ -2041,6 +2141,56 @@ button {
   padding: 5px 8px;
   font-size: 11px;
   font-weight: 900;
+}
+
+.store-check-button {
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--green-dark);
+}
+
+.store-check-button.complete {
+  background: var(--green);
+  color: #ffffff;
+}
+
+.route-store-progress {
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.route-store-progress > span {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.route-store-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 180ms ease;
+}
+
+.route-store-progress small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.route-store-progress.complete small {
+  color: var(--green-dark);
 }
 
 .branch-select.active {
@@ -2516,6 +2666,17 @@ button {
   color: var(--green-dark);
 }
 
+[data-theme="dark"] .shopping-complete-banner,
+[data-theme="dark"] .route-card.completed {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: #132821;
+}
+
+[data-theme="dark"] .remaining-spend {
+  border-color: rgba(117, 167, 255, 0.22);
+  background: #17283f;
+}
+
 [data-theme="dark"] .location-filter-status.empty {
   border-color: rgba(251, 191, 36, 0.25);
   background: rgba(120, 53, 15, 0.28);
@@ -2786,6 +2947,27 @@ button {
   .route-group-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .shopping-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shopping-toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .shopping-view-control {
+    flex: 1 1 auto;
+  }
+
+  .route-store-top {
+    align-items: flex-start;
+  }
+
+  .route-store-actions {
+    flex: 0 0 auto;
   }
 
   .plan-route-bar {

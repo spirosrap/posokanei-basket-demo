@@ -41,6 +41,18 @@ test("core interface text and dynamic values are translated", () => {
     translate("en", "nearbyRouteSummary", { stops: "Lidl → Masoutis" }),
     "From your location: Lidl → Masoutis",
   );
+  assert.equal(
+    translate("el", "remainingSpend", { amount: "12,40 €" }),
+    "Υπόλοιπο 12,40 €",
+  );
+  assert.equal(
+    translate("en", "remainingRouteSummary", { next: "Lidl", later: "Masoutis" }),
+    "Next: Lidl · then Masoutis",
+  );
+  assert.equal(
+    translate("el", "remainingRouteSummary", { next: "Lidl", later: "" }),
+    "Επόμενη: Lidl",
+  );
 });
 
 test("language selection controls locale-sensitive formatting", () => {
