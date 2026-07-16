@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.14.2`
+**Τρέχουσα έκδοση:** `v0.14.3`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -55,6 +55,8 @@
 Η έκδοση `v0.14.1` κάνει όλες τις ποσότητες ακεραίους αριθμούς προϊόντων ή συσκευασιών. Τα κουμπιά αυξομείωσης αλλάζουν πλέον την ποσότητα κατά `1`, ακόμη και όταν η μονάδα του καταλόγου είναι `kg`. Παλιές αποθηκευμένες λίστες ή κοινόχρηστοι σύνδεσμοι με δεκαδικές ποσότητες κανονικοποιούνται αυτόματα στον πλησιέστερο ακέραιο.
 
 Η έκδοση `v0.14.2` ξεχωρίζει τη διαθεσιμότητα ενός προϊόντος από την κάλυψη του επιλεγμένου πλάνου. Αν, για παράδειγμα, ένα προϊόν δεν πωλείται από την αλυσίδα του πλάνου μίας στάσης αλλά υπάρχει σε άλλη αλυσίδα του υπολογισμού, το καλάθι δείχνει πλέον την καλύτερη διαθέσιμη τιμή, την αλυσίδα και πόσες στάσεις χρειάζονται για πλήρες καλάθι. Δεν εμφανίζει πια την παραπλανητική ένδειξη «έλλειψη», η οποία μπορούσε να εκληφθεί ως πληροφορία αποθέματος. Το PosoKanei παρέχει τιμές καταλόγου, όχι ζωντανό απόθεμα ανά υποκατάστημα.
+
+Η έκδοση `v0.14.3` επιταχύνει σημαντικά τις φωτογραφίες προϊόντων. Τα αποτελέσματα αναζήτησης ζητούν πλέον μικρές, συμπιεσμένες εικόνες WebP αντί για τις πλήρεις αρχικές φωτογραφίες, οι πρώτες ορατές εικόνες έχουν προτεραιότητα και οι υπόλοιπες φορτώνονται μόνο όταν χρειάζονται. Η λεπτομερής προβολή διατηρεί ξεχωριστή εικόνα υψηλότερης ανάλυσης. Μέχρι να ολοκληρωθεί η λήψη, εμφανίζεται το έγχρωμο σύμβολο του προϊόντος αντί για κενό πλαίσιο, ενώ οι versioned εικόνες αποθηκεύονται μακροχρόνια στην cache του browser.
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -160,7 +162,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.14.2`
+**Current version:** `v0.14.3`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -198,7 +200,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
-- Load official product photos through a same-origin image proxy with fallback handling.
+- Load optimized, cacheable WebP product thumbnails through a same-origin image proxy, with a separate high-resolution detail image and fallback handling.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
 - Optionally request browser location and show nearby supermarket branches.
 - Show nearest-branch distance labels, such as `57 μ. μακριά`, next to chains when location is enabled.
@@ -234,6 +236,8 @@ Version `v0.14.0` refreshes the complete visual experience without changing pric
 Version `v0.14.1` makes every basket quantity a whole number of products or packages. Quantity controls now move by `1`, including catalogue items whose unit is `kg`. Older saved lists and shared links containing fractional quantities are automatically normalized to the nearest integer.
 
 Version `v0.14.2` separates catalogue availability from selected-plan coverage. When an item is not sold by the chain in a one-stop plan but is available from another included chain, the basket now shows its best alternative price, chain, and the stop limit needed for a complete basket. It no longer labels that case as “missing,” which could be mistaken for store-level stock information. PosoKanei supplies catalogue prices rather than live branch inventory.
+
+Version `v0.14.3` makes product imagery substantially faster. Search results now request small compressed WebP thumbnails instead of full-size source photos, prioritize the first visible images, and lazy-load the rest. Product details retain a separate higher-resolution image. A colored product fallback remains visible while each photo loads, and versioned image responses receive long-lived browser caching.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
@@ -708,7 +712,7 @@ The app includes a lightweight update checker:
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts an interactive login shell so the existing private local OpenAI environment is available to the once-daily bargain step; the key is never uploaded.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Browser catalogue requests retry short network/server failures. The large snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
-- Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>` so the browser sees same-origin image URLs. The proxy caches successful image responses and can fall back to an image-resizing proxy if the direct upstream image request is rejected.
+- Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
 For a cron job:

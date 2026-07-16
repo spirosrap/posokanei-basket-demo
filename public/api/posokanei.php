@@ -116,6 +116,9 @@ function forward_image(string $kind = 'product'): void
     $kind = in_array($kind, ['product', 'retailer'], true) ? $kind : 'product';
     $id = clean_string($_GET['id'] ?? '', 160);
     $version = clean_string($_GET['v'] ?? '', 80);
+    $defaultSize = $kind === 'retailer' ? 240 : 160;
+    $maximumSize = $kind === 'retailer' ? 480 : 960;
+    $size = clean_int($_GET['size'] ?? null, $defaultSize, 48, $maximumSize);
 
     if ($id === '' || !preg_match('/^[a-zA-Z0-9_-]+$/', $id)) {
         http_response_code(400);
@@ -130,6 +133,28 @@ function forward_image(string $kind = 'product'): void
         $sourceUrl .= '?v=' . rawurlencode($version);
     }
 
+    $cacheSource = 'api.posokanei.gov.gr/images/' . $kind . '/' . rawurlencode($id);
+    if ($version !== '') {
+        $cacheSource .= '?v=' . rawurlencode($version);
+    }
+    $cacheUrl = 'https://images.weserv.nl/?' . http_build_query([
+        'url' => $cacheSource,
+        'w' => $size,
+        'h' => $kind === 'retailer' ? (int) round($size / 2) : $size,
+        'fit' => 'contain',
+        'output' => 'webp',
+        'q' => 82,
+    ]);
+    $cached = fetch_image($cacheUrl, [
+        'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15 agenticspiros-posokanei-basket-demo/1.0',
+    ]);
+
+    if (is_valid_image_response($cached)) {
+        emit_image($cached, 'image-cache', $kind, $version !== '', $size);
+        return;
+    }
+
     $direct = fetch_image($sourceUrl, [
         'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language: el-GR,el;q=0.9,en;q=0.8',
@@ -139,28 +164,7 @@ function forward_image(string $kind = 'product'): void
     ]);
 
     if (is_valid_image_response($direct)) {
-        emit_image($direct, 'posokanei', $kind);
-        return;
-    }
-
-    $cacheSource = 'api.posokanei.gov.gr/images/' . $kind . '/' . rawurlencode($id);
-    if ($version !== '') {
-        $cacheSource .= '?v=' . rawurlencode($version);
-    }
-    $cacheUrl = 'https://images.weserv.nl/?' . http_build_query([
-        'url' => $cacheSource,
-        'w' => $kind === 'retailer' ? 240 : 160,
-        'h' => $kind === 'retailer' ? 120 : 160,
-        'fit' => 'contain',
-        'output' => 'webp',
-    ]);
-    $cached = fetch_image($cacheUrl, [
-        'Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15 agenticspiros-posokanei-basket-demo/1.0',
-    ]);
-
-    if (is_valid_image_response($cached)) {
-        emit_image($cached, 'image-cache', $kind);
+        emit_image($direct, 'posokanei', $kind, $version !== '', $size);
         return;
     }
 
@@ -206,14 +210,27 @@ function is_valid_image_response(array $response): bool
     return strlen((string) ($response['body'] ?? '')) > 100;
 }
 
-function emit_image(array $response, string $source, string $kind = 'product'): void
+function emit_image(
+    array $response,
+    string $source,
+    string $kind = 'product',
+    bool $immutable = false,
+    int $size = 0
+): void
 {
     http_response_code(200);
     header('Content-Type: ' . (string) $response['content_type']);
-    header('Cache-Control: public, max-age=86400, stale-while-revalidate=604800');
+    header(
+        $immutable
+            ? 'Cache-Control: public, max-age=31536000, immutable'
+            : 'Cache-Control: public, max-age=604800, stale-while-revalidate=2592000'
+    );
     header('Access-Control-Allow-Origin: *');
     header('X-Posokanei-Image-Source: ' . $source);
     header('X-Posokanei-Image-Kind: ' . $kind);
+    if ($size > 0) {
+        header('X-Posokanei-Image-Size: ' . $size);
+    }
     echo $response['body'];
 }
 

@@ -1477,11 +1477,12 @@ function SearchPanel({
       />
 
       <div className="product-list">
-        {products.map((product) => (
+        {products.map((product, index) => (
           <ProductRow
             key={product.id}
             product={product}
             retailers={retailers}
+            imagePriority={index < 8}
             selected={selectedProduct?.id === product.id}
             onSelect={() => onSelect(product)}
             onAdd={() => onAdd(product)}
@@ -1525,7 +1526,7 @@ function LiveNotice({ state, total, visible, catalogSource }) {
   );
 }
 
-function ProductRow({ product, retailers, selected, onSelect, onAdd }) {
+function ProductRow({ product, retailers, imagePriority, selected, onSelect, onAdd }) {
   const { money, t } = usePreferences();
   const best = getBestProductPrice(
     product,
@@ -1534,7 +1535,7 @@ function ProductRow({ product, retailers, selected, onSelect, onAdd }) {
   return (
     <article className={selected ? "product-row selected" : "product-row"}>
       <button type="button" className="product-main" onClick={onSelect}>
-        <ProductThumb product={product} />
+        <ProductThumb product={product} priority={imagePriority} />
         <span className="product-copy">
           <strong>{product.name}</strong>
           <small>
@@ -3405,7 +3406,7 @@ function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
 function ProductPreviewImage({ product }) {
   const { t } = usePreferences();
   const [failedImageUrl, setFailedImageUrl] = useState("");
-  const imageUrl = proxiedProductImageUrl(product);
+  const imageUrl = proxiedProductImageUrl(product, 640);
   const showImage = imageUrl && failedImageUrl !== imageUrl;
 
   return (
@@ -3415,6 +3416,8 @@ function ProductPreviewImage({ product }) {
           src={imageUrl}
           alt=""
           decoding="async"
+          loading="eager"
+          fetchPriority="high"
           onError={() => setFailedImageUrl(imageUrl)}
         />
       ) : (
@@ -3426,17 +3429,33 @@ function ProductPreviewImage({ product }) {
   );
 }
 
-function ProductThumb({ product, compact = false }) {
+function ProductThumb({ product, compact = false, priority = false }) {
   const [failedImageUrl, setFailedImageUrl] = useState("");
-  const imageUrl = proxiedProductImageUrl(product);
+  const [loadedImageUrl, setLoadedImageUrl] = useState("");
+  const imageUrl = proxiedProductImageUrl(product, compact ? 72 : 96);
   if (imageUrl && failedImageUrl !== imageUrl) {
+    const isLoaded = loadedImageUrl === imageUrl;
     return (
-      <span className={compact ? "product-thumb compact has-image" : "product-thumb has-image"}>
+      <span
+        className={[
+          "product-thumb",
+          compact ? "compact" : "",
+          "has-image",
+          isLoaded ? "image-loaded" : "image-loading",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={{ "--thumb": product.tint }}
+        aria-hidden="true"
+      >
+        <span className="product-thumb-fallback">{product.tile}</span>
         <img
           src={imageUrl}
           alt=""
           decoding="async"
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          onLoad={() => setLoadedImageUrl(imageUrl)}
           onError={() => setFailedImageUrl(imageUrl)}
         />
       </span>
@@ -3453,7 +3472,7 @@ function ProductThumb({ product, compact = false }) {
   );
 }
 
-function proxiedProductImageUrl(product) {
+function proxiedProductImageUrl(product, size = 96) {
   const imageUrl = product?.imageUrl || "";
   if (!imageUrl) return "";
 
@@ -3463,6 +3482,7 @@ function proxiedProductImageUrl(product) {
   const proxyUrl = new URL(IMAGE_PROXY_BASE, window.location.href);
   proxyUrl.searchParams.set("resource", "image");
   proxyUrl.searchParams.set("id", decodeURIComponent(match[1]));
+  proxyUrl.searchParams.set("size", String(size));
 
   try {
     const sourceUrl = new URL(imageUrl);
