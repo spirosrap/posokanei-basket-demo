@@ -30,6 +30,7 @@
     "catalog:snapshot": "node scripts/build-catalog-snapshot.mjs",
     "live:install-refresh": "node scripts/install-live-refresh-launchd.mjs",
     "live:deploy": "node scripts/deploy-live.mjs",
+    "live:deploy:mirror": "npm run build:legacy && node scripts/deploy-live.mjs --mirror",
     "live:refresh": "node scripts/refresh-live-catalog.mjs",
     "check:updates": "node scripts/check-posokanei-updates.mjs"
   },

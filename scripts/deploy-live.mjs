@@ -11,10 +11,14 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(projectRoot, "dist");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
 
-const ftpHost = requiredEnv("FTP_HOST");
-const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
-const ftpUser = requiredEnv("FTP_USER");
-const password = process.env.FTP_PASS || (await readKeychainPassword());
+const deployTarget = process.argv.includes("--mirror") ? "mirror" : "primary";
+const envPrefix = deployTarget === "mirror" ? "FTP_MIRROR" : "FTP";
+const ftpHost = requiredEnv(`${envPrefix}_HOST`);
+const ftpRemoteDir = trimSlashes(requiredEnv(`${envPrefix}_REMOTE_DIR`));
+const ftpUser = requiredEnv(`${envPrefix}_USER`);
+const password =
+  process.env[`${envPrefix}_PASS`] ||
+  (await readKeychainPassword(`${envPrefix}_KEYCHAIN_SERVICE`, ftpUser));
 const includeData = process.env.DEPLOY_INCLUDE_DATA === "1";
 const buildFiles = await listFiles(distRoot);
 const files = buildFiles.filter((filePath) => {
@@ -39,7 +43,9 @@ for (const filePath of files) {
   });
 }
 
-console.log(`Deployed ${files.length} files to https://${ftpHost}/${ftpRemoteDir}/`);
+console.log(
+  `Deployed ${files.length} files to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
+);
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -52,17 +58,17 @@ async function listFiles(directory) {
   return nested.flat().sort();
 }
 
-async function readKeychainPassword() {
-  const keychainService = process.env.FTP_KEYCHAIN_SERVICE || "";
+async function readKeychainPassword(serviceVariable, account) {
+  const keychainService = process.env[serviceVariable] || "";
   if (!keychainService) {
-    throw new Error("FTP_PASS or FTP_KEYCHAIN_SERVICE must be set locally.");
+    throw new Error(`${envPrefix}_PASS or ${serviceVariable} must be set locally.`);
   }
   const result = await run("/usr/bin/security", [
     "find-generic-password",
     "-s",
     keychainService,
     "-a",
-    ftpUser,
+    account,
     "-w",
   ]);
   const value = result.trim();

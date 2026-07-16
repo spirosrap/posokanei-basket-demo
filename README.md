@@ -774,6 +774,12 @@ Safari or other browser session can recover on a later action. The hourly macOS
 LaunchAgent publishes refresh status last, retains the previous daily bargain if
 its optional AI step fails, and keeps all FTP/OpenAI credentials on the local Mac.
 
+`npm run live:deploy` publishes the root-domain build. `npm run live:deploy:mirror`
+builds the legacy base path and publishes it with the separate `FTP_MIRROR_*`
+settings. Both commands parse `.env.local` as data rather than sourcing it as a
+shell script, so Keychain service labels may safely contain spaces and no secret
+values need to be committed or printed.
+
 ### Product/Price Update Checks
 
 The app includes a lightweight update checker:
