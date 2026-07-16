@@ -1319,7 +1319,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
     <details
       className="data-warning"
       aria-label={t("freshnessWarning")}
-      defaultOpen={refreshFailed}
+      open={refreshFailed || undefined}
     >
       <summary>
         <span className="freshness-icon" aria-hidden="true">
@@ -1590,7 +1590,7 @@ function BasketPanel({
       <div className="basket-toolbar">
         <button type="button" className="text-button demo-button" onClick={onLoadDemo}>
           <Sparkles size={16} />
-          {t("example")}
+          <span className="button-label">{t("example")}</span>
         </button>
         <button
           type="button"
@@ -1598,23 +1598,29 @@ function BasketPanel({
           onClick={onOpenSavedBaskets}
         >
           <Bookmark size={16} />
-          {t("savedBaskets")}
+          <span className="button-label">{t("savedBaskets")}</span>
           {savedBasketCount ? (
             <span className="saved-basket-count">{number(savedBasketCount)}</span>
           ) : null}
         </button>
-        <button type="button" className="text-button" onClick={onCopy}>
+        <button
+          type="button"
+          className="text-button compact-action"
+          onClick={onCopy}
+          title={t("copy")}
+        >
           <ClipboardList size={16} />
-          {t("copy")}
+          <span className="button-label">{t("copy")}</span>
         </button>
         <button
           type="button"
-          className="text-button share-button"
+          className="text-button share-button compact-action"
           onClick={onShare}
           disabled={!basket.length}
+          title={t("share")}
         >
           <Share2 size={16} />
-          {t("share")}
+          <span className="button-label">{t("share")}</span>
         </button>
         <button
           type="button"
@@ -1623,7 +1629,7 @@ function BasketPanel({
           aria-label={t("newBasketLabel")}
         >
           <Trash2 size={17} />
-          {t("newBasket")}
+          <span className="button-label">{t("newBasket")}</span>
         </button>
       </div>
 
@@ -2218,6 +2224,13 @@ function RankingsPanel({
         setExtraStopCost={setExtraStopCost}
       />
 
+      <RecommendationCard
+        plan={visitPlan}
+        basketSize={basketSize}
+        maxChains={maxChains}
+        oneStopTotal={oneStopTotal}
+      />
+
       <LocationControl
         locationState={locationState}
         radiusKm={locationRadiusKm}
@@ -2233,13 +2246,6 @@ function RankingsPanel({
         locationReady={locationReady}
         onToggle={onToggleRetailer}
         onSelectAll={onSelectAllRetailers}
-      />
-
-      <RecommendationCard
-        plan={visitPlan}
-        basketSize={basketSize}
-        maxChains={maxChains}
-        oneStopTotal={oneStopTotal}
       />
 
       {locationReady ? (

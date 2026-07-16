@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.10.0`
+**Τρέχουσα έκδοση:** `v0.11.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -44,6 +44,8 @@
 
 Η έκδοση `v0.10.0` ανασχεδιάζει την καθημερινή χρήση της εφαρμογής. Στο κινητό, τα «Προϊόντα», «Καλάθι» και «Πλάνο» λειτουργούν ως τρεις άμεσες προβολές με σταθερό επιλογέα, αντί να εμφανίζονται διαδοχικά σε μία πολύ μεγάλη σελίδα. Σε desktop και mobile βελτιώνονται η οπτική ιεραρχία, η πυκνότητα, η ανάγνωση ονομάτων προϊόντων, οι ομάδες ενεργειών, τα σύνολα και οι καταστάσεις εστίασης.
 
+Η έκδοση `v0.11.0` εστιάζει στην ταχύτερη κατανόηση και χρήση. Στο κινητό συμπτύσσονται η κεφαλίδα, η εισαγωγή και η καθημερινή ευκαιρία, ώστε ο επιλογέας «Προϊόντα / Καλάθι / Πλάνο» και το πραγματικό αποτέλεσμα να εμφανίζονται ήδη στην πρώτη οθόνη. Το πλήθος προϊόντων μένει δίπλα στον τίτλο, οι δευτερεύουσες ενέργειες του καλαθιού γίνονται πιο συμπαγείς και κάθε κύρια ενότητα αποκτά ξεχωριστή χρωματική ταυτότητα. Στο πλάνο, η πρακτική πρόταση εμφανίζεται πριν από τις προαιρετικές ρυθμίσεις τοποθεσίας και αλυσίδων.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -60,7 +62,9 @@
 
 Στο κινητό εμφανίζεται σταθερός επιλογέας «Προϊόντα / Καλάθι / Πλάνο» με τους αντίστοιχους μετρητές. Προβάλλεται μόνο η ενεργή ενότητα, οπότε ο χρήστης μετακινείται άμεσα από την αναζήτηση στη λίστα και στο αποτέλεσμα χωρίς μεγάλο scroll. Όταν υπάρχει καλάθι, η αρχική mobile προβολή είναι το πλάνο, ώστε η οικονομικότερη επιλογή να είναι άμεσα ορατή. Η ένδειξη ενημέρωσης καταλόγου έγινε συμπαγής και επεκτάσιμη: η τελευταία επιτυχής ώρα παραμένει πάντα ορατή, ενώ οι τεχνικές λεπτομέρειες ανοίγουν μόνο όταν χρειάζονται. Σε αποτυχία ενημέρωσης ανοίγει αυτόματα.
 
-![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.10.0](screenshots/desktop.png)
+Η έκδοση `v0.11.0` μειώνει ακόμη περισσότερο τον χώρο πριν από το κύριο εργαλείο στο κινητό. Το GitHub και οι δευτερεύουσες ενέργειες χρησιμοποιούν αναγνωρίσιμα εικονίδια, η καθημερινή ευκαιρία κρατά μόνο τα στοιχεία που χρειάζονται για γρήγορη απόφαση και το «Νέο καλάθι» παραμένει καθαρά ορατό κάτω από τις συμπαγείς ενέργειες λίστας. Οι μπλε, πράσινες και πορτοκαλί λεπτομέρειες ξεχωρίζουν αντίστοιχα Προϊόντα, Καλάθι και Πλάνο χωρίς να αλλάζουν τη λειτουργική πυκνότητα της desktop διάταξης. Η σύντομη περιγραφή σκοπού εξηγεί πλέον άμεσα ότι το αποτέλεσμα αφορά ολόκληρο το καλάθι.
+
+![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.11.0](screenshots/desktop.png)
 
 ![Mobile workspace με άμεση επιλογή Προϊόντων, Καλαθιού και Πλάνου](screenshots/mobile.png)
 
@@ -136,7 +140,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.10.0`
+**Current version:** `v0.11.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -196,6 +200,8 @@ Version `v0.7.0` turns the result into a practical shopping companion: every ass
 
 Version `v0.8.0` adds an in-store shopping mode with remaining spend, per-chain progress, whole-stop completion, an unfinished-items view, and a Google Maps route that automatically skips completed supermarkets.
 
+Version `v0.11.0` makes the decision path faster to read and use. On mobile, the header, purpose copy, and daily bargain use less vertical space so the `Products / Basket / Plan` switcher and the actual result reach the first screen. The basket count stays beside the brand, secondary basket actions become compact, and Products, Basket, and Plan receive distinct visual identities. In the Plan panel, the practical recommendation now appears before optional location and supermarket settings.
+
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
 ### Language and Appearance
@@ -223,7 +229,15 @@ result first. Catalogue freshness is now a compact disclosure: the latest succes
 timestamp stays visible, supporting details expand on demand, and a failed refresh
 opens the disclosure automatically.
 
-![Redesigned version 0.10.0 desktop workspace](screenshots/desktop.png)
+Version `v0.11.0` further reduces the distance between opening the app and reaching
+the comparison. GitHub and secondary actions use concise icon controls on phones,
+the featured bargain keeps only its decision-critical information, and the prominent
+`New basket` action remains easy to find beneath the compact list controls. Blue,
+green, and amber accents distinguish Products, Basket, and Plan while preserving the
+dense desktop workspace. The shorter purpose copy now states directly that the app
+finds the cheapest complete plan for the whole basket.
+
+![Redesigned version 0.11.0 desktop workspace](screenshots/desktop.png)
 
 ![Mobile workspace switcher for Products, Basket, and Plan](screenshots/mobile.png)
 

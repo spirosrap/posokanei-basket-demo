@@ -27,7 +27,7 @@ const messages = {
     appPurpose: "Σκοπός εφαρμογής",
     introTitle: "Βρες πού σε συμφέρει να αγοράσεις το καλάθι σου",
     introDescription:
-      "Πρόσθεσε τα προϊόντα σου, διάλεξε αν θέλεις 1, 2, 3 ή 4 στάσεις, και βλέπεις το φθηνότερο πλάνο ανά αλυσίδα supermarket.",
+      "Διάλεξε προϊόντα και έως 4 στάσεις. Δες το φθηνότερο πλήρες πλάνο για ολόκληρο το καλάθι.",
     dataStatus: "Κατάσταση δεδομένων",
     lastAttemptFailed: "Η τελευταία προσπάθεια απέτυχε",
     hourlyUpdates: "Ενημέρωση κάθε ώρα",
@@ -324,7 +324,7 @@ const messages = {
     appPurpose: "App purpose",
     introTitle: "Find the cheapest place to buy your basket",
     introDescription:
-      "Add your products, choose whether you can make 1, 2, 3, or 4 stops, and see the cheapest plan across supermarket chains.",
+      "Choose products and up to 4 stops. See the cheapest complete plan for the whole basket.",
     dataStatus: "Data status",
     lastAttemptFailed: "The latest attempt failed",
     hourlyUpdates: "Updated every hour",

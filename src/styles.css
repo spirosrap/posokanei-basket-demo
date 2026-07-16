@@ -803,6 +803,18 @@ input:focus-visible {
   padding: 14px;
 }
 
+.search-panel {
+  border-top: 3px solid #4f8df7;
+}
+
+.basket-panel {
+  border-top: 3px solid var(--green);
+}
+
+.rankings-panel {
+  border-top: 3px solid #e6a12f;
+}
+
 .panel-title {
   display: flex;
   align-items: center;
@@ -843,6 +855,16 @@ input:focus-visible {
   border-radius: 7px;
   background: #e8f3ff;
   color: var(--blue);
+}
+
+.basket-panel .title-icon {
+  background: #eaf9f3;
+  color: var(--green-dark);
+}
+
+.rankings-panel .title-icon {
+  background: #fff6e5;
+  color: #b86800;
 }
 
 .search-box {
@@ -2947,6 +2969,16 @@ input:focus-visible {
   background: var(--surface);
 }
 
+[data-theme="dark"] .basket-panel .title-icon {
+  background: #132821;
+  color: var(--green-dark);
+}
+
+[data-theme="dark"] .rankings-panel .title-icon {
+  background: #2d2417;
+  color: var(--amber);
+}
+
 [data-theme="dark"] .mobile-workspace-nav button.active {
   background: #17283f;
 }
@@ -3175,8 +3207,23 @@ input:focus-visible {
   }
 
   .topbar {
+    position: relative;
     align-items: flex-start;
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .brand {
+    min-width: 0;
+    padding-right: 54px;
+  }
+
+  .brand strong {
+    font-size: 16px;
+  }
+
+  .brand small {
+    font-size: 11px;
   }
 
   .topbar-actions {
@@ -3193,27 +3240,54 @@ input:focus-visible {
     height: 34px;
   }
 
+  .repo-link {
+    width: 34px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .repo-link span {
+    display: none;
+  }
+
+  .basket-pill {
+    position: absolute;
+    top: 4px;
+    right: 0;
+  }
+
+  .source-status {
+    max-width: 100%;
+  }
+
   .daily-bargain {
     width: 100%;
     min-height: 0;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px 10px;
-    padding: 12px;
+    gap: 9px;
+    padding: 10px;
   }
 
-  .daily-bargain-product,
-  .daily-bargain-reason {
+  .daily-bargain-product {
     grid-column: 1 / -1;
   }
 
+  .daily-bargain-reason {
+    display: none;
+  }
+
   .daily-bargain-product .product-thumb {
-    width: 62px;
-    height: 62px;
-    flex-basis: 62px;
+    width: 56px;
+    height: 56px;
+    flex-basis: 56px;
   }
 
   .daily-bargain-copy > strong {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  .daily-bargain-copy > span {
+    font-size: 11px;
   }
 
   .daily-bargain-price {
@@ -3227,6 +3301,16 @@ input:focus-visible {
   }
 
   .daily-bargain-actions .text-button:first-child {
+    display: none;
+  }
+
+  .daily-bargain-actions .text-button {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .daily-bargain-price .daily-saving small {
     display: none;
   }
 
@@ -3330,6 +3414,33 @@ input:focus-visible {
     color: #ffffff;
   }
 
+  .mobile-workspace-nav button:nth-child(2).active {
+    background: #eaf9f3;
+    color: var(--green-dark);
+  }
+
+  .mobile-workspace-nav button:nth-child(2).active small {
+    background: var(--green-dark);
+  }
+
+  .mobile-workspace-nav button:nth-child(3).active {
+    background: #fff6e5;
+    color: #a85f00;
+  }
+
+  .mobile-workspace-nav button:nth-child(3).active small {
+    background: #c87908;
+  }
+
+  [data-theme="dark"] .mobile-workspace-nav button:nth-child(2).active {
+    background: #132821;
+  }
+
+  [data-theme="dark"] .mobile-workspace-nav button:nth-child(3).active {
+    background: #2d2417;
+    color: var(--amber);
+  }
+
   .workspace > .panel {
     display: none;
   }
@@ -3349,6 +3460,10 @@ input:focus-visible {
 
   .app-intro p {
     font-size: 12px;
+  }
+
+  .intro-facts {
+    display: none;
   }
 
   .data-warning {
@@ -3375,6 +3490,36 @@ input:focus-visible {
   .panel-title {
     position: static;
     margin-top: 0;
+  }
+
+  .basket-toolbar {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .basket-toolbar .text-button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 6px;
+  }
+
+  .basket-toolbar .demo-button,
+  .basket-toolbar .saved-baskets-button {
+    grid-column: span 2;
+  }
+
+  .basket-toolbar .compact-action {
+    grid-column: span 1;
+    padding: 0;
+  }
+
+  .basket-toolbar .compact-action .button-label {
+    display: none;
+  }
+
+  .basket-toolbar .danger-button {
+    grid-column: 1 / -1;
   }
 
   .product-row {
