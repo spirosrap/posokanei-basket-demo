@@ -169,6 +169,7 @@ async function buildSnapshotOnRemoteHost(host) {
   const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
   const remoteDemoBasket = `${remoteSrcDir}/demoBasket.js`;
+  const remotePackage = `${remoteDir}/package.json`;
   const remoteSnapshot = `${remoteDir}/catalog.json`;
   const remoteMeta = `${remoteDir}/catalog-meta.json`;
   const remoteRuntime = `${remoteDir}/catalog-runtime.json`;
@@ -205,6 +206,11 @@ async function buildSnapshotOnRemoteHost(host) {
       ...sshOptions,
       resolve(projectRoot, "src/demoBasket.js"),
       `${host}:${remoteDemoBasket}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "package.json"),
+      `${host}:${remotePackage}`,
     ]);
     await run("ssh", [
       ...sshOptions,

@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.22.1`
+**Τρέχουσα έκδοση:** `v0.22.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -79,6 +79,8 @@
 Η έκδοση `v0.22.0` μειώνει ξανά σχεδόν στο μισό το JavaScript που χρειάζεται η πρώτη οθόνη. Η εφαρμογή διατηρεί το React-compatible component API, αλλά το production build χρησιμοποιεί το μικρότερο `preact/compat` runtime: το κύριο bundle πέφτει από `112,5 KB` σε περίπου `59,7 KB` gzip. Ο startup κατάλογος κρατά πλέον μόνο τα metadata που εμφανίζονται πραγματικά, παραμένει πλήρης για τις τρεις ταξινομήσεις και το καλάθι παραδείγματος, και μειώνεται από περίπου `33,4 KB` σε `15,8 KB` με Brotli. Ένα ελαφρύ HTML shell εμφανίζει αμέσως τη διάταξη πριν ολοκληρωθεί το JavaScript, οι μεγάλες λεπτομέρειες του πλάνου αποδίδονται όταν αδειάσει το κύριο thread και οι εκτός οθόνης σειρές χρησιμοποιούν `content-visibility`. Οι φωτογραφίες ζητούνται απευθείας από το edge image cache, με τον υπάρχοντα same-origin PHP proxy ως αυτόματο fallback, ενώ ο versioned runtime κατάλογος επαναχρησιμοποιείται από την browser cache και φορτώνεται αμέσως όταν ο χρήστης εστιάσει στην αναζήτηση.
 
 Η έκδοση `v0.22.1` διορθώνει τις μικρογραφίες που είχαν ήδη ληφθεί από την cache αλλά μπορούσαν να παραμένουν κρυμμένες πίσω από τα αρχικά του προϊόντος. Η εφαρμογή αναγνωρίζει πλέον και μια εικόνα που ολοκληρώθηκε πριν συνδεθεί το event φόρτωσης, χωρίς να αφαιρεί το fallback για πραγματικά αποτυχημένες εικόνες.
+
+Η έκδοση `v0.22.2` διορθώνει τον αυτόματο συγχρονισμό μετά την προσθήκη του συμπαγούς startup καταλόγου. Ο προσωρινός φάκελος κάθε απομακρυσμένου runner λαμβάνει πλέον και το module configuration του project, ώστε ο υγιής Node 18 runner να ολοκληρώνει τη δημιουργία των `catalog`, `runtime` και `bootstrap` αρχείων αντί να σταματά μετά τη λήψη των προϊόντων. Η πρώτη επιτυχής πλήρης λήψη εξακολουθεί να κερδίζει και τα αρχεία δημοσιεύονται ατομικά και επαληθεύονται και στα δύο domains.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -200,7 +202,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.22.1`
+**Current version:** `v0.22.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -300,6 +302,8 @@ Version `v0.21.0` removes PHP from the critical first-screen path. A static star
 Version `v0.22.0` nearly halves the first-screen JavaScript again. Components retain the React-compatible API, while production aliases it to the smaller `preact/compat` runtime, reducing the main bundle from `112.5 KB` to about `59.7 KB` gzip. The startup catalogue now keeps only metadata used by the interface while preserving all three sort modes and the complete example basket, reducing its Brotli transfer from about `33.4 KB` to `15.8 KB`. A lightweight HTML shell paints the workspace before JavaScript completes, large plan details render when the main thread is idle, and offscreen rows use `content-visibility`. Product and retailer images go directly to the edge image cache with the existing same-origin proxy retained as fallback. The versioned worker catalogue is reusable from browser cache and starts immediately on search focus or later during idle time.
 
 Version `v0.22.1` fixes thumbnails that had already downloaded from browser cache but could remain hidden behind the product initials. The app now also detects an image that completed before its load handler was attached, while retaining the fallback path for genuinely failed images.
+
+Version `v0.22.2` repairs the automatic sync after the compact startup catalogue was introduced. Each remote runner's temporary directory now receives the project's module configuration, allowing the healthy Node 18 runner to finish generating the `catalog`, `runtime`, and `bootstrap` artifacts instead of stopping after product download. The first successful complete build still wins, and every artifact is atomically published and verified on both domains.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
