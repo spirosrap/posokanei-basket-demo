@@ -2927,11 +2927,16 @@ input:focus-visible {
   max-height: calc(100vh - 36px);
 }
 
+.text-export-panel {
+  width: min(640px, calc(100vw - 36px));
+}
+
 .saved-baskets-panel {
   width: min(560px, calc(100vw - 36px));
 }
 
 .share-dialog-icon,
+.text-export-dialog-icon,
 .saved-baskets-dialog-icon {
   display: grid;
   width: 38px;
@@ -2940,6 +2945,11 @@ input:focus-visible {
   border-radius: var(--radius);
   background: #ecfdf5;
   color: #0f766e;
+}
+
+.text-export-dialog-icon {
+  background: #eff6ff;
+  color: var(--blue);
 }
 
 .saved-baskets-dialog-icon {
@@ -3157,6 +3167,34 @@ input:focus-visible {
 .share-link-field input:focus {
   border-color: rgba(15, 118, 110, 0.55);
   outline: 2px solid rgba(15, 118, 110, 0.12);
+}
+
+.text-export-preview {
+  display: grid;
+  gap: 7px;
+  margin: 18px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.text-export-preview textarea {
+  width: 100%;
+  min-height: min(400px, 50vh);
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 12px;
+  font: 650 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+}
+
+.text-export-preview textarea:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  outline: 2px solid rgba(37, 99, 235, 0.12);
 }
 
 .share-dialog-actions {
@@ -3462,6 +3500,7 @@ input:focus-visible {
 
 [data-theme="dark"] .text-button.saved-baskets-button,
 [data-theme="dark"] .saved-basket-notice,
+[data-theme="dark"] .text-export-dialog-icon,
 [data-theme="dark"] .saved-baskets-dialog-icon {
   border-color: rgba(117, 167, 255, 0.28);
   background: var(--blue-soft);

@@ -10,6 +10,8 @@ import {
   CircleDollarSign,
   ClipboardList,
   Copy,
+  Download,
+  FileText,
   Github,
   FolderOpen,
   Info,
@@ -73,6 +75,7 @@ import {
   mapsSearchUrl,
 } from "./locationStores";
 import { formatPlanText } from "./planText";
+import { formatBasketText, formatPortableTextFile } from "./basketText";
 import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 import {
@@ -265,6 +268,19 @@ const copyText = async (value) => {
   }
 };
 
+const downloadTextFile = (value, filename) => {
+  const windowsCompatibleText = formatPortableTextFile(value);
+  const blob = new Blob([windowsCompatibleText], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 function App() {
   const [language, setLanguage] = useState(getInitialLanguage);
   const [theme, setTheme] = useState(getInitialTheme);
@@ -358,6 +374,7 @@ function AppContent() {
     return null;
   });
   const [shareUrl, setShareUrl] = useState("");
+  const [basketTextOpen, setBasketTextOpen] = useState(false);
   const [savedBaskets, setSavedBaskets] = useState(loadSavedBaskets);
   const [savedBasketsOpen, setSavedBasketsOpen] = useState(false);
   const [savedBasketNotice, setSavedBasketNotice] = useState(null);
@@ -656,6 +673,12 @@ function AppContent() {
   );
   const visitPlan =
     stopComparison.options.find((option) => option.limit === maxChains)?.plan ?? null;
+  const firstCompleteStopOption =
+    stopComparison.options.find((option) => option.plan?.isComplete) ?? null;
+  const textExportPlan = visitPlan?.isComplete ? visitPlan : firstCompleteStopOption?.plan ?? null;
+  const textExportPlanLimit = visitPlan?.isComplete
+    ? maxChains
+    : firstCompleteStopOption?.limit ?? null;
 
   const addToBasket = (product) => {
     setSavedBasketNotice(null);
@@ -691,6 +714,7 @@ function AppContent() {
     setBasket([]);
     setMaxChains(1);
     setSharedBasketStatus(null);
+    setBasketTextOpen(false);
     setMobileView("products");
   };
 
@@ -704,10 +728,21 @@ function AppContent() {
     refreshedDemoProducts.current = false;
   };
 
+  const currentBasketUrl = () => {
+    const baseUrl = new URL(APP_BASE_PATH, window.location.origin).toString();
+    return buildSharedBasketUrl(baseUrl, basket, maxChains, retailerFilterIds);
+  };
+
   const openShareBasket = () => {
     if (!basket.length) return;
-    const baseUrl = new URL(APP_BASE_PATH, window.location.origin).toString();
-    setShareUrl(buildSharedBasketUrl(baseUrl, basket, maxChains, retailerFilterIds));
+    setBasketTextOpen(false);
+    setShareUrl(currentBasketUrl());
+  };
+
+  const openBasketText = () => {
+    if (!basket.length) return;
+    setShareUrl("");
+    setBasketTextOpen(true);
   };
 
   const saveCurrentBasket = (name) => {
@@ -752,14 +787,6 @@ function AppContent() {
       missingCount,
     });
     refreshedDemoProducts.current = false;
-  };
-
-  const copyBasket = async () => {
-    const lines = basket.map((entry) => {
-      const product = productMap.get(entry.productId);
-      return `${entry.quantity} x ${product?.name ?? entry.productId}`;
-    });
-    await copyText(lines.join("\n"));
   };
 
   const loadMoreLiveProducts = () => {
@@ -946,7 +973,7 @@ function AppContent() {
           isDemoBasket={isDemoBasket}
           onQuantity={updateQuantity}
           onClear={clearBasket}
-          onCopy={copyBasket}
+          onExportText={openBasketText}
           onShare={openShareBasket}
           onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
           onLoadDemo={loadDemoBasket}
@@ -999,6 +1026,19 @@ function AppContent() {
           retailerCount={activeRetailers.length}
           hasRetailerFilter={retailerFilterIds !== null}
           onClose={() => setShareUrl("")}
+        />
+      ) : null}
+
+      {basketTextOpen && basket.length ? (
+        <BasketTextDialog
+          basket={basket}
+          productMap={productMap}
+          selectedStopLimit={maxChains}
+          selectedPlanComplete={Boolean(visitPlan?.isComplete)}
+          plan={textExportPlan}
+          planStopLimit={textExportPlanLimit}
+          shareUrl={currentBasketUrl()}
+          onClose={() => setBasketTextOpen(false)}
         />
       ) : null}
 
@@ -1571,7 +1611,7 @@ function BasketPanel({
   isDemoBasket,
   onQuantity,
   onClear,
-  onCopy,
+  onExportText,
   onShare,
   onOpenSavedBaskets,
   onLoadDemo,
@@ -1638,11 +1678,12 @@ function BasketPanel({
         <button
           type="button"
           className="text-button compact-action"
-          onClick={onCopy}
-          title={t("copy")}
+          onClick={onExportText}
+          disabled={!basket.length}
+          title={t("textExportTitle")}
         >
-          <ClipboardList size={16} />
-          <span className="button-label">{t("copy")}</span>
+          <FileText size={16} />
+          <span className="button-label">{t("textExport")}</span>
         </button>
         <button
           type="button"
@@ -1794,6 +1835,156 @@ function SharedBasketNotice({ state }) {
       <AlertCircle size={15} />
       <span>{t("sharedError")}</span>
     </div>
+  );
+}
+
+function BasketTextDialog({
+  basket,
+  productMap,
+  selectedStopLimit,
+  selectedPlanComplete,
+  plan,
+  planStopLimit,
+  shareUrl,
+  onClose,
+}) {
+  const { language, t } = usePreferences();
+  const [actionState, setActionState] = useState("idle");
+  const textareaRef = useRef(null);
+  const supportsNativeShare = typeof navigator.share === "function";
+  const text = useMemo(
+    () =>
+      formatBasketText({
+        basket,
+        productMap,
+        selectedStopLimit,
+        selectedPlanComplete,
+        plan,
+        planStopLimit,
+        shareUrl,
+        language,
+      }),
+    [
+      basket,
+      language,
+      plan,
+      planStopLimit,
+      productMap,
+      selectedPlanComplete,
+      selectedStopLimit,
+      shareUrl,
+    ],
+  );
+
+  useEffect(() => {
+    setActionState("idle");
+  }, [text]);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  const selectText = () => {
+    textareaRef.current?.focus();
+    textareaRef.current?.select();
+  };
+
+  const copyExport = async () => {
+    try {
+      await copyText(text);
+      setActionState("copied");
+    } catch {
+      selectText();
+      setActionState("manual");
+    }
+  };
+
+  const shareExport = async () => {
+    try {
+      await navigator.share({ title: t("shoppingPlanTitle"), text });
+      setActionState("shared");
+    } catch (error) {
+      if (error?.name !== "AbortError") await copyExport();
+    }
+  };
+
+  const downloadExport = () => {
+    const filename = language === "el" ? "kalathi-timon.txt" : "supermarket-basket.txt";
+    downloadTextFile(text, filename);
+    setActionState("downloaded");
+  };
+
+  const feedback = {
+    copied: t("copied"),
+    shared: t("textExportShared"),
+    downloaded: t("textExportDownloaded"),
+    manual: t("textExportManual"),
+  }[actionState];
+
+  return (
+    <aside
+      className="drawer text-export-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="text-export-title"
+    >
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-panel share-panel text-export-panel">
+        <div className="drawer-head">
+          <span className="text-export-dialog-icon" aria-hidden="true">
+            <FileText size={20} />
+          </span>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="drawer-title">
+          <small>{t("textExportEyebrow")}</small>
+          <h2 id="text-export-title">{t("textExportTitle")}</h2>
+        </div>
+
+        <label className="text-export-preview">
+          <span>{t("textExportPreview")}</span>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            readOnly
+            spellCheck="false"
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+
+        <div className="share-dialog-actions text-export-actions">
+          <button type="button" className="primary-action" onClick={copyExport}>
+            {actionState === "copied" ? <Check size={18} /> : <Copy size={18} />}
+            {actionState === "copied" ? t("copied") : t("copyTextExport")}
+          </button>
+          {supportsNativeShare ? (
+            <button type="button" className="text-button" onClick={shareExport}>
+              <Share2 size={17} />
+              {t("share")}
+            </button>
+          ) : null}
+          <button type="button" className="text-button" onClick={downloadExport}>
+            <Download size={17} />
+            {t("downloadTextExport")}
+          </button>
+        </div>
+
+        {feedback ? (
+          <p
+            className={actionState === "manual" ? "share-feedback" : "share-feedback success"}
+            role="status"
+          >
+            {feedback}
+          </p>
+        ) : null}
+      </div>
+    </aside>
   );
 }
 

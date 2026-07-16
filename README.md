@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.14.3`
+**Τρέχουσα έκδοση:** `v0.15.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -57,6 +57,8 @@
 Η έκδοση `v0.14.2` ξεχωρίζει τη διαθεσιμότητα ενός προϊόντος από την κάλυψη του επιλεγμένου πλάνου. Αν, για παράδειγμα, ένα προϊόν δεν πωλείται από την αλυσίδα του πλάνου μίας στάσης αλλά υπάρχει σε άλλη αλυσίδα του υπολογισμού, το καλάθι δείχνει πλέον την καλύτερη διαθέσιμη τιμή, την αλυσίδα και πόσες στάσεις χρειάζονται για πλήρες καλάθι. Δεν εμφανίζει πια την παραπλανητική ένδειξη «έλλειψη», η οποία μπορούσε να εκληφθεί ως πληροφορία αποθέματος. Το PosoKanei παρέχει τιμές καταλόγου, όχι ζωντανό απόθεμα ανά υποκατάστημα.
 
 Η έκδοση `v0.14.3` επιταχύνει σημαντικά τις φωτογραφίες προϊόντων. Τα αποτελέσματα αναζήτησης ζητούν πλέον μικρές, συμπιεσμένες εικόνες WebP αντί για τις πλήρεις αρχικές φωτογραφίες, οι πρώτες ορατές εικόνες έχουν προτεραιότητα και οι υπόλοιπες φορτώνονται μόνο όταν χρειάζονται. Η λεπτομερής προβολή διατηρεί ξεχωριστή εικόνα υψηλότερης ανάλυσης. Μέχρι να ολοκληρωθεί η λήψη, εμφανίζεται το έγχρωμο σύμβολο του προϊόντος αντί για κενό πλαίσιο, ενώ οι versioned εικόνες αποθηκεύονται μακροχρόνια στην cache του browser.
+
+Η έκδοση `v0.15.0` προσθέτει ολοκληρωμένη εξαγωγή της λίστας ως απλό κείμενο. Το κείμενο περιλαμβάνει checklist προϊόντων και ποσοτήτων, επιλεγμένο όριο στάσεων, πλήρες πλάνο ανά supermarket με τιμές και σύνολα, καθώς και σύνδεσμο που ανοίγει ξανά το καλάθι. Αν το επιλεγμένο όριο δεν καλύπτει όλη τη λίστα, εξηγείται καθαρά και εξάγεται το πρώτο διαθέσιμο πλήρες πλάνο. Ο χρήστης μπορεί να αντιγράψει το κείμενο, να ανοίξει το native share sheet ή να κατεβάσει αρχείο `.txt` συμβατό με Windows Notepad και macOS TextEdit.
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -130,6 +132,10 @@
 
 Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και κωδικούς επιλεγμένων αλυσίδων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Το same-origin `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
 
+### Λίστα ως κείμενο
+
+Το κουμπί «Κείμενο» δημιουργεί μία ευανάγνωστη έκδοση για μηνύματα, email ή εφαρμογές σημειώσεων. Η προεπισκόπηση περιλαμβάνει τη γενική λίστα και το αναλυτικό πλάνο αγορών, χωρίς να αλλάζει το καλάθι. Η λήψη `.txt` χρησιμοποιεί UTF-8 BOM και line endings `CRLF`, ώστε τα ελληνικά και η διάταξη να διατηρούνται σωστά σε σύγχρονο Windows Notepad, macOS TextEdit και άλλους text editors.
+
 ### Ευκαιρία της ημέρας
 
 Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Η κάρτα δείχνει το συγκεκριμένο προϊόν και τη φωτογραφία του, τη φθηνότερη αλυσίδα, την τρέχουσα τιμή, πόσο χαμηλότερη είναι από την υψηλότερη τρέχουσα τιμή στις υπόλοιπες αλυσίδες, σύνδεσμο λεπτομερειών και κουμπί προσθήκης στο καλάθι. Το νέο κουμπί «Περισσότερες ευκαιρίες» ανοίγει ξεχωριστή σελίδα με εννέα συνολικά καθημερινές επιλογές: την κεντρική πρόταση και οκτώ επιπλέον προϊόντα, όλα με λεπτομέρειες και άμεση προσθήκη στο ίδιο αποθηκευμένο καλάθι. Το ποσοστό είναι σύγκριση τιμών του ίδιου προϊόντος μεταξύ αλυσίδων την ίδια χρονική περίοδο, όχι ιστορική έκπτωση ή σύγκριση με προηγούμενη τιμή.
@@ -162,7 +168,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.14.3`
+**Current version:** `v0.15.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -186,6 +192,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Open the nearest unfinished branches as one Google Maps route that updates with progress.
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
+- Copy, natively share, or download a complete plain-text basket with a checklist, stop limit, store-by-store plan, prices, totals, and reopening link.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
 - Save up to 12 named baskets locally and reopen them against the latest catalogue prices.
 - Rank supermarket chains by total basket price.
@@ -238,6 +245,8 @@ Version `v0.14.1` makes every basket quantity a whole number of products or pack
 Version `v0.14.2` separates catalogue availability from selected-plan coverage. When an item is not sold by the chain in a one-stop plan but is available from another included chain, the basket now shows its best alternative price, chain, and the stop limit needed for a complete basket. It no longer labels that case as “missing,” which could be mistaken for store-level stock information. PosoKanei supplies catalogue prices rather than live branch inventory.
 
 Version `v0.14.3` makes product imagery substantially faster. Search results now request small compressed WebP thumbnails instead of full-size source photos, prioritize the first visible images, and lazy-load the rest. Product details retain a separate higher-resolution image. A colored product fallback remains visible while each photo loads, and versioned image responses receive long-lived browser caching.
+
+Version `v0.15.0` adds a complete plain-text basket export. It includes a product and quantity checklist, the selected stop limit, a supermarket-by-supermarket plan with prices and totals, and a link that reopens the basket. When the selected limit cannot cover the full list, the export explains that limitation and includes the first available complete plan. Users can copy the text, open the native share sheet, or download a `.txt` file compatible with Windows Notepad and macOS TextEdit.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
@@ -376,6 +385,10 @@ returns only the requested records from the latest snapshot, avoiding a full
 catalogue download for every recipient. The dialog supports copy-to-clipboard,
 the platform share sheet where available, and a manual-selection fallback for
 stricter Safari or clipboard environments.
+
+### Plain-Text Lists
+
+The `Text` basket action creates a clean version for messages, email, and note-taking apps without changing the basket. Its `.txt` download uses a UTF-8 BOM and `CRLF` line endings so Greek product names and formatting remain intact in modern Windows Notepad, macOS TextEdit, and other text editors.
 
 ### Daily Product Suggestion
 

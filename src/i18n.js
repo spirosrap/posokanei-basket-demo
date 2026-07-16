@@ -66,6 +66,26 @@ const messages = {
     basket: "Καλάθι",
     example: "Παράδειγμα",
     copy: "Αντιγραφή",
+    textExport: "Κείμενο",
+    textExportEyebrow: "TXT · Windows / Mac",
+    textExportTitle: "Λίστα ως απλό κείμενο",
+    textExportPreview: "Προεπισκόπηση κειμένου",
+    copyTextExport: "Αντιγραφή κειμένου",
+    downloadTextExport: "Λήψη .txt",
+    textExportShared: "Η λίστα κοινοποιήθηκε.",
+    textExportDownloaded: "Το αρχείο .txt αποθηκεύτηκε.",
+    textExportManual: "Το κείμενο επιλέχθηκε. Αντίγραψέ το από το πεδίο.",
+    textExportBasketSummary: ({ count, stops }) =>
+      `Λίστα αγορών · ${count} ${count === 1 ? "προϊόν" : "προϊόντα"} · επιλεγμένο όριο ${stops}`,
+    textExportProductsHeading: "Λίστα προϊόντων",
+    textExportPlanHeading: "Πλάνο αγορών",
+    textExportFallbackPlan: ({ selected, available }) =>
+      `Το επιλεγμένο όριο (${selected}) δεν καλύπτει όλη τη λίστα. Ακολουθεί το πρώτο πλήρες πλάνο (${available}).`,
+    textExportNoCompletePlan: ({ stops }) =>
+      `Δεν υπάρχει διαθέσιμο πλήρες πλάνο με ${stops}.`,
+    textExportLinkHeading: "Άνοιγμα καλαθιού",
+    textExportPriceNote:
+      "Οι τιμές προέρχονται από τον πιο πρόσφατο συγχρονισμένο κατάλογο PosoKanei και μπορεί να αλλάξουν.",
     share: "Κοινή χρήση",
     savedBaskets: "Λίστες",
     savedBasketsTitle: "Αποθήκευσε τα καλάθια που χρησιμοποιείς συχνά",
@@ -395,6 +415,26 @@ const messages = {
     basket: "Basket",
     example: "Example",
     copy: "Copy",
+    textExport: "Text",
+    textExportEyebrow: "TXT · Windows / Mac",
+    textExportTitle: "List as plain text",
+    textExportPreview: "Text preview",
+    copyTextExport: "Copy text",
+    downloadTextExport: "Download .txt",
+    textExportShared: "The list was shared.",
+    textExportDownloaded: "The .txt file was saved.",
+    textExportManual: "The text is selected. Copy it from the field.",
+    textExportBasketSummary: ({ count, stops }) =>
+      `Shopping list · ${count} ${count === 1 ? "product" : "products"} · selected limit ${stops}`,
+    textExportProductsHeading: "Product list",
+    textExportPlanHeading: "Shopping plan",
+    textExportFallbackPlan: ({ selected, available }) =>
+      `The selected limit (${selected}) does not cover the full list. The first complete plan follows (${available}).`,
+    textExportNoCompletePlan: ({ stops }) =>
+      `No complete plan is available with ${stops}.`,
+    textExportLinkHeading: "Open basket",
+    textExportPriceNote:
+      "Prices come from the latest synchronized PosoKanei catalogue and may change.",
     share: "Share",
     savedBaskets: "Lists",
     savedBasketsTitle: "Save the baskets you use regularly",
