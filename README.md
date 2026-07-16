@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.16.0`
+**Τρέχουσα έκδοση:** `v0.17.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -61,6 +61,8 @@
 Η έκδοση `v0.15.0` προσθέτει ολοκληρωμένη εξαγωγή της λίστας ως απλό κείμενο. Το κείμενο περιλαμβάνει checklist προϊόντων και ποσοτήτων, επιλεγμένο όριο στάσεων, πλήρες πλάνο ανά supermarket με τιμές και σύνολα, καθώς και σύνδεσμο που ανοίγει ξανά το καλάθι. Αν το επιλεγμένο όριο δεν καλύπτει όλη τη λίστα, εξηγείται καθαρά και εξάγεται το πρώτο διαθέσιμο πλήρες πλάνο. Ο χρήστης μπορεί να αντιγράψει το κείμενο, να ανοίξει το native share sheet ή να κατεβάσει αρχείο `.txt` συμβατό με Windows Notepad και macOS TextEdit.
 
 Η έκδοση `v0.16.0` προσθέτει φορητή εξαγωγή και εισαγωγή σε JSON. Το versioned αρχείο κρατά μόνο κωδικούς προϊόντων, ακέραιες ποσότητες, όριο στάσεων, επιλεγμένες αλυσίδες και την εκτίμηση κόστους επιπλέον στάσης. Δεν κρατά τοποθεσία ή τιμές. Κατά τη φόρτωση, η εφαρμογή ελέγχει αυστηρά το αρχείο, αναζητά τους κωδικούς στον τρέχοντα κατάλογο και υπολογίζει ξανά όλες τις τιμές και τα πλάνα. Έτσι ένα καλάθι μπορεί να αποθηκευτεί, να σταλεί ή να μεταφερθεί σε άλλον browser χωρίς να μεταφέρει παλιές τιμές.
+
+Η έκδοση `v0.17.0` αντικαθιστά αυτόματα τον μεγάλο σύνδεσμο καλαθιού με έναν σύντομο σύνδεσμο του ίδιου του `agenticspiros.com` στα παράθυρα κοινής χρήσης και εξαγωγής κειμένου. Η υπηρεσία σύντμησης φιλοξενείται μαζί με την εφαρμογή, δεν απαιτεί API key ή συνδρομή, δεν αποστέλλει το καλάθι σε τρίτη υπηρεσία και επιστρέφει αμέσως στον πλήρη σύνδεσμο αν δεν είναι διαθέσιμη. Η σύντμηση γίνεται μόνο όταν ο χρήστης ανοίξει ένα από αυτά τα παράθυρα.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -130,15 +132,17 @@
 
 Το κουμπί «Κοινή χρήση» δημιουργεί σύνδεσμο για το τρέχον καλάθι. Από την έκδοση `v0.4.0`, ο σύνδεσμος κρατά τα συγκεκριμένα προϊόντα, τις ποσότητες, το επιλεγμένο όριο `1` έως `4` στάσεων και τις αλυσίδες που συμμετέχουν στον υπολογισμό. Όταν τον ανοίξει κάποιος άλλος, η εφαρμογή φορτώνει τα αντίστοιχα προϊόντα από τον πιο πρόσφατο κατάλογο και υπολογίζει ξανά τις διαθέσιμες τιμές, την κατάταξη αλυσίδων και το φθηνότερο πλάνο. Έτσι ο σύνδεσμος μοιράζεται τη λίστα και τις προτιμήσεις αγορών, όχι ένα παλιό στιγμιότυπο τιμών. Οι σύνδεσμοι της έκδοσης `v0.3.0` παραμένουν συμβατοί και ανοίγουν με όλες τις αλυσίδες ενεργές.
 
-![Παράθυρο κοινής χρήσης καλαθιού με σύνδεσμο και πληροφορίες απορρήτου](screenshots/share.png)
+Από την έκδοση `v0.17.0`, το παράθυρο δημιουργεί αυτόματα έναν πολύ μικρότερο σύνδεσμο στη μορφή `agenticspiros.com/demo/posokanei-basket/s/AbCd123456`. Η λύση χρησιμοποιεί το υπάρχον hosting χωρίς εξωτερική δωρεάν υπηρεσία, API key, διαφημίσεις ή πρόσθετη συνδρομή. Ο ίδιος σύνδεσμος επιστρέφεται για το ίδιο καλάθι, ενώ browser και server cache αποφεύγουν περιττές εγγραφές. Αν η υπηρεσία δεν μπορέσει να αποθηκεύσει τον σύνδεσμο, η εφαρμογή χρησιμοποιεί εμφανώς τον πλήρη λειτουργικό σύνδεσμο.
+
+![Παράθυρο κοινής χρήσης με σύντομο σύνδεσμο καλαθιού](screenshots/share-short-link.jpg)
 
 Η εισαγωγή είναι ανθεκτική σε αλλαγές καταλόγου: αν κάποιο προϊόν δεν υπάρχει πλέον, το υπόλοιπο καλάθι ανοίγει κανονικά και εμφανίζεται σαφής προειδοποίηση. Μετά την επιτυχημένη εισαγωγή, η παράμετρος αφαιρείται από τη γραμμή διεύθυνσης ώστε μια μελλοντική ανανέωση να μη γυρίσει τον χρήστη στην αρχική κοινόχρηστη έκδοση, ενώ το καλάθι συνεχίζει να αποθηκεύεται τοπικά όπως πριν.
 
-Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και κωδικούς επιλεγμένων αλυσίδων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Το same-origin `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
+Ο σύνδεσμος χρησιμοποιεί μικρό, versioned και ελεγμένο payload με έως 60 προϊόντα. Περιέχει μόνο κωδικούς προϊόντων, ποσότητες, αριθμό στάσεων και κωδικούς επιλεγμένων αλυσίδων: δεν περιέχει τοποθεσία, κοντινά καταστήματα, τιμές ή άλλα προσωπικά δεδομένα. Ο πλήρης σύνδεσμος αποθηκεύεται μόνο στο hosting της εφαρμογής ώστε ο σύντομος κωδικός να μπορεί να τον ανοίξει. Το same-origin `shorten.php` δέχεται αποκλειστικά συνδέσμους καλαθιού της εφαρμογής και δεν λειτουργεί ως γενικός public shortener. Το `products-by-ids` endpoint επιστρέφει μόνο τα προϊόντα του καλαθιού από το τελευταίο snapshot, αντί να αναγκάζει κάθε παραλήπτη να κατεβάζει ολόκληρο τον κατάλογο. Υποστηρίζονται αντιγραφή συνδέσμου, το native share sheet όπου διατίθεται και fallback επιλογής του συνδέσμου για αυστηρότερα περιβάλλοντα Safari/clipboard.
 
 ### Λίστα ως κείμενο
 
-Το κουμπί «Εξαγωγή» και η επιλογή «Απλό κείμενο» δημιουργούν μία ευανάγνωστη έκδοση για μηνύματα, email ή εφαρμογές σημειώσεων. Η προεπισκόπηση περιλαμβάνει τη γενική λίστα και το αναλυτικό πλάνο αγορών, χωρίς να αλλάζει το καλάθι. Η λήψη `.txt` χρησιμοποιεί UTF-8 BOM και line endings `CRLF`, ώστε τα ελληνικά και η διάταξη να διατηρούνται σωστά σε σύγχρονο Windows Notepad, macOS TextEdit και άλλους text editors.
+Το κουμπί «Εξαγωγή» και η επιλογή «Απλό κείμενο» δημιουργούν μία ευανάγνωστη έκδοση για μηνύματα, email ή εφαρμογές σημειώσεων. Η προεπισκόπηση περιλαμβάνει τη γενική λίστα, το αναλυτικό πλάνο αγορών και τον ίδιο σύντομο σύνδεσμο που ανοίγει ξανά το καλάθι, χωρίς να αλλάζει το καλάθι. Η λήψη `.txt` χρησιμοποιεί UTF-8 BOM και line endings `CRLF`, ώστε τα ελληνικά και η διάταξη να διατηρούνται σωστά σε σύγχρονο Windows Notepad, macOS TextEdit και άλλους text editors.
 
 ### Φορητό JSON
 
@@ -178,7 +182,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.16.0`
+**Current version:** `v0.17.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -260,6 +264,8 @@ Version `v0.14.3` makes product imagery substantially faster. Search results now
 Version `v0.15.0` adds a complete plain-text basket export. It includes a product and quantity checklist, the selected stop limit, a supermarket-by-supermarket plan with prices and totals, and a link that reopens the basket. When the selected limit cannot cover the full list, the export explains that limitation and includes the first available complete plan. Users can copy the text, open the native share sheet, or download a `.txt` file compatible with Windows Notepad and macOS TextEdit.
 
 Version `v0.16.0` adds portable JSON export and import. The versioned file stores only product IDs, whole-number quantities, the stop limit, selected chains, and the extra-stop estimate. It never stores location or prices. On import, the app strictly validates the file, fetches those IDs from the current catalogue, and recalculates every price and plan. A basket can therefore be archived, sent, or moved to another browser without carrying stale price data.
+
+Version `v0.17.0` automatically replaces the large basket URL with a compact link on `agenticspiros.com` in the share and plain-text export dialogs. The shortening service is hosted with the app, requires no API key or subscription, sends no basket data to a third-party service, and immediately falls back to the complete URL if it is unavailable. Shortening begins only after the user opens one of those dialogs.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -385,7 +391,9 @@ plan using the prices available at that time. The URL therefore shares grocery a
 planning preferences, not a stale price quote. Version `v0.3.0` links remain
 compatible and open with every chain enabled.
 
-![Share-basket dialog with the generated link and privacy explanation](screenshots/share.png)
+From `v0.17.0`, the dialog automatically creates a much smaller link in the form `agenticspiros.com/demo/posokanei-basket/s/AbCd123456`. The implementation uses the existing hosting without an external free service, API key, advertising, or additional subscription. The same basket receives the same link, while browser and server caching avoid unnecessary writes. If the service cannot store a link, the app visibly keeps using the complete working URL.
+
+![Share-basket dialog with the compact self-hosted link](screenshots/share-short-link.jpg)
 
 The import flow handles catalogue changes explicitly. Products that are no longer
 available are omitted with a visible partial-import warning, while the rest of the
@@ -395,7 +403,10 @@ local basket persistence then continues.
 
 The versioned and validated payload is capped at 60 products and contains only
 product IDs, quantities, the stop count, and selected retailer IDs. It contains no
-location, nearby-branch data, prices, or personal information. A same-origin `products-by-ids` PHP endpoint
+location, nearby-branch data, prices, or personal information. The complete URL is
+stored only on the app's hosting so the short code can reopen it. The same-origin
+`shorten.php` endpoint accepts only this app's basket links and cannot be used as a
+general-purpose public shortener. A same-origin `products-by-ids` PHP endpoint
 returns only the requested records from the latest snapshot, avoiding a full
 catalogue download for every recipient. The dialog supports copy-to-clipboard,
 the platform share sheet where available, and a manual-selection fallback for
@@ -403,7 +414,7 @@ stricter Safari or clipboard environments.
 
 ### Plain-Text Lists
 
-The `Export` basket action and its `Plain text` mode create a clean version for messages, email, and note-taking apps without changing the basket. Its `.txt` download uses a UTF-8 BOM and `CRLF` line endings so Greek product names and formatting remain intact in modern Windows Notepad, macOS TextEdit, and other text editors.
+The `Export` basket action and its `Plain text` mode create a clean version for messages, email, and note-taking apps without changing the basket. The preview includes the general list, the detailed shopping plan, and the same compact link that reopens the basket. Its `.txt` download uses a UTF-8 BOM and `CRLF` line endings so Greek product names and formatting remain intact in modern Windows Notepad, macOS TextEdit, and other text editors.
 
 ### Portable JSON
 
@@ -539,7 +550,7 @@ Product detail, with a larger image for checking the exact product:
 
 Shareable basket dialog:
 
-![Shareable basket dialog on desktop](screenshots/share.png)
+![Shareable basket dialog with a compact link on desktop](screenshots/share-short-link.jpg)
 
 Supermarket selection and grouped plan export:
 

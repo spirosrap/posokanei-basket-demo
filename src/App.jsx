@@ -81,6 +81,7 @@ import { formatBasketText, formatPortableTextFile } from "./basketText";
 import { formatBasketData, parseBasketData } from "./basketData";
 import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
+import { shortenBasketUrl } from "./shortLinks";
 import {
   getInitialLanguage,
   localeForLanguage,
@@ -292,6 +293,34 @@ const downloadJsonFile = (value, filename) => {
   const blob = new Blob([value], { type: "application/json;charset=utf-8" });
   downloadBlob(blob, filename);
 };
+
+function useShortBasketLink(longUrl) {
+  const [state, setState] = useState(() => ({
+    status: longUrl ? "loading" : "idle",
+    url: longUrl,
+  }));
+
+  useEffect(() => {
+    if (!longUrl) {
+      setState({ status: "idle", url: "" });
+      return undefined;
+    }
+    let active = true;
+    setState({ status: "loading", url: longUrl });
+    shortenBasketUrl(longUrl)
+      .then((url) => {
+        if (active) setState({ status: "ready", url });
+      })
+      .catch(() => {
+        if (active) setState({ status: "error", url: longUrl });
+      });
+    return () => {
+      active = false;
+    };
+  }, [longUrl]);
+
+  return state;
+}
 
 function App() {
   const [language, setLanguage] = useState(getInitialLanguage);
@@ -1905,6 +1934,7 @@ function BasketExportDialog({
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
+  const basketLink = useShortBasketLink(shareUrl);
   const text = useMemo(
     () =>
       formatBasketText({
@@ -1914,7 +1944,7 @@ function BasketExportDialog({
         selectedPlanComplete,
         plan,
         planStopLimit,
-        shareUrl,
+        shareUrl: basketLink.url,
         language,
       }),
     [
@@ -1925,7 +1955,7 @@ function BasketExportDialog({
       productMap,
       selectedPlanComplete,
       selectedStopLimit,
-      shareUrl,
+      basketLink.url,
     ],
   );
   const json = useMemo(
@@ -2064,6 +2094,8 @@ function BasketExportDialog({
           </p>
         ) : null}
 
+        {format === "text" ? <ShortLinkStatus state={basketLink} /> : null}
+
         <label className="text-export-preview">
           <span>{format === "json" ? t("jsonExportPreview") : t("textExportPreview")}</span>
           <textarea
@@ -2146,6 +2178,8 @@ function ShareBasketDialog({
   const [copyState, setCopyState] = useState("idle");
   const inputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
+  const basketLink = useShortBasketLink(url);
+  const basketUrl = basketLink.url || url;
 
   useEffect(() => {
     const closeOnEscape = (event) => {
@@ -2157,7 +2191,7 @@ function ShareBasketDialog({
 
   const copyLink = async () => {
     try {
-      await copyText(url);
+      await copyText(basketUrl);
       setCopyState("copied");
     } catch {
       inputRef.current?.focus();
@@ -2174,7 +2208,7 @@ function ShareBasketDialog({
           count: number(basketCount),
           stops: formatStopLimit(maxChains, t),
         }),
-        url,
+        url: basketUrl,
       });
       setCopyState("shared");
     } catch (error) {
@@ -2209,15 +2243,17 @@ function ShareBasketDialog({
         </div>
 
         <label className="share-link-field">
-          <span>{t("basketLink")}</span>
+          <span>{basketLink.status === "ready" ? t("shortBasketLink") : t("basketLink")}</span>
           <input
             ref={inputRef}
             type="text"
-            value={url}
+            value={basketUrl}
             readOnly
             onFocus={(event) => event.currentTarget.select()}
           />
         </label>
+
+        <ShortLinkStatus state={basketLink} />
 
         <div className="share-dialog-actions">
           <button type="button" className="primary-action" onClick={copyLink}>
@@ -2247,6 +2283,34 @@ function ShareBasketDialog({
         </div>
       </div>
     </aside>
+  );
+}
+
+function ShortLinkStatus({ state }) {
+  const { t } = usePreferences();
+  if (!state || state.status === "idle") return null;
+  const isLoading = state.status === "loading";
+  const isError = state.status === "error";
+  return (
+    <p
+      className={`short-link-status ${state.status}`}
+      role={isError ? "alert" : "status"}
+    >
+      {isLoading ? (
+        <RefreshCw size={15} className="spin" />
+      ) : isError ? (
+        <AlertCircle size={15} />
+      ) : (
+        <Link2 size={15} />
+      )}
+      <span>
+        {isLoading
+          ? t("shortLinkLoading")
+          : isError
+            ? t("shortLinkFallback")
+            : t("shortLinkReady")}
+      </span>
+    </p>
   );
 }
 

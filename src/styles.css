@@ -3228,6 +3228,33 @@ input:focus-visible {
   outline: 2px solid rgba(15, 118, 110, 0.12);
 }
 
+.short-link-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.share-link-field + .short-link-status {
+  margin: -5px 0 14px;
+}
+
+.short-link-status.ready {
+  color: #047857;
+}
+
+.short-link-status.error {
+  color: #b45309;
+}
+
+.short-link-status svg {
+  flex: 0 0 auto;
+}
+
 .text-export-preview {
   display: grid;
   gap: 7px;

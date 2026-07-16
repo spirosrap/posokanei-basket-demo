@@ -16,6 +16,7 @@ DirectoryIndex index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /demo/posokanei-basket/
+  RewriteRule ^s/([A-Za-z0-9_-]{10,32})/?$ api/open-basket.php?code=$1 [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ index.html [L]
