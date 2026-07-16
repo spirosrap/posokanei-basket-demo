@@ -44,14 +44,20 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  fetchCategories,
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  fetchCatalogBootstrap,
   fetchDailyBargain,
-  fetchHealth,
   fetchProducts,
   fetchProductsByIds,
-  fetchRetailers,
   fetchUpdateStatus,
 } from "./posokaneiApi";
 import {
@@ -406,6 +412,7 @@ function AppContent() {
     activeProducts: 0,
   });
   const [liveState, setLiveState] = useState("idle");
+  const [catalogBootstrapped, setCatalogBootstrapped] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [maxChains, setMaxChains] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
@@ -440,6 +447,10 @@ function AppContent() {
     error: "",
   });
   const refreshedDemoProducts = useRef(false);
+  const initialBasketProductIds = useRef(basket.map((entry) => entry.productId));
+  const initialProductSort = useRef(productSort);
+  const skipSeededCatalogFetch = useRef(false);
+  const catalogRequestId = useRef(0);
   const mobileWorkspaceNav = useRef(null);
 
   useEffect(() => {
@@ -466,45 +477,85 @@ function AppContent() {
     if (!INITIAL_SHARED_BASKET) return undefined;
     if (INITIAL_SHARED_BASKET.status === "invalid") {
       removeSharedBasketParam();
-      return undefined;
     }
+    return undefined;
+  }, []);
 
+  useEffect(() => {
     let cancelled = false;
-    const requestedBasket = INITIAL_SHARED_BASKET.basket;
-    fetchProductsByIds(requestedBasket.map((entry) => entry.productId))
-      .then((products) => {
+    setHealth({ state: "checking", activeProducts: 0 });
+    setLiveState("loading");
+    fetchCatalogBootstrap({
+      productIds: initialBasketProductIds.current,
+      sortMode: initialProductSort.current,
+    })
+      .then(({ health: stats, retailers, categories, productResult, basketProducts }) => {
         if (cancelled) return;
-        const foundIds = new Set(products.map((product) => product.id));
-        const availableBasket = requestedBasket.filter((entry) => foundIds.has(entry.productId));
-        const missingCount = requestedBasket.length - availableBasket.length;
-
-        if (!availableBasket.length) {
-          setBasket(savedBasket());
-          setSharedBasketStatus({ status: "error" });
-        } else {
-          setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
-          setBasket(availableBasket);
-          setMobileView("plan");
-          setSharedBasketStatus({
-            status: missingCount ? "partial" : "ready",
-            productCount: availableBasket.length,
-            missingCount,
-            maxChains: INITIAL_SHARED_BASKET.maxChains,
-            retailerCount: INITIAL_SHARED_BASKET.retailerIds?.length ?? null,
-          });
+        skipSeededCatalogFetch.current = true;
+        if (basketProducts.length) {
+          setLiveBasketProducts((current) => mergeCatalogProducts(current, basketProducts));
         }
+        if (basketProducts.some((product) => DEFAULT_DEMO_PRODUCT_IDS.includes(product.id))) {
+          refreshedDemoProducts.current = true;
+        }
+        if (INITIAL_SHARED_BASKET?.status === "valid") {
+          const requestedBasket = INITIAL_SHARED_BASKET.basket;
+          const foundIds = new Set(basketProducts.map((product) => product.id));
+          const availableBasket = requestedBasket.filter((entry) => foundIds.has(entry.productId));
+          const missingCount = requestedBasket.length - availableBasket.length;
 
-        setSharedBasketHydrating(false);
-        removeSharedBasketParam();
+          if (!availableBasket.length) {
+            setBasket(savedBasket());
+            setSharedBasketStatus({ status: "error" });
+          } else {
+            setBasket(availableBasket);
+            setMobileView("plan");
+            setSharedBasketStatus({
+              status: missingCount ? "partial" : "ready",
+              productCount: availableBasket.length,
+              missingCount,
+              maxChains: INITIAL_SHARED_BASKET.maxChains,
+              retailerCount: INITIAL_SHARED_BASKET.retailerIds?.length ?? null,
+            });
+          }
+          setSharedBasketHydrating(false);
+          removeSharedBasketParam();
+        }
+        startTransition(() => {
+          setLiveRetailers(retailers);
+          setLiveCategories(categories);
+          setLiveProducts(productResult.products);
+          setLiveMeta({
+            total: productResult.total || stats.activeProducts,
+            page: productResult.page,
+            totalPages: productResult.totalPages,
+            hasNext: productResult.hasNext,
+            activeProducts: stats.activeProducts,
+            source: productResult.source,
+          });
+          setHealth({
+            state: stats.source === "snapshot" ? "cached" : "online",
+            source: stats.source,
+            activeProducts: stats.activeProducts,
+            snapshotGeneratedAt: stats.snapshotGeneratedAt,
+            liveError: stats.liveError,
+          });
+          setLiveState(productResult.products.length ? "ready" : "empty");
+          setCatalogBootstrapped(true);
+        });
       })
       .catch(() => {
         if (cancelled) return;
-        setBasket(savedBasket());
-        setSharedBasketStatus({ status: "error" });
-        setSharedBasketHydrating(false);
-        removeSharedBasketParam();
+        if (INITIAL_SHARED_BASKET?.status === "valid") {
+          setBasket(savedBasket());
+          setSharedBasketStatus({ status: "error" });
+          setSharedBasketHydrating(false);
+          removeSharedBasketParam();
+        }
+        setHealth({ state: "offline", activeProducts: 0 });
+        setLiveState("error");
+        setCatalogBootstrapped(true);
       });
-
     return () => {
       cancelled = true;
     };
@@ -512,36 +563,16 @@ function AppContent() {
 
   useEffect(() => {
     let cancelled = false;
-    setHealth({ state: "checking", activeProducts: 0 });
-    Promise.all([
-      fetchHealth(),
-      fetchRetailers(),
-      fetchCategories(),
-      fetchUpdateStatus().catch(() => null),
-    ])
-      .then(([stats, fetchedRetailers, fetchedCategories, fetchedUpdateStatus]) => {
-        if (cancelled) return;
-        setLiveRetailers(fetchedRetailers);
-        setLiveCategories(fetchedCategories);
-        setLiveMeta((current) => ({
-          ...current,
-          activeProducts: stats.activeProducts,
-          total: current.total || stats.activeProducts,
-        }));
-        setHealth({
-          state: stats.source === "snapshot" ? "cached" : "online",
-          source: stats.source,
-          activeProducts: stats.activeProducts,
-          snapshotGeneratedAt: stats.snapshotGeneratedAt,
-          liveError: stats.liveError,
-        });
-        setUpdateStatus(fetchedUpdateStatus);
-      })
-      .catch(() => {
-        if (!cancelled) setHealth({ state: "offline", activeProducts: 0 });
-      });
+    const timer = window.setTimeout(() => {
+      fetchUpdateStatus()
+        .then((status) => {
+          if (!cancelled) setUpdateStatus(status);
+        })
+        .catch(() => {});
+    }, 700);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, []);
 
@@ -568,12 +599,20 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    if (!catalogBootstrapped) return undefined;
+    if (skipSeededCatalogFetch.current) {
+      skipSeededCatalogFetch.current = false;
+      return undefined;
+    }
+
     let cancelled = false;
+    const requestId = catalogRequestId.current + 1;
+    catalogRequestId.current = requestId;
     setLiveState("loading");
-    const timer = window.setTimeout(() => {
-      fetchProducts({ query, categoryId, page: 1, sortMode: productSort })
-        .then((result) => {
-          if (cancelled) return;
+    fetchProducts({ query, categoryId, page: 1, sortMode: productSort })
+      .then((result) => {
+        if (cancelled || requestId !== catalogRequestId.current) return;
+        startTransition(() => {
           setLiveProducts(result.products);
           setLiveMeta((current) => ({
             ...current,
@@ -584,18 +623,19 @@ function AppContent() {
             source: result.source,
           }));
           setLiveState(result.products.length ? "ready" : "empty");
-        })
-        .catch(() => {
-          if (cancelled) return;
+        });
+      })
+      .catch(() => {
+        if (cancelled || requestId !== catalogRequestId.current) return;
+        startTransition(() => {
           setLiveProducts([]);
           setLiveState("error");
         });
-    }, 350);
+      });
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
-  }, [categoryId, productSort, query]);
+  }, [catalogBootstrapped, categoryId, productSort, query]);
 
   useEffect(() => {
     saveProductSort(productSort);
@@ -688,6 +728,7 @@ function AppContent() {
   }, [liveRetailers, retailerFilterIds]);
 
   useEffect(() => {
+    if (!catalogBootstrapped) return undefined;
     if (refreshedDemoProducts.current) return undefined;
     if (!basket.some((entry) => DEFAULT_DEMO_PRODUCT_IDS.includes(entry.productId))) {
       return undefined;
@@ -706,7 +747,7 @@ function AppContent() {
     return () => {
       cancelled = true;
     };
-  }, [basket]);
+  }, [basket, catalogBootstrapped]);
 
   useEffect(() => {
     if (sharedBasketHydrating) return;
@@ -1013,6 +1054,8 @@ function AppContent() {
           }}
           moreHref={BARGAINS_PATH}
         />
+      ) : dailyBargainState === "loading" ? (
+        <DailyBargainSkeleton />
       ) : null}
 
       <MobileWorkspaceNav
@@ -1203,6 +1246,29 @@ function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
           {t("toBasket")}
         </button>
       </div>
+    </section>
+  );
+}
+
+function DailyBargainSkeleton() {
+  const { t } = usePreferences();
+  return (
+    <section className="daily-bargain daily-bargain-skeleton" aria-label={t("loading")}>
+      <span className="skeleton-block skeleton-thumb" aria-hidden="true" />
+      <span className="skeleton-copy" aria-hidden="true">
+        <span className="skeleton-block skeleton-line short" />
+        <span className="skeleton-block skeleton-line" />
+        <span className="skeleton-block skeleton-line medium" />
+      </span>
+      <span className="skeleton-copy daily-bargain-skeleton-reason" aria-hidden="true">
+        <span className="skeleton-block skeleton-line" />
+        <span className="skeleton-block skeleton-line medium" />
+      </span>
+      <span className="skeleton-copy daily-bargain-skeleton-price" aria-hidden="true">
+        <span className="skeleton-block skeleton-line short" />
+        <span className="skeleton-block skeleton-line medium" />
+      </span>
+      <span className="skeleton-block daily-bargain-skeleton-action" aria-hidden="true" />
     </section>
   );
 }
@@ -1567,8 +1633,9 @@ function SearchPanel({
   return (
     <section
       id="products-panel"
-      className={`panel search-panel${mobileActive ? " mobile-active" : ""}`}
+      className={`panel search-panel${mobileActive ? " mobile-active" : ""}${liveState === "loading" ? " is-refreshing" : ""}`}
       aria-labelledby="search-title"
+      aria-busy={liveState === "loading" || isLoadingMore}
     >
       <PanelTitle
         id="search-title"
@@ -1577,15 +1644,11 @@ function SearchPanel({
         action={resultAction}
       />
 
-      <label className="search-box">
-        <Search size={18} aria-hidden="true" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-        />
-        <Barcode size={17} aria-hidden="true" />
-      </label>
+      <ProductSearchInput
+        value={query}
+        onChange={setQuery}
+        placeholder={t("searchPlaceholder")}
+      />
 
       <div className="chips" aria-label={t("categories")}>
         {categories.map((item) => (
@@ -1625,20 +1688,24 @@ function SearchPanel({
         sortMode={productSort}
       />
 
-      <div className="product-list">
-        {products.map((product, index) => (
-          <ProductRow
-            key={product.id}
-            product={product}
-            retailers={retailers}
-            basketQuantity={basketQuantities.get(product.id) || 0}
-            imagePriority={index < 8}
-            selected={selectedProduct?.id === product.id}
-            onSelect={() => onSelect(product)}
-            onAdd={() => onAdd(product)}
-          />
-        ))}
-      </div>
+      {liveState === "loading" && !products.length ? (
+        <ProductListSkeleton />
+      ) : (
+        <div className="product-list">
+          {products.map((product, index) => (
+            <ProductRow
+              key={product.id}
+              product={product}
+              retailers={retailers}
+              basketQuantity={basketQuantities.get(product.id) || 0}
+              imagePriority={index < 4}
+              selected={selectedProduct?.id === product.id}
+              onSelect={() => onSelect(product)}
+              onAdd={() => onAdd(product)}
+            />
+          ))}
+        </div>
+      )}
 
       {canLoadMore ? (
         <button
@@ -1652,6 +1719,76 @@ function SearchPanel({
         </button>
       ) : null}
     </section>
+  );
+}
+
+function ProductSearchInput({ value, onChange, placeholder }) {
+  const { t } = usePreferences();
+  const [draft, setDraft] = useState(value);
+  const isComposing = useRef(false);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (isComposing.current || draft === value) return undefined;
+    const timer = window.setTimeout(() => onChange(draft), 180);
+    return () => window.clearTimeout(timer);
+  }, [draft, onChange, value]);
+
+  const clear = () => {
+    setDraft("");
+    onChange("");
+  };
+
+  return (
+    <label className="search-box">
+      <Search size={18} aria-hidden="true" />
+      <input
+        type="search"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onCompositionStart={() => {
+          isComposing.current = true;
+        }}
+        onCompositionEnd={(event) => {
+          isComposing.current = false;
+          setDraft(event.currentTarget.value);
+        }}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck="false"
+      />
+      {draft ? (
+        <button type="button" className="search-clear" onClick={clear} aria-label={t("clear")}>
+          <X size={16} />
+        </button>
+      ) : (
+        <Barcode size={17} aria-hidden="true" />
+      )}
+    </label>
+  );
+}
+
+function ProductListSkeleton() {
+  return (
+    <div className="product-list product-list-skeleton" aria-hidden="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <div className="product-row product-row-skeleton" key={index}>
+          <span className="skeleton-block skeleton-product-thumb" />
+          <span className="skeleton-copy">
+            <span className="skeleton-block skeleton-line" />
+            <span className="skeleton-block skeleton-line medium" />
+          </span>
+          <span className="skeleton-copy skeleton-price">
+            <span className="skeleton-block skeleton-line short" />
+            <span className="skeleton-block skeleton-line short" />
+          </span>
+          <span className="skeleton-block skeleton-button" />
+        </div>
+      ))}
+    </div>
   );
 }
 

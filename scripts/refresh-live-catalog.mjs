@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -17,6 +17,10 @@ const snapshotPath = resolve(
 const metaPath = resolve(
   projectRoot,
   process.env.POSOKANEI_META_OUT || "dist/data/catalog-meta.json",
+);
+const runtimePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_RUNTIME_OUT || "dist/data/catalog-runtime.json",
 );
 const refreshStatusPath = resolve(
   projectRoot,
@@ -39,12 +43,46 @@ const publicCatalogUrl =
   publicDataUrl(primaryTarget, "catalog.json");
 const publicMetaUrl =
   process.env.POSOKANEI_PUBLIC_META_URL || publicCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
+const refreshLockPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_REFRESH_LOCK || ".cache/catalog-refresh.lock",
+);
 
-try {
-  await refreshCatalog();
-} catch (error) {
-  await recordRefreshFailure(error);
-  throw error;
+const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
+if (!releaseRefreshLock) {
+  console.log("Another catalogue refresh is already running; this overlapping run was skipped.");
+} else {
+  try {
+    await refreshCatalog();
+  } catch (error) {
+    await recordRefreshFailure(error);
+    throw error;
+  } finally {
+    await releaseRefreshLock();
+  }
+}
+
+async function acquireRefreshLock(lockPath, retried = false) {
+  await mkdir(dirname(lockPath), { recursive: true });
+  try {
+    const handle = await open(lockPath, "wx");
+    await handle.writeFile(`${JSON.stringify({ pid: process.pid, started_at: new Date().toISOString() })}\n`);
+    return async () => {
+      await handle.close();
+      await unlink(lockPath).catch(() => {});
+    };
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+    if (!retried) {
+      const details = await stat(lockPath).catch(() => null);
+      const staleAfterMs = 50 * 60 * 1000;
+      if (details && Date.now() - details.mtimeMs > staleAfterMs) {
+        await unlink(lockPath).catch(() => {});
+        return acquireRefreshLock(lockPath, true);
+      }
+    }
+    return null;
+  }
 }
 
 async function refreshCatalog() {
@@ -54,6 +92,7 @@ async function refreshCatalog() {
     await runNodeScript("scripts/build-catalog-snapshot.mjs", {
       POSOKANEI_SNAPSHOT_OUT: snapshotPath,
       POSOKANEI_META_OUT: metaPath,
+      POSOKANEI_RUNTIME_OUT: runtimePath,
     });
   }
 
@@ -120,12 +159,15 @@ async function buildSnapshotOnRemoteHosts(hosts) {
 async function buildSnapshotOnRemoteHost(host) {
   const remoteDir = `/tmp/posokanei-basket-refresh-${Date.now()}`;
   const remoteScript = `${remoteDir}/build-catalog-snapshot.mjs`;
+  const remoteRuntimeModule = `${remoteDir}/catalog-runtime.mjs`;
   const remoteSnapshot = `${remoteDir}/catalog.json`;
   const remoteMeta = `${remoteDir}/catalog-meta.json`;
+  const remoteRuntime = `${remoteDir}/catalog-runtime.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
   await mkdir(dirname(snapshotPath), { recursive: true });
   await mkdir(dirname(metaPath), { recursive: true });
+  await mkdir(dirname(runtimePath), { recursive: true });
 
   try {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)} && mkdir -p ${shellQuote(remoteDir)}`]);
@@ -134,17 +176,24 @@ async function buildSnapshotOnRemoteHost(host) {
       resolve(projectRoot, "scripts/build-catalog-snapshot.mjs"),
       `${host}:${remoteScript}`,
     ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "scripts/catalog-runtime.mjs"),
+      `${host}:${remoteRuntimeModule}`,
+    ]);
     await run("ssh", [
       ...sshOptions,
       host,
       [
         `POSOKANEI_SNAPSHOT_OUT=${shellQuote(remoteSnapshot)}`,
         `POSOKANEI_META_OUT=${shellQuote(remoteMeta)}`,
+        `POSOKANEI_RUNTIME_OUT=${shellQuote(remoteRuntime)}`,
         `node ${shellQuote(remoteScript)}`,
       ].join(" "),
     ]);
     await run("scp", [...sshOptions, `${host}:${remoteSnapshot}`, snapshotPath]);
     await run("scp", [...sshOptions, `${host}:${remoteMeta}`, metaPath]);
+    await run("scp", [...sshOptions, `${host}:${remoteRuntime}`, runtimePath]);
   } finally {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)}`], {
       allowFailure: true,
@@ -302,6 +351,7 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   const password = await readTargetPassword(target);
   await publishDataFile(snapshotPath, "catalog.json", target, password);
   await publishDataFile(metaPath, "catalog-meta.json", target, password);
+  await publishDataFile(runtimePath, "catalog-runtime.json", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
@@ -324,6 +374,7 @@ async function publishDataFile(filePath, remoteName, target, password) {
 async function fetchPublicJson(url) {
   const response = await fetch(`${url}?v=${Date.now()}`, {
     headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(60000),
   });
   if (!response.ok) {
     throw new Error(`${url} verification returned HTTP ${response.status}.`);
@@ -334,31 +385,54 @@ async function fetchPublicJson(url) {
 async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
+  const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-runtime.json");
   const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
   const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
-  const publicSnapshot = await fetchPublicJson(targetCatalogUrl);
-  if (publicSnapshot.generated_at !== expectedGeneratedAt) {
-    throw new Error(
-      `Public snapshot verification mismatch: expected ${expectedGeneratedAt}, got ${publicSnapshot.generated_at}.`,
-    );
-  }
+  let observed = null;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      const [publicSnapshot, publicMeta, publicRuntime, publicRefreshStatus] = await Promise.all([
+        fetchPublicJson(targetCatalogUrl),
+        fetchPublicJson(targetMetaUrl),
+        fetchPublicJson(targetRuntimeUrl),
+        fetchPublicJson(targetStatusUrl),
+      ]);
+      observed = {
+        snapshot: publicSnapshot.generated_at || "",
+        metadata: publicMeta.generated_at || "",
+        runtime: publicRuntime.generated_at || "",
+        status: publicRefreshStatus.generated_at || "",
+        statusValue: publicRefreshStatus.status || "",
+      };
+      const timestamps = [observed.snapshot, observed.metadata, observed.runtime, observed.status];
+      const publishedAt = Date.parse(observed.snapshot);
+      const expectedAt = Date.parse(expectedGeneratedAt);
+      if (
+        timestamps.every((value) => value === observed.snapshot) &&
+        observed.statusValue === "ok" &&
+        Number.isFinite(publishedAt) &&
+        publishedAt >= expectedAt
+      ) {
+        if (observed.snapshot !== expectedGeneratedAt) {
+          console.log(`Accepted newer concurrent catalogue ${observed.snapshot}.`);
+        }
+        break;
+      }
+    } catch (error) {
+      observed = { error: error.message };
+    }
 
-  const publicMeta = await fetchPublicJson(targetMetaUrl);
-  if (publicMeta.generated_at !== expectedGeneratedAt) {
-    throw new Error(
-      `Public metadata verification mismatch: expected ${expectedGeneratedAt}, got ${publicMeta.generated_at}.`,
-    );
-  }
-
-  const publicRefreshStatus = await fetchPublicJson(targetStatusUrl);
-  if (publicRefreshStatus.generated_at !== expectedGeneratedAt) {
-    throw new Error(
-      `Public refresh-status verification mismatch: expected ${expectedGeneratedAt}, got ${publicRefreshStatus.generated_at}.`,
-    );
+    if (attempt === 5) {
+      throw new Error(
+        `Public catalogue verification did not converge for ${expectedGeneratedAt}: ${JSON.stringify(observed)}.`,
+      );
+    }
+    await sleep(5000);
   }
 
   console.log(`Verified public catalogue at ${targetCatalogUrl}`);
   console.log(`Verified public metadata at ${targetMetaUrl}`);
+  console.log(`Verified compact runtime catalogue at ${targetRuntimeUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));

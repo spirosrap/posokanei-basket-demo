@@ -4,10 +4,12 @@ import { productSortApiValue } from "./productSort.js";
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PROXY_BASE = runtimeAppUrl("api/posokanei.php");
 const UPDATE_STATUS_URL = runtimeAppUrl("api/update-status.php");
+const CATALOG_RUNTIME_URL = `${APP_BASE_URL}data/catalog-runtime.json`;
 const CATALOG_SNAPSHOT_URL = `${APP_BASE_URL}data/catalog.json`;
 const DAILY_BARGAIN_URL = `${APP_BASE_URL}data/daily-bargain.json`;
 
 const PAGE_SIZE = 30;
+const REQUEST_CACHE_TTL_MS = 45000;
 const RETAILER_COLORS = [
   "#0f766e",
   "#2563eb",
@@ -24,6 +26,7 @@ const RETAILER_COLORS = [
 ];
 
 let catalogSnapshotPromise = null;
+const responseCache = new Map();
 
 function withTimeout(ms = 12000) {
   const controller = new AbortController();
@@ -42,16 +45,47 @@ function proxyUrl(resource, params = {}) {
   return url.toString();
 }
 
-async function fetchJson(resource, params = {}, timeout = 12000, retries = 2) {
-  return fetchJsonWithRetries(proxyUrl(resource, params), {
+async function fetchJson(
+  resource,
+  params = {},
+  timeout = 12000,
+  retries = 2,
+  cacheTtl = REQUEST_CACHE_TTL_MS,
+) {
+  const url = proxyUrl(resource, params);
+  return fetchCachedJson(url, {
     timeout,
     retries,
     errorLabel: "PosoKanei proxy HTTP",
-  });
+  }, cacheTtl);
 }
 
 async function fetchDirectJson(url, timeout = 12000, retries = 2) {
   return fetchJsonWithRetries(url, { timeout, retries, errorLabel: "Request failed" });
+}
+
+function fetchCachedJson(url, options, cacheTtl) {
+  const now = Date.now();
+  const cached = responseCache.get(url);
+  if (cached?.promise) return cached.promise;
+  if (cached?.value !== undefined && cached.expiresAt > now) {
+    return Promise.resolve(cached.value);
+  }
+
+  const promise = fetchJsonWithRetries(url, options)
+    .then((value) => {
+      responseCache.set(url, {
+        value,
+        expiresAt: Date.now() + cacheTtl,
+      });
+      return value;
+    })
+    .catch((error) => {
+      responseCache.delete(url);
+      throw error;
+    });
+  responseCache.set(url, { promise, expiresAt: now + cacheTtl });
+  return promise;
 }
 
 async function fetchJsonWithRetries(url, { timeout, retries, errorLabel }) {
@@ -62,7 +96,6 @@ async function fetchJsonWithRetries(url, { timeout, retries, errorLabel }) {
     try {
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
-        cache: "no-store",
         signal: timer.signal,
       });
 
@@ -96,10 +129,12 @@ function sleep(ms) {
 
 async function fetchCatalogSnapshot() {
   if (!catalogSnapshotPromise) {
-    catalogSnapshotPromise = fetchDirectJson(CATALOG_SNAPSHOT_URL, 45000).catch((error) => {
-      catalogSnapshotPromise = null;
-      throw error;
-    });
+    catalogSnapshotPromise = fetchDirectJson(CATALOG_RUNTIME_URL, 30000, 1)
+      .catch(() => fetchDirectJson(CATALOG_SNAPSHOT_URL, 45000, 1))
+      .catch((error) => {
+        catalogSnapshotPromise = null;
+        throw error;
+      });
   }
   return catalogSnapshotPromise;
 }
@@ -190,6 +225,9 @@ function normalizeOffer(entry, unitAmount) {
 export function normalizeProduct(raw, source = "live") {
   const name = raw.name || raw.title || "Προϊόν";
   const id = String(raw.id ?? raw.gtin ?? raw.barcode ?? raw.product_id ?? fallbackProductId(raw, name));
+  const generatedImageUrl = raw.has_image
+    ? `${API_ORIGIN}/images/product/${encodeURIComponent(id)}${raw.image_version ? `?v=${encodeURIComponent(raw.image_version)}` : ""}`
+    : "";
   const parsedUnitAmount = Number(raw.unit_quantity ?? raw.unitAmount);
   const unitAmount = Number.isFinite(parsedUnitAmount) && parsedUnitAmount > 0
     ? parsedUnitAmount
@@ -216,7 +254,7 @@ export function normalizeProduct(raw, source = "live") {
     unit: raw.unit || "τεμ.",
     unitAmount,
     unitQuantity: unitLabel(raw),
-    imageUrl: absoluteApiUrl(raw.image_url || raw.imageUrl),
+    imageUrl: absoluteApiUrl(raw.image_url || raw.imageUrl || generatedImageUrl),
     description: raw.description || "",
     tile: productTile(name),
     tint: "#e0f2fe",
@@ -386,6 +424,76 @@ export function normalizeCategory(raw) {
   };
 }
 
+function normalizeHealthStats(stats, liveError = "") {
+  return {
+    totalProducts: Number(stats.total_products ?? 0) || 0,
+    activeProducts: Number(stats.active_products ?? stats.total_products ?? 0) || 0,
+    retailerCount: Number(stats.retailer_count ?? 0) || 0,
+    productsOnDiscount: Number(stats.products_on_discount ?? 0) || 0,
+    timestamp: stats.timestamp || "",
+    snapshotGeneratedAt:
+      stats.snapshot_generated_at || stats.snapshotGeneratedAt || "",
+    source: stats.source || "proxy",
+    liveError,
+  };
+}
+
+function normalizeRetailerResponse(raw) {
+  const list = firstArray({ products: raw?.retailers || raw });
+  return list
+    .map(normalizeRetailer)
+    .filter((retailer) => retailer.country === "GR")
+    .sort((a, b) => a.name.localeCompare(b.name, "el"));
+}
+
+function normalizeCategoryResponse(raw) {
+  const list = firstArray({ products: raw?.categories || raw });
+  return list
+    .map(normalizeCategory)
+    .filter((category) => category.id && category.name && category.count > 0)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "el"));
+}
+
+export async function fetchCatalogBootstrap({ productIds = [], sortMode = "price" } = {}) {
+  const ids = [...new Set(productIds.map((id) => String(id)).filter(Boolean))].slice(0, 60);
+
+  try {
+    const raw = await fetchJson(
+      "bootstrap",
+      {
+        ids: ids.join(","),
+        page_size: PAGE_SIZE,
+        category_limit: 80,
+        sort_by: productSortApiValue(sortMode),
+        sort_order: "asc",
+        countries: "GR",
+      },
+      18000,
+      2,
+      60000,
+    );
+    const productResult = normalizeProductResponse(raw.products || {}, raw.source || "snapshot");
+    return {
+      health: normalizeHealthStats(raw.stats || {}, raw.live_error || ""),
+      retailers: normalizeRetailerResponse(raw.retailers || []),
+      categories: normalizeCategoryResponse(raw.categories || []),
+      productResult,
+      basketProducts: firstArray(raw.basket_products || []).map((product) =>
+        normalizeProduct(product, raw.source || "snapshot"),
+      ),
+    };
+  } catch {
+    const [health, retailers, categories, productResult, basketProducts] = await Promise.all([
+      fetchHealth(),
+      fetchRetailers(),
+      fetchCategories(),
+      fetchProducts({ page: 1, sortMode }),
+      fetchProductsByIds(ids),
+    ]);
+    return { health, retailers, categories, productResult, basketProducts };
+  }
+}
+
 export async function fetchHealth() {
   let liveError = "";
   const stats = await fetchJson("stats", {}, 7000).catch(async (error) => {
@@ -400,16 +508,7 @@ export async function fetchHealth() {
       source: "snapshot",
     };
   });
-  return {
-    totalProducts: Number(stats.total_products ?? 0) || 0,
-    activeProducts: Number(stats.active_products ?? stats.total_products ?? 0) || 0,
-    retailerCount: Number(stats.retailer_count ?? 0) || 0,
-    productsOnDiscount: Number(stats.products_on_discount ?? 0) || 0,
-    timestamp: stats.timestamp || "",
-    snapshotGeneratedAt: stats.snapshotGeneratedAt || "",
-    source: stats.source || "proxy",
-    liveError,
-  };
+  return normalizeHealthStats(stats, liveError);
 }
 
 export async function fetchUpdateStatus() {
@@ -475,11 +574,7 @@ export async function fetchRetailers() {
     const snapshot = await fetchCatalogSnapshot();
     return { retailers: snapshot.retailers || [] };
   });
-  const list = firstArray({ products: raw.retailers || raw });
-  return list
-    .map(normalizeRetailer)
-    .filter((retailer) => retailer.country === "GR")
-    .sort((a, b) => a.name.localeCompare(b.name, "el"));
+  return normalizeRetailerResponse(raw);
 }
 
 export async function fetchCategories() {
@@ -487,11 +582,7 @@ export async function fetchCategories() {
     const snapshot = await fetchCatalogSnapshot();
     return { categories: snapshot.categories || [] };
   });
-  const list = firstArray({ products: raw.categories || raw });
-  return list
-    .map(normalizeCategory)
-    .filter((category) => category.id && category.name && category.count > 0)
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "el"));
+  return normalizeCategoryResponse(raw);
 }
 
 export async function fetchProducts({

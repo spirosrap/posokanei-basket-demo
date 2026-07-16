@@ -583,6 +583,57 @@ input:focus-visible {
   gap: 8px;
 }
 
+.daily-bargain-skeleton {
+  grid-template-columns: 72px minmax(180px, 1.2fr) minmax(220px, 1fr) 150px 104px;
+}
+
+.skeleton-block {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--faint);
+}
+
+.skeleton-block::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.35s ease-in-out infinite;
+}
+
+.skeleton-thumb {
+  width: 72px;
+  height: 72px;
+}
+
+.skeleton-copy {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 8px;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 10px;
+}
+
+.skeleton-line.medium {
+  width: 68%;
+}
+
+.skeleton-line.short {
+  width: 42%;
+}
+
+.daily-bargain-skeleton-action {
+  width: 104px;
+  height: 36px;
+}
+
 .bargains-button {
   border-color: rgba(15, 118, 110, 0.25);
   background: var(--green-soft);
@@ -877,6 +928,7 @@ input:focus-visible {
 }
 
 .panel {
+  position: relative;
   min-width: 0;
   min-height: calc(100vh - 94px);
   border: 1px solid var(--line);
@@ -888,6 +940,20 @@ input:focus-visible {
 
 .search-panel {
   border-top: 4px solid var(--blue);
+}
+
+.search-panel.is-refreshing::before {
+  position: absolute;
+  z-index: 6;
+  top: -4px;
+  left: 0;
+  width: 34%;
+  height: 4px;
+  border-radius: 8px 0 0;
+  background: #79a9f2;
+  content: "";
+  transform-origin: left;
+  animation: catalogue-progress 900ms ease-in-out infinite alternate;
 }
 
 .basket-panel {
@@ -979,6 +1045,28 @@ input:focus-visible {
   color: var(--text);
   font-size: 14px;
   font-weight: 650;
+}
+
+.search-box input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-clear {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+}
+
+.search-clear:hover {
+  background: var(--faint);
+  color: var(--text);
 }
 
 .chips {
@@ -1109,6 +1197,44 @@ input:focus-visible {
   align-items: center;
   min-height: 64px;
   padding: 8px 9px;
+}
+
+.product-row-skeleton {
+  grid-template-columns: 48px minmax(0, 1fr) 82px 36px;
+}
+
+.skeleton-product-thumb {
+  width: 48px;
+  height: 48px;
+}
+
+.skeleton-price {
+  justify-items: end;
+}
+
+.skeleton-price .skeleton-line {
+  width: 58px;
+}
+
+.skeleton-button {
+  width: 36px;
+  height: 36px;
+}
+
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes catalogue-progress {
+  from {
+    transform: translateX(0) scaleX(0.72);
+  }
+
+  to {
+    transform: translateX(194%) scaleX(1.08);
+  }
 }
 
 .product-row:hover,
@@ -3569,6 +3695,10 @@ input:focus-visible {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
+[data-theme="dark"] .skeleton-block::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
 [data-theme="dark"] .daily-bargain-copy > strong,
 [data-theme="dark"] .daily-bargain-reason p,
 [data-theme="dark"] .bargain-card-reason {
@@ -3851,6 +3981,14 @@ input:focus-visible {
     grid-template-columns: minmax(300px, 1.3fr) minmax(220px, 0.8fr) auto;
   }
 
+  .daily-bargain-skeleton {
+    grid-template-columns: 72px minmax(220px, 1fr) 150px 104px;
+  }
+
+  .daily-bargain-skeleton-reason {
+    display: none;
+  }
+
   .daily-bargain-reason {
     grid-column: 1 / 3;
     grid-row: 2;
@@ -3958,6 +4096,25 @@ input:focus-visible {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 9px;
     padding: 10px;
+  }
+
+  .daily-bargain-skeleton {
+    grid-template-columns: 56px minmax(0, 1fr) 88px;
+    min-height: 78px;
+  }
+
+  .daily-bargain-skeleton .skeleton-thumb {
+    width: 56px;
+    height: 56px;
+  }
+
+  .daily-bargain-skeleton-price {
+    display: none;
+  }
+
+  .daily-bargain-skeleton-action {
+    width: 88px;
+    height: 34px;
   }
 
   .daily-bargain-product {
@@ -4226,6 +4383,14 @@ input:focus-visible {
     grid-template-columns: minmax(0, 1fr) 78px 34px;
   }
 
+  .product-row-skeleton {
+    grid-template-columns: 48px minmax(0, 1fr) 34px;
+  }
+
+  .product-row-skeleton .skeleton-price {
+    display: none;
+  }
+
   .sort-control {
     grid-template-columns: 16px minmax(0, 1fr);
   }
@@ -4418,5 +4583,36 @@ input:focus-visible {
 
   .drawer-image-frame {
     height: clamp(170px, 28vh, 250px);
+  }
+}
+
+@media (max-width: 360px) {
+  .daily-bargain {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .daily-bargain-price,
+  .daily-bargain-actions {
+    grid-column: 1;
+  }
+
+  .daily-bargain-actions {
+    width: 100%;
+    flex-direction: row;
+  }
+
+  .daily-bargain-actions .text-button {
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .daily-bargain-skeleton {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .daily-bargain-skeleton-action {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }

@@ -8,13 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.19.0`
+**Τρέχουσα έκδοση:** `v0.20.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η έκδοση 0.19.0 με σύγκριση τιμής ανά συσκευασία ή μονάδα](screenshots/value-sort-v0.19.0.jpg)
+![Η γρήγορη έκδοση 0.20.0 στο kalathitimon.com](screenshots/performance-v0.20.0.jpg)
 
 Η βασική ιδέα είναι απλή:
 
@@ -71,6 +71,8 @@
 Η έκδοση `v0.18.0` μεταφέρει την κύρια εφαρμογή στο αποκλειστικό [kalathitimon.com](https://kalathitimon.com/). Η εφαρμογή, τα PHP API, οι εικόνες, οι ευκαιρίες και οι σύντομοι σύνδεσμοι λειτουργούν πλέον από τη ρίζα του νέου domain με HTTPS, ενώ το παλιό `/demo/posokanei-basket/` παραμένει ως συμβατό mirror. Ο ωριαίος συγχρονισμός δημοσιεύει ατομικά τον ίδιο ελεγμένο κατάλογο και στους δύο προορισμούς, ώστε παλιοί σύνδεσμοι να συνεχίσουν να ανοίγουν χωρίς να χωρίζεται η πηγή τιμών.
 
 Η έκδοση `v0.19.0` προσθέτει επιλογή ταξινόμησης προϊόντων με βάση τη χαμηλότερη τιμή συσκευασίας, την καλύτερη συγκρίσιμη τιμή ανά `kg`, `L` ή τεμάχιο, ή το όνομα. Έτσι ο χρήστης μπορεί είτε να βρει το μικρότερο άμεσο κόστος είτε να συγκρίνει δίκαια διαφορετικά μεγέθη συσκευασίας. Η ταξινόμηση εφαρμόζεται στον κατάλογο πριν από τη σελιδοποίηση και επανελέγχεται στον browser με τις ενεργές αλυσίδες ή το φίλτρο τοποθεσίας. Κάθε αποτέλεσμα δείχνει πλέον και την καλύτερη τιμή μονάδας. Το κουμπί προσθήκης λειτουργεί ως γρήγορη προσθήκη χωρίς να ανοίγει τις λεπτομέρειες και, όταν το προϊόν βρίσκεται ήδη στο καλάθι, εμφανίζει πάνω του την τρέχουσα ποσότητα. Η επιλογή ταξινόμησης αποθηκεύεται μόνο στον browser.
+
+Η έκδοση `v0.20.0` εστιάζει στην ταχύτητα και την ανθεκτικότητα. Η πρώτη οθόνη παίρνει στοιχεία καταλόγου, αλυσίδες, κατηγορίες, αρχικά προϊόντα και προϊόντα καλαθιού με ένα ενιαίο snapshot-first request, χωρίς να περιμένει τον γνωστά μπλοκαρισμένο request-time proxy. Ένας νέος συμπαγής runtime κατάλογος κρατά ακριβώς τα πεδία που χρειάζονται οι υπολογισμοί και μειώνει το JSON από περίπου `17 MB` σε `6,7 MB`, ενώ ο πλήρης δημόσιος κατάλογος παραμένει διαθέσιμος. Οι επαναλαμβανόμενες αναζητήσεις χρησιμοποιούν σύντομη browser cache, οι ταυτόχρονες ίδιες κλήσεις ενοποιούνται και παλιότερες αργές απαντήσεις δεν μπορούν να αντικαταστήσουν νεότερα αποτελέσματα. Η πληκτρολόγηση μένει άμεση με τοπικό πεδίο αναζήτησης και καθυστέρηση μόλις `180 ms` πριν από το request, οι αρχικές εικόνες υψηλής προτεραιότητας μειώνονται σε τέσσερις και σταθερά skeletons αποφεύγουν τα απότομα άλματα διάταξης. Ο χειροκίνητος και ο ωριαίος συγχρονισμός μοιράζονται πλέον lock, ώστε δύο refreshes να μην μπορούν να δημοσιεύσουν ταυτόχρονα διαφορετικές γενιές αρχείων, ενώ ο έλεγχος περιμένει περιορισμένα μέχρι να συμφωνήσουν όλα τα δημόσια timestamps. Σε ενδεικτικό PHP benchmark της έκδοσης, μία ταξινομημένη σελίδα 30 προϊόντων ολοκληρώθηκε σε περίπου `0,22 s` και αναζήτηση σε περίπου `0,14 s`· οι πραγματικοί χρόνοι εξαρτώνται από hosting και δίκτυο.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -192,7 +194,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.19.0`
+**Current version:** `v0.20.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -284,6 +286,8 @@ Version `v0.17.1` orders every product search from the lowest to the highest bes
 Version `v0.18.0` launches the primary production app at the dedicated [kalathitimon.com](https://kalathitimon.com/) domain. The React app, PHP APIs, images, bargains, and compact basket links now run from the domain root with HTTPS, while the original `/demo/posokanei-basket/` installation remains available as a compatibility mirror. The hourly refresh atomically publishes the same verified catalogue to both targets so existing links keep working without creating separate price sources.
 
 Version `v0.19.0` adds persistent product sorting by lowest package price, best comparable unit price per `kg`, `L`, or item, or product name. Package-price mode answers which product costs least right now; unit-price mode compares different pack sizes fairly. Sorting is applied to the catalogue before pagination and then reconciled in the browser with the chains currently enabled by the user or location filter. Product rows show both the best package and unit price, while the add control now performs a true quick add and displays the quantity already in the basket without opening product details.
+
+Version `v0.20.0` focuses on speed and resilience. One snapshot-first bootstrap request now returns catalogue health, chains, categories, the first product page, and basket products without waiting for the known-blocked request-time upstream proxy. A compact runtime catalogue retains exactly the pricing fields used by the app and reduces request-time JSON from roughly `17 MB` to `6.7 MB`, while the complete public snapshot remains available. Short-lived browser caching deduplicates identical requests, stale slow responses can no longer replace newer search results, and a locally controlled search field keeps typing immediate with a `180 ms` request delay. Only four initial product images receive high priority, while stable loading skeletons reduce layout movement. Manual and scheduled refreshes now share a lock so two jobs cannot publish different file generations concurrently, and bounded verification waits for all public timestamps to converge. In a reference PHP benchmark, a sorted 30-product page completed in about `0.22 s` and a search in about `0.14 s`; production timings still depend on hosting and network conditions.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -526,6 +530,12 @@ https://kalathitimon.com/
 
 ### Screenshots
 
+Version 0.20.0 performance-focused desktop and mobile interface:
+
+![Fast snapshot-first startup in Kalathi Timon 0.20.0](screenshots/performance-v0.20.0.jpg)
+
+![Responsive Kalathi Timon 0.20.0 interface](screenshots/performance-mobile-v0.20.0.jpg)
+
 Version 0.19.0 value-aware product search and basket-aware quick add:
 
 ![Value-aware sorting in Kalathi Timon 0.19.0](screenshots/value-sort-v0.19.0.jpg)
@@ -763,14 +773,26 @@ Basket rankings are computed locally in `src/pricing.js`.
 Catalogue refreshes and complete deployments use atomic FTP publishing. Each
 file is uploaded under a unique temporary name and is renamed over the public
 destination only after the transfer succeeds. The previous complete catalogue
-therefore remains available throughout the roughly 18 MB upload, avoiding the
+therefore remains available throughout the upload, avoiding the
 temporary empty catalogue that can occur when PHP reads a partially written JSON
 file.
 
+Version 0.20.0 serves ordinary catalogue reads from the synchronized snapshot first,
+so a known upstream `403` cannot add a failed network timeout to each visitor request.
+The refresh pipeline publishes both the complete `catalog.json` source snapshot and
+the smaller `catalog-runtime.json` used for request-time filtering. PHP reads the
+compact file first and falls back to the complete snapshot if it is absent or invalid.
+Small metadata requests read `catalog-meta.json` without decoding either product file.
+An exclusive refresh lock skips overlapping hourly/manual runs, expires when stale,
+and is always released after success or failure. Public verification retries a bounded
+number of times and accepts a newer complete generation only when the full snapshot,
+runtime snapshot, metadata, and successful status all carry the same timestamp.
+
 The browser complements this with bounded retries for transient network, timeout,
-rate-limit, and server failures. The full snapshot fallback allows 45 seconds for
-slow transfers, and a failed snapshot promise is removed from memory so the same
-Safari or other browser session can recover on a later action. The hourly macOS
+rate-limit, and server failures. It tries the compact snapshot before the full
+45-second fallback, removes failed snapshot promises from memory, and keeps a
+45-second response cache that also deduplicates identical in-flight calls. The same
+Safari or other browser session can therefore recover on a later action. The hourly macOS
 LaunchAgent publishes refresh status last, retains the previous daily bargain if
 its optional AI step fails, and keeps all FTP/OpenAI credentials on the local Mac.
 
@@ -786,16 +808,16 @@ The app includes a lightweight update checker:
 
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
-- `npm run catalog:snapshot` builds `public/data/catalog.json` and `public/data/catalog-meta.json` from PosoKanei API responses, creating a same-origin fallback catalogue used when the hosted PHP proxy is blocked by the upstream API.
-- `npm run live:refresh` builds a fresh script-created snapshot into `dist/data/catalog.json`, writes `dist/data/catalog-meta.json`, uploads the data files to the live FTP path, and verifies the public `catalog`, `metadata`, and `refresh-status` timestamps.
-- Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded 18 MB catalogue.
+- `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, and the compact `public/data/catalog-runtime.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file from an existing full snapshot.
+- `npm run live:refresh` builds fresh full, metadata, and runtime catalogues under `dist/data/`, uploads them to the live FTP path, and verifies the public `catalog`, `runtime`, `metadata`, and `refresh-status` timestamps.
+- Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - The snapshot builder uses a browser-like request header by default because the upstream API can reject obvious automation `User-Agent` values with `HTTP 403`. `POSOKANEI_USER_AGENT` can override that header if the upstream rules change again.
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts an interactive login shell so the existing private local OpenAI environment is available to the once-daily bargain step; the key is never uploaded.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
-- Browser catalogue requests retry short network/server failures. The large snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
+- Browser catalogue requests retry short network/server failures. The compact runtime snapshot is attempted first; the large full-snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
@@ -825,7 +847,7 @@ shell/LaunchAgent environment. It defaults to `OPENAI_BARGAIN_MODEL=gpt-5.6-sol`
 `OPENAI_BARGAIN_REASONING=high`, and `POSOKANEI_BARGAIN_TIME_ZONE=Europe/Athens`.
 Do not put the key in Plesk, `public/`, `dist/`, committed files, or browser code.
 
-If the current machine cannot reach `api.posokanei.gov.gr`, set `POSOKANEI_REFRESH_HOST` to a trusted SSH host that can reach it. The remote host only builds `catalog.json` and `catalog-meta.json`; upload credentials stay local.
+If the current machine cannot reach `api.posokanei.gov.gr`, set `POSOKANEI_REFRESH_HOST` to a trusted SSH host that can reach it. The remote host only builds `catalog.json`, `catalog-meta.json`, and `catalog-runtime.json`; upload credentials stay local.
 
 To install the hourly refresh job on macOS:
 
@@ -867,13 +889,13 @@ DEPLOY_INCLUDE_DATA=1 npm run live:deploy
 ### Limitations
 
 - The live API adapter is best-effort because the PosoKanei API does not appear to have public documentation.
-- As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live demo uses the latest script-built `data/catalog.json` snapshot from PosoKanei API data and shows that state in the UI. This means generated by the refresh script, not AI-generated.
-- The UI paginates the official catalog; it does not render all 8k+ products at once.
+- As of 2026-06-23, request-time production proxies tested on Plesk, Vercel, and Cloudflare are upstream-blocked with `HTTP 403`; the live app therefore uses the latest script-built PosoKanei snapshot and serves ordinary reads from its compact `data/catalog-runtime.json`. The full `data/catalog.json` remains the source fallback. Both files are generated by the refresh script from public catalogue data, not generated by AI.
+- The UI paginates the official catalogue; it does not render all products at once.
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price within the location-eligible chains, but the optimizer does not yet include route time, parking, delivery fees, or road distance.
 - It does not handle delivery fees, loyalty cards, substitutions, coupons, or in-store stock; geographic eligibility depends on OpenStreetMap branch coverage and naming.
 - The daily bargain compares current prices across chains; without historical price data it must not be interpreted as proof of a previous-price discount.
-- Production use should add caching, API rate limiting, error telemetry, and an explicit policy check for upstream API usage.
+- A larger public deployment should add centralized error telemetry, request rate limiting, and an explicit policy check for upstream API usage.
 
 ### License
 

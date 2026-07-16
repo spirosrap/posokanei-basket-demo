@@ -10,14 +10,32 @@ if ($resource === 'image' || $resource === 'retailer-image') {
     return;
 }
 
+if (extension_loaded('zlib') && !ini_get('zlib.output_compression')) {
+    ob_start('ob_gzhandler');
+}
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=60, stale-while-revalidate=300');
 header('Access-Control-Allow-Origin: *');
 
-if ($resource === 'products-by-ids') {
-    if (emit_snapshot_json($resource, $_GET)) {
-        return;
-    }
+$snapshotFirstResources = [
+    'bootstrap',
+    'stats',
+    'retailers',
+    'categories',
+    'category-tree',
+    'products',
+    'products-by-ids',
+    'search',
+    'barcode',
+    'product',
+];
+
+if (in_array($resource, $snapshotFirstResources, true) && emit_snapshot_json($resource, $_GET)) {
+    return;
+}
+
+if ($resource === 'bootstrap' || $resource === 'products-by-ids') {
     http_response_code(503);
     echo json_encode(['error' => 'snapshot_unavailable'], JSON_UNESCAPED_UNICODE);
     return;
@@ -242,6 +260,7 @@ function placeholder_svg(string $label): string
 
 function emit_snapshot_json(string $resource, array $request): bool
 {
+    $started = microtime(true);
     try {
         $payload = snapshot_payload($resource, $request);
         if ($payload === null) {
@@ -249,6 +268,7 @@ function emit_snapshot_json(string $resource, array $request): bool
         }
 
         header('X-Posokanei-Source: snapshot');
+        header('Server-Timing: snapshot;dur=' . number_format((microtime(true) - $started) * 1000, 1, '.', ''));
         http_response_code(200);
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         return true;
@@ -259,6 +279,10 @@ function emit_snapshot_json(string $resource, array $request): bool
 
 function snapshot_payload(string $resource, array $request): ?array
 {
+    if ($resource === 'bootstrap') {
+        return snapshot_bootstrap_payload($request);
+    }
+
     if (in_array($resource, ['stats', 'retailers', 'categories', 'category-tree'], true)) {
         $meta = read_snapshot_meta();
         if (!is_array($meta)) {
@@ -316,12 +340,11 @@ function snapshot_payload(string $resource, array $request): ?array
 function read_snapshot_meta(): ?array
 {
     $meta = read_json_file(__DIR__ . '/../data/catalog-meta.json');
-    $snapshot = read_snapshot();
-
     if (is_array($meta)) {
-        return is_array($snapshot) ? reconcile_snapshot_meta($meta, $snapshot) : $meta;
+        return $meta;
     }
 
+    $snapshot = read_snapshot();
     if (!is_array($snapshot)) {
         return null;
     }
@@ -333,6 +356,75 @@ function read_snapshot_meta(): ?array
         'categories' => $snapshot['categories'] ?? [],
         'retailers' => $snapshot['retailers'] ?? [],
     ], $snapshot);
+}
+
+function snapshot_bootstrap_payload(array $request): ?array
+{
+    $snapshot = read_snapshot();
+    if (!is_array($snapshot)) {
+        return null;
+    }
+
+    $meta = read_snapshot_meta();
+    if (!is_array($meta)) {
+        $meta = [
+            'generated_at' => $snapshot['generated_at'] ?? '',
+            'source' => $snapshot['source'] ?? POSOKANEI_API,
+            'stats' => $snapshot['stats'] ?? [],
+            'categories' => $snapshot['categories'] ?? [],
+            'retailers' => $snapshot['retailers'] ?? [],
+        ];
+    }
+    $meta = reconcile_snapshot_meta($meta, $snapshot);
+
+    $productRequest = $request;
+    $productRequest['page'] = '1';
+    $productRequest['page_size'] = (string) clean_int($request['page_size'] ?? null, 30, 1, 60);
+    $productPayload = snapshot_products_payload($snapshot, 'products', $productRequest);
+
+    $basketProducts = [];
+    if (clean_string($request['ids'] ?? '', 4000) !== '') {
+        $basketPayload = snapshot_products_payload($snapshot, 'products-by-ids', $request);
+        $basketProducts = first_array(['products' => $basketPayload['products'] ?? []]);
+    }
+
+    $stats = is_array($meta['stats'] ?? null) ? $meta['stats'] : [];
+    $retailers = first_array(['products' => $meta['retailers'] ?? []]);
+    $retailers = array_values(array_filter($retailers, static function ($retailer): bool {
+        return strtoupper((string) ($retailer['country'] ?? 'GR')) === 'GR';
+    }));
+
+    $categories = first_array(['products' => $meta['categories'] ?? []]);
+    $categories = array_values(array_filter($categories, static function ($category): bool {
+        return (int) ($category['product_count'] ?? $category['total_product_count'] ?? 0) > 0;
+    }));
+    usort($categories, static function ($left, $right): int {
+        $countOrder = (int) ($right['product_count'] ?? $right['total_product_count'] ?? 0)
+            <=> (int) ($left['product_count'] ?? $left['total_product_count'] ?? 0);
+        if ($countOrder !== 0) return $countOrder;
+        return strcoll(
+            (string) ($left['category_name'] ?? $left['name'] ?? ''),
+            (string) ($right['category_name'] ?? $right['name'] ?? '')
+        );
+    });
+    $categoryLimit = clean_int($request['category_limit'] ?? null, 80, 1, 120);
+    $generatedAt = (string) ($meta['generated_at'] ?? $snapshot['generated_at'] ?? '');
+
+    return [
+        'stats' => array_merge($stats, [
+            'total_products' => (int) ($stats['total_products'] ?? count($snapshot['products'] ?? [])),
+            'active_products' => (int) ($stats['active_products'] ?? $stats['total_products'] ?? count($snapshot['products'] ?? [])),
+            'retailer_count' => (int) ($stats['retailer_count'] ?? count($retailers)),
+            'source' => 'snapshot',
+            'snapshot_generated_at' => $generatedAt,
+        ]),
+        'retailers' => $retailers,
+        'categories' => array_slice($categories, 0, $categoryLimit),
+        'products' => $productPayload,
+        'basket_products' => $basketProducts,
+        'source' => 'snapshot',
+        'snapshot_generated_at' => $generatedAt,
+    ];
 }
 
 function reconcile_snapshot_meta(array $meta, array $snapshot): array
@@ -370,6 +462,11 @@ function reconcile_snapshot_meta(array $meta, array $snapshot): array
 
 function read_snapshot(): ?array
 {
+    $runtimePath = __DIR__ . '/../data/catalog-runtime.json';
+    if (is_file($runtimePath)) {
+        $runtime = read_json_file($runtimePath);
+        if (is_array($runtime)) return $runtime;
+    }
     return read_json_file(__DIR__ . '/../data/catalog.json');
 }
 
@@ -479,22 +576,19 @@ function snapshot_products_payload(array $snapshot, string $resource, array $req
         return text_contains(snapshot_product_text($product), $title);
     }));
 
-    usort($filtered, static function ($a, $b) use ($request): int {
-        $sortBy = clean_sort($request['sort_by'] ?? 'name', ['name', 'price_asc', 'unit_price'], 'name');
-        $sortOrder = clean_sort($request['sort_order'] ?? 'asc', ['asc', 'desc'], 'asc');
-        if ($sortBy === 'price_asc' || $sortBy === 'unit_price') {
-            $left = $sortBy === 'unit_price'
-                ? snapshot_min_unit_price($a)
-                : snapshot_min_price($a);
-            $right = $sortBy === 'unit_price'
-                ? snapshot_min_unit_price($b)
-                : snapshot_min_price($b);
-            $result = $left <=> $right;
-        } else {
-            $result = strcoll((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
-        }
-        return $sortOrder === 'desc' ? -$result : $result;
-    });
+    $sortBy = clean_sort($request['sort_by'] ?? 'name', ['name', 'price_asc', 'unit_price'], 'name');
+    $sortOrder = clean_sort($request['sort_order'] ?? 'asc', ['asc', 'desc'], 'asc');
+    $direction = $sortOrder === 'desc' ? SORT_DESC : SORT_ASC;
+    $names = array_map(static fn($product): string => (string) ($product['name'] ?? ''), $filtered);
+    if ($sortBy === 'price_asc' || $sortBy === 'unit_price') {
+        $sortValues = array_map(
+            $sortBy === 'unit_price' ? 'snapshot_min_unit_price' : 'snapshot_min_price',
+            $filtered
+        );
+        array_multisort($sortValues, $direction, SORT_NUMERIC, $names, SORT_ASC, SORT_LOCALE_STRING, $filtered);
+    } else {
+        array_multisort($names, $direction, SORT_LOCALE_STRING, $filtered);
+    }
 
     $total = count($filtered);
     $totalPages = max(1, (int) ceil($total / $pageSize));
@@ -590,6 +684,8 @@ function lower_text(string $value): string
 
 function snapshot_min_price(array $product): float
 {
+    $stored = (float) ($product['min_price'] ?? 0);
+    if ($stored > 0 && is_finite($stored)) return $stored;
     $prices = first_array([
         'products' => $product['retailer_prices']
             ?? $product['prices']
@@ -609,6 +705,8 @@ function snapshot_min_price(array $product): float
 
 function snapshot_min_unit_price(array $product): float
 {
+    $stored = (float) ($product['min_unit_price'] ?? 0);
+    if ($stored > 0 && is_finite($stored)) return $stored;
     $prices = first_array([
         'products' => $product['retailer_prices']
             ?? $product['prices']
