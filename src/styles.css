@@ -1509,21 +1509,41 @@ input:focus-visible {
 
 .extra-stop-buttons {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .extra-stop-buttons button {
+  display: grid;
   min-width: 0;
-  height: 30px;
+  min-height: 50px;
+  align-content: center;
+  gap: 3px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface);
   color: var(--muted);
-  padding: 0 3px;
-  font-size: 10px;
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.extra-stop-buttons button > span {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
   font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.extra-stop-buttons button > small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1531,7 +1551,12 @@ input:focus-visible {
 .extra-stop-buttons button.active {
   border-color: transparent;
   background: var(--green-dark);
-  color: var(--surface);
+  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.18);
+}
+
+.extra-stop-buttons button.active > span,
+.extra-stop-buttons button.active > small {
+  color: #ffffff;
 }
 
 .extra-stop-estimate > p {
@@ -1590,6 +1615,45 @@ input:focus-visible {
   font-size: 10px;
   font-weight: 750;
   line-height: 1.35;
+}
+
+.practical-recommendation .recommendation-insight {
+  margin-top: 7px;
+  border-top: 1px solid rgba(15, 118, 110, 0.18);
+  color: var(--green-dark);
+  padding-top: 6px;
+  font-weight: 850;
+}
+
+.recommendation-action,
+.recommendation-selected {
+  grid-column: 2;
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+  margin-top: 1px;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.recommendation-action {
+  border: 1px solid var(--green-dark);
+  background: var(--green-dark);
+  color: #ffffff;
+}
+
+.recommendation-action:hover {
+  background: #0b625c;
+}
+
+.recommendation-selected {
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  color: var(--green-dark);
 }
 
 .retailer-filter-box {
@@ -3043,6 +3107,16 @@ input:focus-visible {
   border-color: rgba(72, 215, 176, 0.28);
   background: #132821;
   color: var(--green-dark);
+}
+
+[data-theme="dark"] .extra-stop-buttons button.active > span,
+[data-theme="dark"] .extra-stop-buttons button.active > small,
+[data-theme="dark"] .recommendation-action {
+  color: #071b15;
+}
+
+[data-theme="dark"] .recommendation-action:hover {
+  background: #6de3c2;
 }
 
 [data-theme="dark"] .location-filter-status {

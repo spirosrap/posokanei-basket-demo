@@ -89,7 +89,6 @@ import {
 } from "./theme";
 import {
   calculateStopComparison,
-  EXTRA_STOP_COST_OPTIONS,
   getInitialExtraStopCost,
   saveExtraStopCost,
 } from "./stopComparison";
@@ -123,6 +122,12 @@ const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE
 const IMAGE_PROXY_BASE = import.meta.env.DEV
   ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
   : `${APP_BASE_PATH}api/posokanei.php`;
+const SHOPPING_PRIORITY_OPTIONS = [
+  { value: 0, labelKey: "priorityLowestPrice" },
+  { value: 2, labelKey: "prioritySmallDetour" },
+  { value: 5, labelKey: "priorityBalanced" },
+  { value: 10, labelKey: "priorityFewerStops" },
+];
 
 const RETAILER_LOGO_FALLBACKS = {
   ab_vasilopoulos: ["https://static.ab.gr/static/next/images/logo_header_ab_gr.svg"],
@@ -2393,8 +2398,26 @@ function StopComparisonControl({
   extraStopCost,
   setExtraStopCost,
 }) {
-  const { money, t } = usePreferences();
+  const { money, number, t } = usePreferences();
   const recommended = comparison.recommended;
+  const recommendedIsSelected = recommended?.limit === maxChains;
+  const recommendedSavingsPercent =
+    recommended?.savingsVsOneStop != null && comparison.oneStopTotal
+      ? Math.round((recommended.savingsVsOneStop / comparison.oneStopTotal) * 100)
+      : null;
+  const recommendationInsight = !recommended
+    ? null
+    : comparison.oneStopTotal == null
+      ? t("recommendationCoverageInsight", {
+          stops: number(recommended.actualStops),
+        })
+      : recommended.extraStops === 0
+        ? t("recommendationOneStopInsight")
+        : t("recommendationSavingsInsight", {
+            amount: money(recommended.savingsVsOneStop),
+            percent: number(recommendedSavingsPercent),
+            perStop: money(recommended.savingsPerExtraStop),
+          });
   return (
     <section className="stop-comparison" aria-labelledby="stop-comparison-title">
       <div className="stop-comparison-heading">
@@ -2459,7 +2482,7 @@ function StopComparisonControl({
           </span>
         </div>
         <div className="extra-stop-buttons" role="group" aria-label={t("extraStopCostOptions")}>
-          {EXTRA_STOP_COST_OPTIONS.map((value) => (
+          {SHOPPING_PRIORITY_OPTIONS.map(({ value, labelKey }) => (
             <button
               key={value}
               type="button"
@@ -2467,7 +2490,13 @@ function StopComparisonControl({
               aria-pressed={extraStopCost === value}
               onClick={() => setExtraStopCost(value)}
             >
-              {money(value)}
+              <span>{t(labelKey)}</span>
+              <small>
+                {t("priorityThreshold", {
+                  amount: money(value),
+                  isFree: value === 0,
+                })}
+              </small>
             </button>
           ))}
         </div>
@@ -2493,16 +2522,36 @@ function StopComparisonControl({
               <span>
                 {t("recommendationMath", {
                   groceries: money(recommended.groceryTotal),
-                  extraStops: Math.max(0, recommended.actualStops - 1),
+                  extraStops: recommended.extraStops,
                   perStop: money(extraStopCost),
                   effective: money(recommended.effectiveTotal),
                 })}
               </span>
+              {recommendationInsight ? (
+                <span className="recommendation-insight">{recommendationInsight}</span>
+              ) : null}
             </>
           ) : (
             <strong>{t("recommendationNeedsBasket")}</strong>
           )}
         </span>
+        {recommended ? (
+          recommendedIsSelected ? (
+            <span className="recommendation-selected">
+              <Check size={13} aria-hidden="true" />
+              {t("recommendationSelected")}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="recommendation-action"
+              onClick={() => setMaxChains(recommended.limit)}
+            >
+              <Check size={14} aria-hidden="true" />
+              {t("applyRecommendation")}
+            </button>
+          )
+        ) : null}
       </div>
     </section>
   );

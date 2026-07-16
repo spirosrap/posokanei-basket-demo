@@ -24,11 +24,21 @@ test("core interface text and dynamic values are translated", () => {
   );
   assert.match(
     translate("el", "extraStopEstimateNote", { amount: "5,00 €", isFree: false }),
-    /κάθε επιπλέον supermarket.*πάνω από 5,00 €.*λιγότερες στάσεις/,
+    /επιπλέον στάση.*τουλάχιστον 5,00 €/,
   );
   assert.match(
     translate("en", "extraStopEstimateNote", { amount: "€5.00", isFree: false }),
-    /each extra supermarket.*more than €5.00.*fewer stops/,
+    /another stop.*at least €5.00/i,
+  );
+  assert.equal(translate("el", "priorityBalanced"), "Ισορροπία");
+  assert.equal(translate("en", "priorityFewerStops"), "Fewer stops");
+  assert.match(
+    translate("el", "recommendationSavingsInsight", {
+      amount: "14,96 €",
+      percent: "11",
+      perStop: "14,96 €",
+    }),
+    /14,96 € \(11%\).*14,96 € ανά επιπλέον supermarket/,
   );
   assert.match(
     translate("el", "locationFilterActive", { count: "4", radius: "2χλμ." }),

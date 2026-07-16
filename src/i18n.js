@@ -152,20 +152,34 @@ const messages = {
     sameAsOneStop: "Ίδιο με 1 στάση",
     recommended: "Πρόταση",
     selectStopPlan: ({ stops, total }) => `Επιλογή ${stops}, σύνολο ${total}`,
-    extraStopEstimate: "Πότε αξίζει άλλη στάση;",
+    extraStopEstimate: "Τι προτιμάς στα ψώνια σου;",
     extraStopEstimateHelp:
-      "Διάλεξε πόσα πρέπει να γλιτώσεις ανά επιπλέον supermarket.",
-    extraStopCostOptions: "Ελάχιστη εξοικονόμηση ανά επιπλέον supermarket",
+      "Διάλεξε προτεραιότητα και η εφαρμογή υπολογίζει πότε αξίζει άλλη στάση.",
+    extraStopCostOptions: "Προτεραιότητα αγορών",
+    priorityLowestPrice: "Χαμηλότερη τιμή",
+    prioritySmallDetour: "Μικρή παράκαμψη",
+    priorityBalanced: "Ισορροπία",
+    priorityFewerStops: "Λιγότερες στάσεις",
+    priorityThreshold: ({ amount, isFree }) =>
+      isFree ? "Κάθε εξοικονόμηση μετρά" : `≥ ${amount} κέρδος / στάση`,
     extraStopEstimateNote: ({ amount, isFree }) =>
       isFree
-        ? "Με 0 €: προτείνεται το φθηνότερο πλάνο, ακόμη κι αν χρειάζεται περισσότερες στάσεις. Δεν αλλάζει το σύνολο αγορών."
-        : `Με ${amount}: κάθε επιπλέον supermarket πρέπει να σου γλιτώνει πάνω από ${amount} στα προϊόντα. Αλλιώς προτείνονται λιγότερες στάσεις. Δεν αλλάζει το σύνολο αγορών.`,
+        ? "Προτείνεται το απολύτως φθηνότερο σύνολο, ακόμη κι αν χρειάζεται περισσότερες στάσεις."
+        : `Μια επιπλέον στάση προτείνεται μόνο όταν μειώνει τα προϊόντα κατά τουλάχιστον ${amount}.`,
     practicalChoice: "Πρακτική πρόταση",
     recommendStopLimit: ({ stops }) => `Προτείνονται ${stops}`,
     recommendationMath: ({ groceries, extraStops, perStop, effective }) =>
       extraStops === 0
         ? `Προϊόντα ${groceries} · χωρίς επιπλέον στάση = ${effective}`
         : `Προϊόντα ${groceries} + ${extraStops} ${extraStops === 1 ? "επιπλέον στάση" : "επιπλέον στάσεις"} × ${perStop} = πρακτικό κόστος ${effective}`,
+    recommendationSavingsInsight: ({ amount, percent, perStop }) =>
+      `Κέρδος ${amount} (${percent}%) από τη μία στάση · ${perStop} ανά επιπλέον supermarket.`,
+    recommendationOneStopInsight:
+      "Με αυτή την προτεραιότητα, μία στάση είναι η πρακτικότερη επιλογή.",
+    recommendationCoverageInsight: ({ stops }) =>
+      `Καμία αλυσίδα δεν έχει όλη τη λίστα. Η πρώτη πλήρης επιλογή χρειάζεται ${stops} στάσεις.`,
+    applyRecommendation: "Χρήση πρότασης",
+    recommendationSelected: "Το πλάνο είναι επιλεγμένο",
     recommendationNeedsBasket: "Φτιάξε καλάθι για να συγκρίνεις τις στάσεις.",
     retailersInCalculation: "Αλυσίδες στον υπολογισμό",
     nearbyRetailersInCalculation: "Κοντινές αλυσίδες στον υπολογισμό",
@@ -445,20 +459,34 @@ const messages = {
     sameAsOneStop: "Same as one stop",
     recommended: "Best fit",
     selectStopPlan: ({ stops, total }) => `Select ${stops}, total ${total}`,
-    extraStopEstimate: "When is another stop worth it?",
+    extraStopEstimate: "What matters most for this trip?",
     extraStopEstimateHelp:
-      "Choose the minimum grocery saving needed per extra supermarket.",
-    extraStopCostOptions: "Minimum saving per extra supermarket",
+      "Choose a priority and the app decides when another stop is worthwhile.",
+    extraStopCostOptions: "Shopping priority",
+    priorityLowestPrice: "Lowest price",
+    prioritySmallDetour: "Small detour",
+    priorityBalanced: "Balanced",
+    priorityFewerStops: "Fewer stops",
+    priorityThreshold: ({ amount, isFree }) =>
+      isFree ? "Every saving counts" : `Save ≥ ${amount} / stop`,
     extraStopEstimateNote: ({ amount, isFree }) =>
       isFree
-        ? "At €0: the lowest grocery total is recommended, even when it needs more stops. This never changes the grocery total."
-        : `At ${amount}: each extra supermarket must save you more than ${amount} on groceries. Otherwise, fewer stops are recommended. This never changes the grocery total.`,
+        ? "The absolute lowest grocery total is recommended, even when it needs more stops."
+        : `Another stop is recommended only when it reduces the grocery total by at least ${amount}.`,
     practicalChoice: "Practical recommendation",
     recommendStopLimit: ({ stops }) => `Choose ${stops}`,
     recommendationMath: ({ groceries, extraStops, perStop, effective }) =>
       extraStops === 0
         ? `Groceries ${groceries} · no extra stop = ${effective}`
         : `Groceries ${groceries} + ${extraStops} extra ${extraStops === 1 ? "stop" : "stops"} × ${perStop} = practical cost ${effective}`,
+    recommendationSavingsInsight: ({ amount, percent, perStop }) =>
+      `Save ${amount} (${percent}%) against one stop · ${perStop} per extra supermarket.`,
+    recommendationOneStopInsight:
+      "With this priority, one stop is the most practical choice.",
+    recommendationCoverageInsight: ({ stops }) =>
+      `No chain carries the full list. The first complete option needs ${stops} stops.`,
+    applyRecommendation: "Use recommendation",
+    recommendationSelected: "Plan selected",
     recommendationNeedsBasket: "Build a basket to compare stop limits.",
     retailersInCalculation: "Chains in calculation",
     nearbyRetailersInCalculation: "Nearby chains in calculation",

@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.11.0`
+**Τρέχουσα έκδοση:** `v0.12.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -46,6 +46,8 @@
 
 Η έκδοση `v0.11.0` εστιάζει στην ταχύτερη κατανόηση και χρήση. Στο κινητό συμπτύσσονται η κεφαλίδα, η εισαγωγή και η καθημερινή ευκαιρία, ώστε ο επιλογέας «Προϊόντα / Καλάθι / Πλάνο» και το πραγματικό αποτέλεσμα να εμφανίζονται ήδη στην πρώτη οθόνη. Το πλήθος προϊόντων μένει δίπλα στον τίτλο, οι δευτερεύουσες ενέργειες του καλαθιού γίνονται πιο συμπαγείς και κάθε κύρια ενότητα αποκτά ξεχωριστή χρωματική ταυτότητα. Στο πλάνο, η πρακτική πρόταση εμφανίζεται πριν από τις προαιρετικές ρυθμίσεις τοποθεσίας και αλυσίδων.
 
+Η έκδοση `v0.12.0` αντικαθιστά τη δυσνόητη αριθμητική εκτίμηση ανά στάση με τέσσερις κατανοητές προτεραιότητες: «Χαμηλότερη τιμή», «Μικρή παράκαμψη», «Ισορροπία» και «Λιγότερες στάσεις». Η πρακτική πρόταση δείχνει πλέον το συνολικό ποσοστό κέρδους, το κέρδος ανά επιπλέον supermarket και προσφέρει άμεσο κουμπί εφαρμογής του προτεινόμενου πλάνου.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Γλώσσα και θέμα εμφάνισης
@@ -64,9 +66,9 @@
 
 Η έκδοση `v0.11.0` μειώνει ακόμη περισσότερο τον χώρο πριν από το κύριο εργαλείο στο κινητό. Το GitHub και οι δευτερεύουσες ενέργειες χρησιμοποιούν αναγνωρίσιμα εικονίδια, η καθημερινή ευκαιρία κρατά μόνο τα στοιχεία που χρειάζονται για γρήγορη απόφαση και το «Νέο καλάθι» παραμένει καθαρά ορατό κάτω από τις συμπαγείς ενέργειες λίστας. Οι μπλε, πράσινες και πορτοκαλί λεπτομέρειες ξεχωρίζουν αντίστοιχα Προϊόντα, Καλάθι και Πλάνο χωρίς να αλλάζουν τη λειτουργική πυκνότητα της desktop διάταξης. Η σύντομη περιγραφή σκοπού εξηγεί πλέον άμεσα ότι το αποτέλεσμα αφορά ολόκληρο το καλάθι.
 
-![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.11.0](screenshots/desktop.png)
+![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.12.0 με προτεραιότητες αγορών](screenshots/desktop.png)
 
-![Mobile workspace με άμεση επιλογή Προϊόντων, Καλαθιού και Πλάνου](screenshots/mobile.png)
+![Mobile πλάνο με προτεραιότητες αγορών και πρακτική πρόταση](screenshots/mobile.png)
 
 ### Επιλογή αλυσίδων και πρακτικό πλάνο
 
@@ -140,7 +142,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.11.0`
+**Current version:** `v0.12.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -170,7 +172,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Highlight the cheapest complete one-stop basket.
 - Optimize the basket for up to `1`, `2`, `3`, or `4` supermarket stops.
 - Compare the cheapest complete totals for all four stop limits at the same time.
-- Estimate the time, fuel, or fare cost of each extra stop and highlight a practical recommendation without changing grocery prices.
+- Choose a plain-language shopping priority, from lowest price to fewer stops, without changing grocery prices.
+- See total percentage savings and savings per extra supermarket, then apply the practical recommendation in one action.
 - Show which products to buy from each chain in a multi-stop plan.
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
@@ -201,6 +204,8 @@ Version `v0.7.0` turns the result into a practical shopping companion: every ass
 Version `v0.8.0` adds an in-store shopping mode with remaining spend, per-chain progress, whole-stop completion, an unfinished-items view, and a Google Maps route that automatically skips completed supermarkets.
 
 Version `v0.11.0` makes the decision path faster to read and use. On mobile, the header, purpose copy, and daily bargain use less vertical space so the `Products / Basket / Plan` switcher and the actual result reach the first screen. The basket count stays beside the brand, secondary basket actions become compact, and Products, Basket, and Plan receive distinct visual identities. In the Plan panel, the practical recommendation now appears before optional location and supermarket settings.
+
+Version `v0.12.0` replaces the abstract per-stop estimate with four understandable shopping priorities: `Lowest price`, `Small detour`, `Balanced`, and `Fewer stops`. The recommendation now states the total percentage saved, the saving per additional supermarket, and includes a one-action control for selecting the recommended plan. The underlying grocery totals and optimizer are unchanged, and the priority remains a local browser preference rather than PosoKanei price data.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
@@ -237,9 +242,9 @@ green, and amber accents distinguish Products, Basket, and Plan while preserving
 dense desktop workspace. The shorter purpose copy now states directly that the app
 finds the cheapest complete plan for the whole basket.
 
-![Redesigned version 0.11.0 desktop workspace](screenshots/desktop.png)
+![Redesigned version 0.12.0 desktop workspace with shopping priorities](screenshots/desktop.png)
 
-![Mobile workspace switcher for Products, Basket, and Plan](screenshots/mobile.png)
+![Mobile plan with shopping priorities and an actionable recommendation](screenshots/mobile.png)
 
 ### Supermarket Selection and Practical Plans
 
@@ -426,14 +431,13 @@ Mobile English interface with Dark appearance:
 
 ![Mobile English interface using the dark appearance](screenshots/english-dark-mobile.png)
 
-Desktop homepage, with the featured daily product and the new
-`Περισσότερες ευκαιρίες` entry point:
+Desktop workspace with shopping priorities and the featured daily product:
 
-![Desktop app with the featured daily bargain and more-bargains button](screenshots/desktop.png)
+![Desktop app with shopping priorities and the featured daily bargain](screenshots/desktop.png)
 
-Mobile homepage:
+Mobile shopping-priority recommendation:
 
-![Mobile app with the featured daily bargain](screenshots/mobile.png)
+![Mobile app with shopping priorities and a selected practical plan](screenshots/mobile.png)
 
 Expanded AI-assisted bargains on desktop and mobile:
 

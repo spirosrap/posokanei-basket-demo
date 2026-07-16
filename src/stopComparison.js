@@ -55,17 +55,25 @@ export function calculateStopComparison(
   });
 
   const oneStopTotal = options[0]?.groceryTotal ?? null;
-  const enrichedOptions = options.map((option) => ({
-    ...option,
-    savingsVsOneStop:
+  const enrichedOptions = options.map((option) => {
+    const extraStops = Math.max(0, option.actualStops - 1);
+    const savingsVsOneStop =
       oneStopTotal == null || option.groceryTotal == null
         ? null
-        : Math.max(0, oneStopTotal - option.groceryTotal),
-    netSavingsVsOneStop:
+        : Math.max(0, oneStopTotal - option.groceryTotal);
+
+    return {
+      ...option,
+      extraStops,
+      savingsVsOneStop,
+      savingsPerExtraStop:
+        savingsVsOneStop == null ? null : extraStops ? savingsVsOneStop / extraStops : 0,
+      netSavingsVsOneStop:
       oneStopTotal == null || option.effectiveTotal == null
         ? null
         : oneStopTotal - option.effectiveTotal,
-  }));
+    };
+  });
   const recommended = [...enrichedOptions]
     .filter((option) => option.isComplete)
     .sort((a, b) => {

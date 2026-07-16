@@ -26,6 +26,8 @@ test("compares every stop limit against the same one-stop baseline", () => {
   assert.equal(comparison.oneStopTotal, 10);
   assert.equal(comparison.options[1].groceryTotal, 6);
   assert.equal(comparison.options[1].savingsVsOneStop, 4);
+  assert.equal(comparison.options[1].extraStops, 1);
+  assert.equal(comparison.options[1].savingsPerExtraStop, 4);
   assert.equal(comparison.recommended.limit, 2);
   assert.equal(comparison.recommended.actualStops, 2);
 });
