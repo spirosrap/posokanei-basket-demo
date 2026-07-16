@@ -190,7 +190,14 @@ const savedBasket = () => {
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_DEMO_BASKET;
     if (isKnownDemoBasket(parsed)) return DEFAULT_DEMO_BASKET;
-    return parsed;
+    const normalized = parsed.flatMap((entry) => {
+      const productId = String(entry?.productId ?? "").trim();
+      const quantity = roundQuantity(entry?.quantity);
+      return productId && quantity > 0 && quantity <= 999
+        ? [{ productId, quantity }]
+        : [];
+    });
+    return normalized.length ? normalized : DEFAULT_DEMO_BASKET;
   } catch {
     return DEFAULT_DEMO_BASKET;
   }
@@ -658,11 +665,11 @@ function AppContent() {
       if (found) {
         return current.map((entry) =>
           entry.productId === product.id
-            ? { ...entry, quantity: roundQuantity(entry.quantity + quantityStep(product)) }
+            ? { ...entry, quantity: roundQuantity(entry.quantity + quantityStep()) }
             : entry,
         );
       }
-      return [...current, { productId: product.id, quantity: quantityStep(product) }];
+      return [...current, { productId: product.id, quantity: quantityStep() }];
     });
     setSelectedProduct(product);
   };
@@ -2102,7 +2109,7 @@ function SavedBasketsDialog({
 
 function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
   const { money, t } = usePreferences();
-  const step = quantityStep(product);
+  const step = quantityStep();
   const bestPrice = planItem?.price ?? null;
   return (
     <article className="basket-item">
@@ -2124,7 +2131,11 @@ function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
         </button>
         <input
           value={quantity}
-          inputMode="decimal"
+          type="number"
+          inputMode="numeric"
+          min="1"
+          max="999"
+          step="1"
           onChange={(event) => onQuantity(product, Number(event.target.value))}
           aria-label={t("quantity", { name: product.name })}
         />
@@ -3463,8 +3474,8 @@ function EmptyBasket() {
   );
 }
 
-function quantityStep(product) {
-  return product?.unit === "kg" ? 0.5 : 1;
+function quantityStep() {
+  return 1;
 }
 
 function formatCoverageSentence(count, t) {
@@ -3584,7 +3595,7 @@ function buildPlanAssignmentMap(plan) {
 }
 
 function roundQuantity(value) {
-  return Math.round(value * 10) / 10;
+  return Math.round(Number(value) || 0);
 }
 
 export default App;

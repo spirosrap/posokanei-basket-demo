@@ -31,7 +31,7 @@ function normalizeBasket(entries) {
     if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 999) {
       throw new Error("invalid_saved_basket_quantity");
     }
-    items.set(productId, Math.round(quantity * 1000) / 1000);
+    items.set(productId, Math.max(1, Math.round(quantity)));
   });
   return [...items].map(([productId, quantity]) => ({ productId, quantity }));
 }

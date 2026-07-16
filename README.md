@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.14.0`
+**Τρέχουσα έκδοση:** `v0.14.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -51,6 +51,8 @@
 Η έκδοση `v0.13.0` εξηγεί από πού προκύπτει η εξοικονόμηση του επιλεγμένου πλάνου. Συγκρίνει κάθε προϊόν με το φθηνότερο πλήρες καλάθι μίας στάσης, προβάλλει τα προϊόντα που συνεισφέρουν περισσότερο στο κέρδος και συμφωνεί το άθροισμά τους με τη συνολική οικονομία. Αν κάποιο προϊόν κοστίζει περισσότερο στο πλάνο πολλών στάσεων, εμφανίζει ξεχωριστά αυτό το αντιστάθμισμα ώστε το αποτέλεσμα να παραμένει διαφανές.
 
 Η έκδοση `v0.14.0` ανανεώνει ολόκληρη την οπτική εμπειρία χωρίς να αλλάζει τιμές ή υπολογισμούς. Μπλε, πράσινες, κεχριμπαρένιες και κοραλλί λεπτομέρειες δίνουν ξεχωριστή ταυτότητα στην πλοήγηση, στο καλάθι, στο πλάνο και στις ευκαιρίες. Οι φωτογραφίες προϊόντων, τα αποτελέσματα και οι ενεργές επιλογές αποκτούν καθαρότερο βάθος και πιο άμεση ανάδραση, ενώ οι διακριτικές κινήσεις απενεργοποιούνται αυτόματα όταν ο χρήστης έχει ενεργό το `reduced motion`.
+
+Η έκδοση `v0.14.1` κάνει όλες τις ποσότητες ακεραίους αριθμούς προϊόντων ή συσκευασιών. Τα κουμπιά αυξομείωσης αλλάζουν πλέον την ποσότητα κατά `1`, ακόμη και όταν η μονάδα του καταλόγου είναι `kg`. Παλιές αποθηκευμένες λίστες ή κοινόχρηστοι σύνδεσμοι με δεκαδικές ποσότητες κανονικοποιούνται αυτόματα στον πλησιέστερο ακέραιο.
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -156,7 +158,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.14.0`
+**Current version:** `v0.14.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -171,7 +173,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
 - Add products to a basket.
-- Adjust quantities with steppers, including `kg` products.
+- Adjust whole-product quantities with integer steppers, including `kg` packages.
 - Include or exclude supermarket chains from every ranking and optimized plan.
 - Automatically limit prices and plans to chains with a nearby branch after enabling location.
 - Check off products while shopping, see remaining spend, and filter the plan to unfinished items.
@@ -225,6 +227,8 @@ Version `v0.12.0` replaces the abstract per-stop estimate with four understandab
 Version `v0.13.0` explains where the selected plan's saving comes from. It compares each item with the cheapest complete one-stop basket, highlights the products that contribute most to the saving, and reconciles those amounts with the overall total. When a product costs more in the multi-stop plan, that tradeoff is shown separately so the comparison remains transparent.
 
 Version `v0.14.0` refreshes the complete visual experience without changing prices or calculations. Blue, green, amber, and coral accents give navigation, basket, plan, and bargain states distinct identities. Product imagery, results, and selected controls gain clearer depth and more immediate feedback, while restrained motion automatically switches off when the user prefers reduced motion.
+
+Version `v0.14.1` makes every basket quantity a whole number of products or packages. Quantity controls now move by `1`, including catalogue items whose unit is `kg`. Older saved lists and shared links containing fractional quantities are automatically normalized to the nearest integer.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 

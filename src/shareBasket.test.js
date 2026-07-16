@@ -9,7 +9,7 @@ import {
 
 const basket = [
   { productId: "1234567890123", quantity: 2 },
-  { productId: "snapshot-abc123", quantity: 0.5 },
+  { productId: "snapshot-abc123", quantity: 1 },
 ];
 
 test("shared baskets preserve product IDs, quantities, and stop count", () => {
@@ -34,6 +34,19 @@ test("version 1 links remain compatible and default to all supermarkets", () => 
     maxChains: 3,
     retailerIds: null,
   });
+});
+
+test("legacy fractional quantities are normalized to whole products", () => {
+  const legacyPayload = btoa(JSON.stringify({
+    v: 1,
+    s: 1,
+    i: [["snapshot-abc123", 0.5], ["1234567890123", 2.6]],
+  })).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+
+  assert.deepEqual(decodeSharedBasket(legacyPayload).basket, [
+    { productId: "snapshot-abc123", quantity: 1 },
+    { productId: "1234567890123", quantity: 3 },
+  ]);
 });
 
 test("shared basket URLs use a single compact basket parameter", () => {

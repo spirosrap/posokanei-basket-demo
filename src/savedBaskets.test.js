@@ -73,6 +73,20 @@ test("saved basket parsing ignores corrupt entries and private extra fields", ()
   assert.equal("checkedIds" in parsed[0], false);
 });
 
+test("saved baskets normalize legacy fractional quantities to whole products", () => {
+  const parsed = parseSavedBaskets({
+    version: 1,
+    baskets: [{
+      id: "legacy",
+      ...draft,
+      basket: [{ productId: "milk-1", quantity: 1.5 }],
+      updatedAt: "2026-07-15T12:00:00.000Z",
+    }],
+  });
+
+  assert.equal(parsed[0].basket[0].quantity, 2);
+});
+
 test("saved baskets persist through the versioned local payload", () => {
   const values = new Map();
   const storage = {

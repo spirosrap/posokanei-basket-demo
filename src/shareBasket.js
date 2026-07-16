@@ -24,7 +24,7 @@ function normalizeQuantity(value) {
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 999) {
     throw new Error("invalid_quantity");
   }
-  return Math.round(quantity * 1000) / 1000;
+  return Math.max(1, Math.round(quantity));
 }
 
 function normalizeStops(value) {
