@@ -59,11 +59,11 @@ import {
   fetchProducts,
   fetchProductsByIds,
   fetchUpdateStatus,
+  warmCatalogSearch,
 } from "./posokaneiApi";
 import {
   DEFAULT_DEMO_BASKET,
   DEFAULT_DEMO_PRODUCT_IDS,
-  DEFAULT_DEMO_PRODUCTS,
   LEGACY_DEMO_BASKETS,
 } from "./demoBasket";
 import {
@@ -186,14 +186,6 @@ const shouldStartWithDemoBasket = () => {
   }
 };
 
-const mergeDefaultProducts = (products) => {
-  const byId = new Map(DEFAULT_DEMO_PRODUCTS.map((product) => [product.id, product]));
-  products.forEach((product) => {
-    if (product?.id) byId.set(product.id, product);
-  });
-  return [...byId.values()];
-};
-
 const saveLocalJson = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -226,10 +218,9 @@ const savedLiveBasketProducts = () => {
   try {
     const stored = localStorage.getItem(LIVE_BASKET_PRODUCTS_KEY);
     const parsed = JSON.parse(stored || "[]");
-    const products = Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
-    return shouldStartWithDemoBasket() ? mergeDefaultProducts(products) : products;
+    return Array.isArray(parsed) ? parsed.filter((product) => product?.id) : [];
   } catch {
-    return DEFAULT_DEMO_PRODUCTS;
+    return [];
   }
 };
 
@@ -447,7 +438,14 @@ function AppContent() {
     error: "",
   });
   const refreshedDemoProducts = useRef(false);
-  const initialBasketProductIds = useRef(basket.map((entry) => entry.productId));
+  const initialBasketProductIds = useRef(
+    INITIAL_SHARED_BASKET?.status === "valid"
+      ? basket.map((entry) => entry.productId)
+      : [...new Set([
+          ...basket.map((entry) => entry.productId),
+          ...DEFAULT_DEMO_PRODUCT_IDS,
+        ])],
+  );
   const initialProductSort = useRef(productSort);
   const skipSeededCatalogFetch = useRef(false);
   const catalogRequestId = useRef(0);
@@ -488,8 +486,16 @@ function AppContent() {
     fetchCatalogBootstrap({
       productIds: initialBasketProductIds.current,
       sortMode: initialProductSort.current,
+      preferStatic: INITIAL_SHARED_BASKET?.status !== "valid",
     })
-      .then(({ health: stats, retailers, categories, productResult, basketProducts }) => {
+      .then(({
+        health: stats,
+        retailers,
+        categories,
+        productResult,
+        basketProducts,
+        missingBasketProductIds = [],
+      }) => {
         if (cancelled) return;
         skipSeededCatalogFetch.current = true;
         if (basketProducts.length) {
@@ -497,6 +503,15 @@ function AppContent() {
         }
         if (basketProducts.some((product) => DEFAULT_DEMO_PRODUCT_IDS.includes(product.id))) {
           refreshedDemoProducts.current = true;
+        }
+        if (missingBasketProductIds.length) {
+          fetchProductsByIds(missingBasketProductIds)
+            .then((products) => {
+              if (!cancelled && products.length) {
+                setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
+              }
+            })
+            .catch(() => {});
         }
         if (INITIAL_SHARED_BASKET?.status === "valid") {
           const requestedBasket = INITIAL_SHARED_BASKET.basket;
@@ -560,6 +575,27 @@ function AppContent() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!catalogBootstrapped) return undefined;
+    let idleId = null;
+    const warm = () => {
+      void warmCatalogSearch(health.snapshotGeneratedAt);
+    };
+    const timer = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(warm, { timeout: 4000 });
+      } else {
+        warm();
+      }
+    }, 1200);
+    return () => {
+      window.clearTimeout(timer);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [catalogBootstrapped, health.snapshotGeneratedAt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -750,12 +786,12 @@ function AppContent() {
   }, [basket, catalogBootstrapped]);
 
   useEffect(() => {
-    if (sharedBasketHydrating) return;
+    if (!catalogBootstrapped || sharedBasketHydrating) return;
     setBasket((current) => {
       const next = current.filter((entry) => productMap.has(entry.productId));
       return next.length === current.length ? current : next;
     });
-  }, [productMap, sharedBasketHydrating]);
+  }, [catalogBootstrapped, productMap, sharedBasketHydrating]);
 
   const rankings = useMemo(
     () => calculateRankings(basket, allProducts, activeRetailers),
@@ -819,7 +855,6 @@ function AppContent() {
 
   const loadDemoBasket = () => {
     setSavedBasketNotice(null);
-    setLiveBasketProducts((current) => mergeCatalogProducts(current, DEFAULT_DEMO_PRODUCTS));
     setBasket(DEFAULT_DEMO_BASKET);
     setMaxChains(4);
     setSharedBasketStatus(null);
@@ -4033,14 +4068,43 @@ function ProductPreviewImage({ product }) {
   );
 }
 
+function useNearViewport(priority) {
+  const elementRef = useRef(null);
+  const [nearViewport, setNearViewport] = useState(false);
+
+  useEffect(() => {
+    if (priority || nearViewport) return undefined;
+    const element = elementRef.current;
+    if (!element) return undefined;
+    if (typeof IntersectionObserver !== "function") {
+      setNearViewport(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      { rootMargin: "240px 0px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [nearViewport, priority]);
+
+  return { elementRef, shouldLoad: priority || nearViewport };
+}
+
 function ProductThumb({ product, compact = false, priority = false }) {
   const [failedImageUrl, setFailedImageUrl] = useState("");
   const [loadedImageUrl, setLoadedImageUrl] = useState("");
+  const { elementRef, shouldLoad } = useNearViewport(priority);
   const imageUrl = proxiedProductImageUrl(product, compact ? 72 : 96);
   if (imageUrl && failedImageUrl !== imageUrl) {
     const isLoaded = loadedImageUrl === imageUrl;
     return (
       <span
+        ref={elementRef}
         className={[
           "product-thumb",
           compact ? "compact" : "",
@@ -4053,15 +4117,17 @@ function ProductThumb({ product, compact = false, priority = false }) {
         aria-hidden="true"
       >
         <span className="product-thumb-fallback">{product.tile}</span>
-        <img
-          src={imageUrl}
-          alt=""
-          decoding="async"
-          loading={priority ? "eager" : "lazy"}
-          fetchPriority={priority ? "high" : "auto"}
-          onLoad={() => setLoadedImageUrl(imageUrl)}
-          onError={() => setFailedImageUrl(imageUrl)}
-        />
+        {shouldLoad ? (
+          <img
+            src={imageUrl}
+            alt=""
+            decoding="async"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "low"}
+            onLoad={() => setLoadedImageUrl(imageUrl)}
+            onError={() => setFailedImageUrl(imageUrl)}
+          />
+        ) : null}
       </span>
     );
   }

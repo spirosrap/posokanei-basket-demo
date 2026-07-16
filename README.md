@@ -8,13 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.20.0`
+**Τρέχουσα έκδοση:** `v0.21.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η γρήγορη έκδοση 0.20.0 στο kalathitimon.com](screenshots/performance-v0.20.0.jpg)
+![Η ταχύτερη έκδοση 0.21.0 στο kalathitimon.com](screenshots/performance-v0.21.0.jpg)
 
 Η βασική ιδέα είναι απλή:
 
@@ -73,6 +73,8 @@
 Η έκδοση `v0.19.0` προσθέτει επιλογή ταξινόμησης προϊόντων με βάση τη χαμηλότερη τιμή συσκευασίας, την καλύτερη συγκρίσιμη τιμή ανά `kg`, `L` ή τεμάχιο, ή το όνομα. Έτσι ο χρήστης μπορεί είτε να βρει το μικρότερο άμεσο κόστος είτε να συγκρίνει δίκαια διαφορετικά μεγέθη συσκευασίας. Η ταξινόμηση εφαρμόζεται στον κατάλογο πριν από τη σελιδοποίηση και επανελέγχεται στον browser με τις ενεργές αλυσίδες ή το φίλτρο τοποθεσίας. Κάθε αποτέλεσμα δείχνει πλέον και την καλύτερη τιμή μονάδας. Το κουμπί προσθήκης λειτουργεί ως γρήγορη προσθήκη χωρίς να ανοίγει τις λεπτομέρειες και, όταν το προϊόν βρίσκεται ήδη στο καλάθι, εμφανίζει πάνω του την τρέχουσα ποσότητα. Η επιλογή ταξινόμησης αποθηκεύεται μόνο στον browser.
 
 Η έκδοση `v0.20.0` εστιάζει στην ταχύτητα και την ανθεκτικότητα. Η πρώτη οθόνη παίρνει στοιχεία καταλόγου, αλυσίδες, κατηγορίες, αρχικά προϊόντα και προϊόντα καλαθιού με ένα ενιαίο snapshot-first request, χωρίς να περιμένει τον γνωστά μπλοκαρισμένο request-time proxy. Ένας νέος συμπαγής runtime κατάλογος κρατά ακριβώς τα πεδία που χρειάζονται οι υπολογισμοί και μειώνει το JSON από περίπου `17 MB` σε `6,7 MB`, ενώ ο πλήρης δημόσιος κατάλογος παραμένει διαθέσιμος. Οι επαναλαμβανόμενες αναζητήσεις χρησιμοποιούν σύντομη browser cache, οι ταυτόχρονες ίδιες κλήσεις ενοποιούνται και παλιότερες αργές απαντήσεις δεν μπορούν να αντικαταστήσουν νεότερα αποτελέσματα. Η πληκτρολόγηση μένει άμεση με τοπικό πεδίο αναζήτησης και καθυστέρηση μόλις `180 ms` πριν από το request, οι αρχικές εικόνες υψηλής προτεραιότητας μειώνονται σε τέσσερις και σταθερά skeletons αποφεύγουν τα απότομα άλματα διάταξης. Ο χειροκίνητος και ο ωριαίος συγχρονισμός μοιράζονται πλέον lock, ώστε δύο refreshes να μην μπορούν να δημοσιεύσουν ταυτόχρονα διαφορετικές γενιές αρχείων, ενώ ο έλεγχος περιμένει περιορισμένα μέχρι να συμφωνήσουν όλα τα δημόσια timestamps. Σε ενδεικτικό PHP benchmark της έκδοσης, μία ταξινομημένη σελίδα 30 προϊόντων ολοκληρώθηκε σε περίπου `0,22 s` και αναζήτηση σε περίπου `0,14 s`· οι πραγματικοί χρόνοι εξαρτώνται από hosting και δίκτυο.
+
+Η έκδοση `v0.21.0` αφαιρεί το PHP από την κρίσιμη διαδρομή της πρώτης οθόνης. Ένα στατικό startup catalogue περίπου `200 KB` (`~31 KB` με Brotli) αρχίζει να κατεβαίνει απευθείας από το `<head>` και περιέχει τα metadata, τις τρεις αρχικές ταξινομήσεις και τα προϊόντα του παραδείγματος. Συνήθως είναι ήδη διαθέσιμο όταν ξεκινήσει το React, ενώ το προηγούμενο PHP bootstrap παραμένει ασφαλές fallback. Αφού σταθεροποιηθεί η οθόνη, ένας Web Worker φορτώνει χαμηλής προτεραιότητας τον compact runtime κατάλογο και εκτελεί τις επόμενες αναζητήσεις, τα φίλτρα, την ταξινόμηση και τη σελιδοποίηση τοπικά, χωρίς νέο network round trip. Η καθυστέρηση πληκτρολόγησης παραμένει `180 ms`, αλλά ο warmed-up υπολογισμός ολοκληρώνεται συνήθως σε λίγα milliseconds. Οι εικόνες χρησιμοποιούν πλέον πραγματικό `IntersectionObserver`, ώστε προϊόντα που βρίσκονται χαμηλότερα σε scrollable λίστα ή καλάθι να μην ξεκινούν καθόλου request μέχρι να πλησιάσουν την οθόνη. Τέλος, αφαιρέθηκε το διπλό ενσωματωμένο αντίγραφο των 30 προϊόντων παραδείγματος: το κύριο production JavaScript μειώθηκε από περίπου `410 KB` σε `371 KB` (`123,8 KB` σε `112,5 KB` gzip).
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -194,7 +196,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.20.0`
+**Current version:** `v0.21.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -288,6 +290,8 @@ Version `v0.18.0` launches the primary production app at the dedicated [kalathit
 Version `v0.19.0` adds persistent product sorting by lowest package price, best comparable unit price per `kg`, `L`, or item, or product name. Package-price mode answers which product costs least right now; unit-price mode compares different pack sizes fairly. Sorting is applied to the catalogue before pagination and then reconciled in the browser with the chains currently enabled by the user or location filter. Product rows show both the best package and unit price, while the add control now performs a true quick add and displays the quantity already in the basket without opening product details.
 
 Version `v0.20.0` focuses on speed and resilience. One snapshot-first bootstrap request now returns catalogue health, chains, categories, the first product page, and basket products without waiting for the known-blocked request-time upstream proxy. A compact runtime catalogue retains exactly the pricing fields used by the app and reduces request-time JSON from roughly `17 MB` to `6.7 MB`, while the complete public snapshot remains available. Short-lived browser caching deduplicates identical requests, stale slow responses can no longer replace newer search results, and a locally controlled search field keeps typing immediate with a `180 ms` request delay. Only four initial product images receive high priority, while stable loading skeletons reduce layout movement. Manual and scheduled refreshes now share a lock so two jobs cannot publish different file generations concurrently, and bounded verification waits for all public timestamps to converge. In a reference PHP benchmark, a sorted 30-product page completed in about `0.22 s` and a search in about `0.14 s`; production timings still depend on hosting and network conditions.
+
+Version `v0.21.0` removes PHP from the critical first-screen path. A static startup catalogue of roughly `200 KB` (`~31 KB` with Brotli) begins downloading directly from the document `<head>` and contains metadata, the first page for all three sort modes, and the example-basket products. It is normally ready by the time React starts, while the previous PHP bootstrap remains a resilient fallback. Once the interface is stable, a low-priority Web Worker loads the compact runtime catalogue and performs subsequent searches, category filtering, sorting, and pagination locally without another network round trip. The `180 ms` typing delay remains, but the warmed-up catalogue calculation itself normally takes only a few milliseconds. Product images now use an explicit `IntersectionObserver`, so thumbnails lower in a scrollable product or basket list do not make any request until they approach the viewport. Removing the duplicate embedded copy of the 30 example products also reduces the production JavaScript from roughly `410 KB` to `371 KB` (`123.8 KB` to `112.5 KB` gzip).
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -526,9 +530,15 @@ The primary production app runs from the dedicated domain root:
 https://kalathitimon.com/
 ```
 
-`npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalogue, product images, retailer logos, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must execute PHP for the same-origin calls.
+`npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The first screen and warmed catalogue search use synchronized static JSON files; product hydration fallbacks, images, retailer logos, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must still execute PHP for those same-origin calls.
 
 ### Screenshots
+
+Version 0.21.0 static first paint, local warmed search, and deferred images:
+
+![Fast static startup in Kalathi Timon 0.21.0](screenshots/performance-v0.21.0.jpg)
+
+![Responsive Kalathi Timon 0.21.0 interface](screenshots/performance-mobile-v0.21.0.jpg)
 
 Version 0.20.0 performance-focused desktop and mobile interface:
 
@@ -788,6 +798,23 @@ and is always released after success or failure. Public verification retries a b
 number of times and accepts a newer complete generation only when the full snapshot,
 runtime snapshot, metadata, and successful status all carry the same timestamp.
 
+Version 0.21.0 adds `catalog-bootstrap.json` to that atomic generation. The browser
+starts fetching this small static payload from the document head, in parallel with
+the hashed JavaScript and CSS, so the initial catalogue does not wait for PHP startup
+or repeated JSON decoding. It contains the metadata, first 30 products for each sort
+mode, and current example-basket products. The PHP bootstrap is retained as a fallback
+for shared baskets and unavailable static data. Public refresh verification now
+requires the full snapshot, runtime snapshot, startup catalogue, metadata, and status
+to agree on the same generation timestamp before a refresh is accepted.
+
+After first paint, a module Web Worker loads `catalog-runtime.json` without blocking
+the interface and builds three pre-sorted in-memory views. Once ready, product search,
+barcode lookup, category filtering, sorting, and pagination run inside that worker;
+the same PHP endpoints remain available before worker readiness or after a worker
+failure. Product thumbnails add a viewport observer on top of native lazy loading,
+which prevents rows clipped by the product and basket scroll containers from creating
+requests prematurely.
+
 The browser complements this with bounded retries for transient network, timeout,
 rate-limit, and server failures. It tries the compact snapshot before the full
 45-second fallback, removes failed snapshot promises from memory, and keeps a
@@ -802,14 +829,22 @@ settings. Both commands parse `.env.local` as data rather than sourcing it as a
 shell script, so Keychain service labels may safely contain spaces and no secret
 values need to be committed or printed.
 
+For a narrowly scoped recovery, `npm run live:deploy:bootstrap` and
+`npm run live:deploy:bootstrap:mirror` atomically publish only
+`dist/data/catalog-bootstrap.json`. This is useful when the application shell is
+already live and the small first-paint payload has just been rebuilt from the
+currently published runtime catalogue. It does not replace `npm run live:refresh`,
+which remains responsible for generating and verifying a complete new catalogue
+generation.
+
 ### Product/Price Update Checks
 
 The app includes a lightweight update checker:
 
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
-- `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, and the compact `public/data/catalog-runtime.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file from an existing full snapshot.
-- `npm run live:refresh` builds fresh full, metadata, and runtime catalogues under `dist/data/`, uploads them to the live FTP path, and verifies the public `catalog`, `runtime`, `metadata`, and `refresh-status` timestamps.
+- `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, the compact `public/data/catalog-runtime.json`, and the first-paint `public/data/catalog-bootstrap.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file, while `npm run catalog:bootstrap` rebuilds the startup payload from an existing runtime catalogue.
+- `npm run live:refresh` builds fresh full, metadata, runtime, and startup catalogues under `dist/data/`, uploads them to the live FTP path, and verifies the public `catalog`, `runtime`, `bootstrap`, `metadata`, and `refresh-status` timestamps.
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
@@ -818,7 +853,7 @@ The app includes a lightweight update checker:
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts an interactive login shell so the existing private local OpenAI environment is available to the once-daily bargain step; the key is never uploaded.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Browser catalogue requests retry short network/server failures. The compact runtime snapshot is attempted first; the large full-snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
-- Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache.
+- Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache. An explicit viewport observer prevents clipped, off-screen rows from creating requests until they are close to becoming visible.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
 For a cron job:

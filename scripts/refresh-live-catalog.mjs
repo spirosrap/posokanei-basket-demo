@@ -22,6 +22,10 @@ const runtimePath = resolve(
   projectRoot,
   process.env.POSOKANEI_RUNTIME_OUT || "dist/data/catalog-runtime.json",
 );
+const bootstrapPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_BOOTSTRAP_OUT || "dist/data/catalog-bootstrap.json",
+);
 const refreshStatusPath = resolve(
   projectRoot,
   process.env.POSOKANEI_REFRESH_STATUS_OUT || "dist/data/refresh-status.json",
@@ -93,6 +97,7 @@ async function refreshCatalog() {
       POSOKANEI_SNAPSHOT_OUT: snapshotPath,
       POSOKANEI_META_OUT: metaPath,
       POSOKANEI_RUNTIME_OUT: runtimePath,
+      POSOKANEI_BOOTSTRAP_OUT: bootstrapPath,
     });
   }
 
@@ -158,19 +163,29 @@ async function buildSnapshotOnRemoteHosts(hosts) {
 
 async function buildSnapshotOnRemoteHost(host) {
   const remoteDir = `/tmp/posokanei-basket-refresh-${Date.now()}`;
-  const remoteScript = `${remoteDir}/build-catalog-snapshot.mjs`;
-  const remoteRuntimeModule = `${remoteDir}/catalog-runtime.mjs`;
+  const remoteScriptsDir = `${remoteDir}/scripts`;
+  const remoteSrcDir = `${remoteDir}/src`;
+  const remoteScript = `${remoteScriptsDir}/build-catalog-snapshot.mjs`;
+  const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
+  const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
+  const remoteDemoBasket = `${remoteSrcDir}/demoBasket.js`;
   const remoteSnapshot = `${remoteDir}/catalog.json`;
   const remoteMeta = `${remoteDir}/catalog-meta.json`;
   const remoteRuntime = `${remoteDir}/catalog-runtime.json`;
+  const remoteBootstrap = `${remoteDir}/catalog-bootstrap.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
   await mkdir(dirname(snapshotPath), { recursive: true });
   await mkdir(dirname(metaPath), { recursive: true });
   await mkdir(dirname(runtimePath), { recursive: true });
+  await mkdir(dirname(bootstrapPath), { recursive: true });
 
   try {
-    await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)} && mkdir -p ${shellQuote(remoteDir)}`]);
+    await run("ssh", [
+      ...sshOptions,
+      host,
+      `rm -rf ${shellQuote(remoteDir)} && mkdir -p ${shellQuote(remoteScriptsDir)} ${shellQuote(remoteSrcDir)}`,
+    ]);
     await run("scp", [
       ...sshOptions,
       resolve(projectRoot, "scripts/build-catalog-snapshot.mjs"),
@@ -181,6 +196,16 @@ async function buildSnapshotOnRemoteHost(host) {
       resolve(projectRoot, "scripts/catalog-runtime.mjs"),
       `${host}:${remoteRuntimeModule}`,
     ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "scripts/catalog-bootstrap.mjs"),
+      `${host}:${remoteBootstrapModule}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "src/demoBasket.js"),
+      `${host}:${remoteDemoBasket}`,
+    ]);
     await run("ssh", [
       ...sshOptions,
       host,
@@ -188,12 +213,14 @@ async function buildSnapshotOnRemoteHost(host) {
         `POSOKANEI_SNAPSHOT_OUT=${shellQuote(remoteSnapshot)}`,
         `POSOKANEI_META_OUT=${shellQuote(remoteMeta)}`,
         `POSOKANEI_RUNTIME_OUT=${shellQuote(remoteRuntime)}`,
+        `POSOKANEI_BOOTSTRAP_OUT=${shellQuote(remoteBootstrap)}`,
         `node ${shellQuote(remoteScript)}`,
       ].join(" "),
     ]);
     await run("scp", [...sshOptions, `${host}:${remoteSnapshot}`, snapshotPath]);
     await run("scp", [...sshOptions, `${host}:${remoteMeta}`, metaPath]);
     await run("scp", [...sshOptions, `${host}:${remoteRuntime}`, runtimePath]);
+    await run("scp", [...sshOptions, `${host}:${remoteBootstrap}`, bootstrapPath]);
   } finally {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)}`], {
       allowFailure: true,
@@ -352,6 +379,7 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(snapshotPath, "catalog.json", target, password);
   await publishDataFile(metaPath, "catalog-meta.json", target, password);
   await publishDataFile(runtimePath, "catalog-runtime.json", target, password);
+  await publishDataFile(bootstrapPath, "catalog-bootstrap.json", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
@@ -386,25 +414,40 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
   const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-runtime.json");
+  const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-bootstrap.json");
   const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
   const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
   let observed = null;
   for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
-      const [publicSnapshot, publicMeta, publicRuntime, publicRefreshStatus] = await Promise.all([
+      const [
+        publicSnapshot,
+        publicMeta,
+        publicRuntime,
+        publicBootstrap,
+        publicRefreshStatus,
+      ] = await Promise.all([
         fetchPublicJson(targetCatalogUrl),
         fetchPublicJson(targetMetaUrl),
         fetchPublicJson(targetRuntimeUrl),
+        fetchPublicJson(targetBootstrapUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
       observed = {
         snapshot: publicSnapshot.generated_at || "",
         metadata: publicMeta.generated_at || "",
         runtime: publicRuntime.generated_at || "",
+        bootstrap: publicBootstrap.generated_at || "",
         status: publicRefreshStatus.generated_at || "",
         statusValue: publicRefreshStatus.status || "",
       };
-      const timestamps = [observed.snapshot, observed.metadata, observed.runtime, observed.status];
+      const timestamps = [
+        observed.snapshot,
+        observed.metadata,
+        observed.runtime,
+        observed.bootstrap,
+        observed.status,
+      ];
       const publishedAt = Date.parse(observed.snapshot);
       const expectedAt = Date.parse(expectedGeneratedAt);
       if (
@@ -433,6 +476,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified public catalogue at ${targetCatalogUrl}`);
   console.log(`Verified public metadata at ${targetMetaUrl}`);
   console.log(`Verified compact runtime catalogue at ${targetRuntimeUrl}`);
+  console.log(`Verified static startup catalogue at ${targetBootstrapUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));

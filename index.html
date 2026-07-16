@@ -26,6 +26,21 @@
         }
       })();
     </script>
+    <script>
+      (() => {
+        if (window.location.pathname.replace(/\/+$/, "").endsWith("/bargains")) return;
+        const url = new URL("%BASE_URL%data/catalog-bootstrap.json", window.location.origin);
+        window.__catalogBootstrapPromise = fetch(url, {
+          cache: "no-cache",
+          headers: { Accept: "application/json" },
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error(`catalog_bootstrap_${response.status}`);
+            return response.json();
+          })
+          .catch(() => null);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

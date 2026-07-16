@@ -4,6 +4,7 @@ import { productSortApiValue } from "./productSort.js";
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PROXY_BASE = runtimeAppUrl("api/posokanei.php");
 const UPDATE_STATUS_URL = runtimeAppUrl("api/update-status.php");
+const CATALOG_BOOTSTRAP_URL = `${APP_BASE_URL}data/catalog-bootstrap.json`;
 const CATALOG_RUNTIME_URL = `${APP_BASE_URL}data/catalog-runtime.json`;
 const CATALOG_SNAPSHOT_URL = `${APP_BASE_URL}data/catalog.json`;
 const DAILY_BARGAIN_URL = `${APP_BASE_URL}data/daily-bargain.json`;
@@ -27,6 +28,12 @@ const RETAILER_COLORS = [
 
 let catalogSnapshotPromise = null;
 const responseCache = new Map();
+let catalogSearchWorker = null;
+let catalogSearchWorkerState = "idle";
+let catalogSearchInitPromise = null;
+let resolveCatalogSearchInit = null;
+let catalogSearchRequestId = 0;
+const catalogSearchRequests = new Map();
 
 function withTimeout(ms = 12000) {
   const controller = new AbortController();
@@ -137,6 +144,97 @@ async function fetchCatalogSnapshot() {
       });
   }
   return catalogSnapshotPromise;
+}
+
+function resetCatalogSearchWorker() {
+  resolveCatalogSearchInit?.(false);
+  resolveCatalogSearchInit = null;
+  catalogSearchInitPromise = null;
+  catalogSearchWorkerState = "unavailable";
+  catalogSearchRequests.forEach(({ resolve, timeout }) => {
+    window.clearTimeout(timeout);
+    resolve(null);
+  });
+  catalogSearchRequests.clear();
+  catalogSearchWorker?.terminate();
+  catalogSearchWorker = null;
+}
+
+function handleCatalogSearchMessage(event) {
+  const message = event.data || {};
+  if (message.type === "ready") {
+    catalogSearchWorkerState = "ready";
+    resolveCatalogSearchInit?.(true);
+    resolveCatalogSearchInit = null;
+    return;
+  }
+  if (message.type === "init-error") {
+    resetCatalogSearchWorker();
+    return;
+  }
+  if (message.type === "result") {
+    const pending = catalogSearchRequests.get(message.requestId);
+    if (!pending) return;
+    catalogSearchRequests.delete(message.requestId);
+    window.clearTimeout(pending.timeout);
+    pending.resolve(message.result || null);
+  }
+}
+
+export function warmCatalogSearch(catalogVersion = "") {
+  if (catalogSearchWorkerState === "ready") return Promise.resolve(true);
+  if (catalogSearchInitPromise) return catalogSearchInitPromise;
+  if (typeof Worker === "undefined") {
+    catalogSearchWorkerState = "unavailable";
+    return Promise.resolve(false);
+  }
+
+  try {
+    const runtimeUrl = new URL(CATALOG_RUNTIME_URL, window.location.href);
+    if (catalogVersion) runtimeUrl.searchParams.set("v", catalogVersion);
+    catalogSearchWorker = new Worker(
+      new URL("./catalogSearch.worker.js", import.meta.url),
+      { type: "module", name: "catalog-search" },
+    );
+    catalogSearchWorkerState = "loading";
+    catalogSearchWorker.addEventListener("message", handleCatalogSearchMessage);
+    catalogSearchWorker.addEventListener("error", resetCatalogSearchWorker, { once: true });
+    catalogSearchInitPromise = new Promise((resolve) => {
+      resolveCatalogSearchInit = resolve;
+    });
+    catalogSearchWorker.postMessage({ type: "init", url: runtimeUrl.toString() });
+    return catalogSearchInitPromise;
+  } catch {
+    resetCatalogSearchWorker();
+    return Promise.resolve(false);
+  }
+}
+
+function queryLocalCatalog(params) {
+  if (catalogSearchWorkerState !== "ready" || !catalogSearchWorker) {
+    return Promise.resolve(null);
+  }
+  const requestId = catalogSearchRequestId + 1;
+  catalogSearchRequestId = requestId;
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      catalogSearchRequests.delete(requestId);
+      resolve(null);
+    }, 1200);
+    catalogSearchRequests.set(requestId, { resolve, timeout });
+    catalogSearchWorker.postMessage({ type: "query", requestId, params });
+  });
+}
+
+async function fetchStaticBootstrapRaw() {
+  if (window.__catalogBootstrapPromise) {
+    const prefetched = await Promise.race([
+      window.__catalogBootstrapPromise,
+      new Promise((resolve) => window.setTimeout(() => resolve(null), 6500)),
+    ]);
+    if (prefetched) return prefetched;
+  }
+  return fetchDirectJson(CATALOG_BOOTSTRAP_URL, 6500, 1);
 }
 
 function firstArray(raw) {
@@ -454,9 +552,49 @@ function normalizeCategoryResponse(raw) {
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "el"));
 }
 
-export async function fetchCatalogBootstrap({ productIds = [], sortMode = "price" } = {}) {
-  const ids = [...new Set(productIds.map((id) => String(id)).filter(Boolean))].slice(0, 60);
+function normalizeStaticBootstrap(raw, ids, sortMode) {
+  const rawProducts = firstArray(raw);
+  const productsById = new Map(
+    rawProducts.map((product) => [String(product.id ?? product.gtin ?? ""), product]),
+  );
+  const pageIds = raw?.pages?.[sortMode] || raw?.pages?.price;
+  if (!Array.isArray(pageIds) || !pageIds.length) {
+    throw new Error("Static catalogue bootstrap is incomplete.");
+  }
+  const pageSize = Number(raw.page_size || PAGE_SIZE) || PAGE_SIZE;
+  const total = Number(raw.total_products || raw.stats?.active_products || 0) || 0;
+  const pageProducts = pageIds.map((id) => productsById.get(String(id))).filter(Boolean);
+  const basketProducts = ids.map((id) => productsById.get(id)).filter(Boolean);
+  const foundBasketIds = new Set(basketProducts.map((product) => String(product.id)));
+  const generatedAt = raw.generated_at || "";
+  const productResult = normalizeProductResponse({
+    products: pageProducts,
+    total,
+    page: 1,
+    page_size: pageSize,
+    total_pages: Math.max(1, Math.ceil(total / pageSize)),
+    has_next: total > pageSize,
+    source: "snapshot",
+  }, "snapshot");
 
+  return {
+    health: normalizeHealthStats({
+      ...(raw.stats || {}),
+      total_products: total,
+      active_products: total,
+      source: "snapshot",
+      snapshot_generated_at: generatedAt,
+    }),
+    retailers: normalizeRetailerResponse(raw.retailers || []),
+    categories: normalizeCategoryResponse(raw.categories || []),
+    productResult,
+    basketProducts: basketProducts.map((product) => normalizeProduct(product, "snapshot")),
+    missingBasketProductIds: ids.filter((id) => !foundBasketIds.has(id)),
+    bootstrapMode: "static",
+  };
+}
+
+async function fetchDynamicCatalogBootstrap(ids, sortMode) {
   try {
     const raw = await fetchJson(
       "bootstrap",
@@ -481,6 +619,8 @@ export async function fetchCatalogBootstrap({ productIds = [], sortMode = "price
       basketProducts: firstArray(raw.basket_products || []).map((product) =>
         normalizeProduct(product, raw.source || "snapshot"),
       ),
+      missingBasketProductIds: [],
+      bootstrapMode: "api",
     };
   } catch {
     const [health, retailers, categories, productResult, basketProducts] = await Promise.all([
@@ -490,8 +630,32 @@ export async function fetchCatalogBootstrap({ productIds = [], sortMode = "price
       fetchProducts({ page: 1, sortMode }),
       fetchProductsByIds(ids),
     ]);
-    return { health, retailers, categories, productResult, basketProducts };
+    return {
+      health,
+      retailers,
+      categories,
+      productResult,
+      basketProducts,
+      missingBasketProductIds: [],
+      bootstrapMode: "fallback",
+    };
   }
+}
+
+export async function fetchCatalogBootstrap({
+  productIds = [],
+  sortMode = "price",
+  preferStatic = true,
+} = {}) {
+  const ids = [...new Set(productIds.map((id) => String(id)).filter(Boolean))].slice(0, 60);
+  if (preferStatic) {
+    try {
+      return normalizeStaticBootstrap(await fetchStaticBootstrapRaw(), ids, sortMode);
+    } catch {
+      // The PHP bootstrap remains the resilient fallback for an unavailable static payload.
+    }
+  }
+  return fetchDynamicCatalogBootstrap(ids, sortMode);
 }
 
 export async function fetchHealth() {
@@ -594,6 +758,14 @@ export async function fetchProducts({
 } = {}) {
   const trimmed = query.trim();
   const barcode = /^\d{8,14}$/.test(trimmed) ? trimmed : "";
+  const localResult = await queryLocalCatalog({
+    query: trimmed,
+    categoryId,
+    page,
+    pageSize,
+    sortMode,
+  });
+  if (localResult) return normalizeProductResponse(localResult, "snapshot-worker");
 
   if (barcode) {
     try {

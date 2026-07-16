@@ -20,13 +20,21 @@ const password =
   process.env[`${envPrefix}_PASS`] ||
   (await readKeychainPassword(`${envPrefix}_KEYCHAIN_SERVICE`, ftpUser));
 const includeData = process.env.DEPLOY_INCLUDE_DATA === "1";
+const bootstrapOnly = process.argv.includes("--bootstrap-only");
 const buildFiles = await listFiles(distRoot);
-const files = buildFiles.filter((filePath) => {
+const files = bootstrapOnly ? buildFiles.filter((filePath) => {
+  const buildPath = relative(distRoot, filePath).split("\\").join("/");
+  return buildPath === "data/catalog-bootstrap.json";
+}) : buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return includeData || !buildPath.startsWith("data/");
 });
 
-if (!includeData && files.length !== buildFiles.length) {
+if (bootstrapOnly && files.length !== 1) {
+  throw new Error("dist/data/catalog-bootstrap.json is required for --bootstrap-only.");
+}
+
+if (!bootstrapOnly && !includeData && files.length !== buildFiles.length) {
   console.log(
     `Preserving ${buildFiles.length - files.length} live data files. Use npm run live:refresh to update catalogue data.`,
   );
@@ -44,7 +52,7 @@ for (const filePath of files) {
 }
 
 console.log(
-  `Deployed ${files.length} files to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
+  `Deployed ${files.length} ${bootstrapOnly ? "startup catalogue file" : "files"} to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
 );
 
 async function listFiles(directory) {

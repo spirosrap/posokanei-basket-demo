@@ -2,6 +2,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
@@ -20,6 +21,10 @@ const metaOutputPath = resolve(
 const runtimeOutputPath = resolve(
   process.env.POSOKANEI_RUNTIME_OUT ||
     outputPath.replace(/catalog\.json$/, "catalog-runtime.json"),
+);
+const bootstrapOutputPath = resolve(
+  process.env.POSOKANEI_BOOTSTRAP_OUT ||
+    outputPath.replace(/catalog\.json$/, "catalog-bootstrap.json"),
 );
 
 async function fetchJson(path, options = {}) {
@@ -124,10 +129,12 @@ await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(snapshot)}\n`, "utf8");
 await mkdir(dirname(metaOutputPath), { recursive: true });
 await writeFile(metaOutputPath, `${JSON.stringify(metadata)}\n`, "utf8");
-await writeRuntimeCatalog(snapshot, runtimeOutputPath);
+const runtimeCatalog = await writeRuntimeCatalog(snapshot, runtimeOutputPath);
+await writeCatalogBootstrap(runtimeCatalog, bootstrapOutputPath);
 
 console.log(
   `Wrote ${products.length} products, ${snapshot.categories.length} categories, ${snapshot.retailers.length} retailers to ${outputPath}`,
 );
 console.log(`Wrote catalogue metadata to ${metaOutputPath}`);
 console.log(`Wrote compact runtime catalogue to ${runtimeOutputPath}`);
+console.log(`Wrote static startup catalogue to ${bootstrapOutputPath}`);
