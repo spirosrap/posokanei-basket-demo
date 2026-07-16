@@ -4143,6 +4143,7 @@ function ProductThumb({ product, compact = false, priority = false }) {
   );
   const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedImageUrl, setLoadedImageUrl] = useState("");
+  const imageRef = useRef(null);
   const { elementRef, shouldLoad } = useNearViewport(priority);
   const imageUrl = imageSources[sourceIndex] || "";
 
@@ -4150,6 +4151,13 @@ function ProductThumb({ product, compact = false, priority = false }) {
     setSourceIndex(0);
     setLoadedImageUrl("");
   }, [imageSources]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (shouldLoad && image?.complete && image.naturalWidth > 0) {
+      setLoadedImageUrl(imageUrl);
+    }
+  }, [imageUrl, shouldLoad]);
 
   if (imageUrl) {
     const isLoaded = loadedImageUrl === imageUrl;
@@ -4170,6 +4178,7 @@ function ProductThumb({ product, compact = false, priority = false }) {
         <span className="product-thumb-fallback">{product.tile}</span>
         {shouldLoad ? (
           <img
+            ref={imageRef}
             src={imageUrl}
             alt=""
             decoding="async"

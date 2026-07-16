@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.22.0`
+**Τρέχουσα έκδοση:** `v0.22.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -77,6 +77,8 @@
 Η έκδοση `v0.21.0` αφαιρεί το PHP από την κρίσιμη διαδρομή της πρώτης οθόνης. Ένα στατικό startup catalogue περίπου `200 KB` (`~31 KB` με Brotli) αρχίζει να κατεβαίνει απευθείας από το `<head>` και περιέχει τα metadata, τις τρεις αρχικές ταξινομήσεις και τα προϊόντα του παραδείγματος. Συνήθως είναι ήδη διαθέσιμο όταν ξεκινήσει το React, ενώ το προηγούμενο PHP bootstrap παραμένει ασφαλές fallback. Αφού σταθεροποιηθεί η οθόνη, ένας Web Worker φορτώνει χαμηλής προτεραιότητας τον compact runtime κατάλογο και εκτελεί τις επόμενες αναζητήσεις, τα φίλτρα, την ταξινόμηση και τη σελιδοποίηση τοπικά, χωρίς νέο network round trip. Η καθυστέρηση πληκτρολόγησης παραμένει `180 ms`, αλλά ο warmed-up υπολογισμός ολοκληρώνεται συνήθως σε λίγα milliseconds. Οι εικόνες χρησιμοποιούν πλέον πραγματικό `IntersectionObserver`, ώστε προϊόντα που βρίσκονται χαμηλότερα σε scrollable λίστα ή καλάθι να μην ξεκινούν καθόλου request μέχρι να πλησιάσουν την οθόνη. Τέλος, αφαιρέθηκε το διπλό ενσωματωμένο αντίγραφο των 30 προϊόντων παραδείγματος: το κύριο production JavaScript μειώθηκε από περίπου `410 KB` σε `371 KB` (`123,8 KB` σε `112,5 KB` gzip).
 
 Η έκδοση `v0.22.0` μειώνει ξανά σχεδόν στο μισό το JavaScript που χρειάζεται η πρώτη οθόνη. Η εφαρμογή διατηρεί το React-compatible component API, αλλά το production build χρησιμοποιεί το μικρότερο `preact/compat` runtime: το κύριο bundle πέφτει από `112,5 KB` σε περίπου `59,7 KB` gzip. Ο startup κατάλογος κρατά πλέον μόνο τα metadata που εμφανίζονται πραγματικά, παραμένει πλήρης για τις τρεις ταξινομήσεις και το καλάθι παραδείγματος, και μειώνεται από περίπου `33,4 KB` σε `15,8 KB` με Brotli. Ένα ελαφρύ HTML shell εμφανίζει αμέσως τη διάταξη πριν ολοκληρωθεί το JavaScript, οι μεγάλες λεπτομέρειες του πλάνου αποδίδονται όταν αδειάσει το κύριο thread και οι εκτός οθόνης σειρές χρησιμοποιούν `content-visibility`. Οι φωτογραφίες ζητούνται απευθείας από το edge image cache, με τον υπάρχοντα same-origin PHP proxy ως αυτόματο fallback, ενώ ο versioned runtime κατάλογος επαναχρησιμοποιείται από την browser cache και φορτώνεται αμέσως όταν ο χρήστης εστιάσει στην αναζήτηση.
+
+Η έκδοση `v0.22.1` διορθώνει τις μικρογραφίες που είχαν ήδη ληφθεί από την cache αλλά μπορούσαν να παραμένουν κρυμμένες πίσω από τα αρχικά του προϊόντος. Η εφαρμογή αναγνωρίζει πλέον και μια εικόνα που ολοκληρώθηκε πριν συνδεθεί το event φόρτωσης, χωρίς να αφαιρεί το fallback για πραγματικά αποτυχημένες εικόνες.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -198,7 +200,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.22.0`
+**Current version:** `v0.22.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -296,6 +298,8 @@ Version `v0.20.0` focuses on speed and resilience. One snapshot-first bootstrap 
 Version `v0.21.0` removes PHP from the critical first-screen path. A static startup catalogue of roughly `200 KB` (`~31 KB` with Brotli) begins downloading directly from the document `<head>` and contains metadata, the first page for all three sort modes, and the example-basket products. It is normally ready by the time React starts, while the previous PHP bootstrap remains a resilient fallback. Once the interface is stable, a low-priority Web Worker loads the compact runtime catalogue and performs subsequent searches, category filtering, sorting, and pagination locally without another network round trip. The `180 ms` typing delay remains, but the warmed-up catalogue calculation itself normally takes only a few milliseconds. Product images now use an explicit `IntersectionObserver`, so thumbnails lower in a scrollable product or basket list do not make any request until they approach the viewport. Removing the duplicate embedded copy of the 30 example products also reduces the production JavaScript from roughly `410 KB` to `371 KB` (`123.8 KB` to `112.5 KB` gzip).
 
 Version `v0.22.0` nearly halves the first-screen JavaScript again. Components retain the React-compatible API, while production aliases it to the smaller `preact/compat` runtime, reducing the main bundle from `112.5 KB` to about `59.7 KB` gzip. The startup catalogue now keeps only metadata used by the interface while preserving all three sort modes and the complete example basket, reducing its Brotli transfer from about `33.4 KB` to `15.8 KB`. A lightweight HTML shell paints the workspace before JavaScript completes, large plan details render when the main thread is idle, and offscreen rows use `content-visibility`. Product and retailer images go directly to the edge image cache with the existing same-origin proxy retained as fallback. The versioned worker catalogue is reusable from browser cache and starts immediately on search focus or later during idle time.
+
+Version `v0.22.1` fixes thumbnails that had already downloaded from browser cache but could remain hidden behind the product initials. The app now also detects an image that completed before its load handler was attached, while retaining the fallback path for genuinely failed images.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
