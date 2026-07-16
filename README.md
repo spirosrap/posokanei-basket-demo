@@ -2,17 +2,19 @@
 
 ## Ελληνικά
 
-**Ζωντανή εφαρμογή:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
+**Ζωντανή εφαρμογή:** [kalathitimon.com](https://kalathitimon.com/)
+
+**Συμβατό mirror:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.17.1`
+**Τρέχουσα έκδοση:** `v0.18.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η αρχική σελίδα με το καλάθι παραδείγματος και τη σύγκριση supermarket](screenshots/desktop.png)
+![Η έκδοση 0.18.0 στο νέο kalathitimon.com με το καλάθι παραδείγματος](screenshots/kalathitimon-v0.18.0.jpg)
 
 Η βασική ιδέα είναι απλή:
 
@@ -62,9 +64,11 @@
 
 Η έκδοση `v0.16.0` προσθέτει φορητή εξαγωγή και εισαγωγή σε JSON. Το versioned αρχείο κρατά μόνο κωδικούς προϊόντων, ακέραιες ποσότητες, όριο στάσεων, επιλεγμένες αλυσίδες και την εκτίμηση κόστους επιπλέον στάσης. Δεν κρατά τοποθεσία ή τιμές. Κατά τη φόρτωση, η εφαρμογή ελέγχει αυστηρά το αρχείο, αναζητά τους κωδικούς στον τρέχοντα κατάλογο και υπολογίζει ξανά όλες τις τιμές και τα πλάνα. Έτσι ένα καλάθι μπορεί να αποθηκευτεί, να σταλεί ή να μεταφερθεί σε άλλον browser χωρίς να μεταφέρει παλιές τιμές.
 
-Η έκδοση `v0.17.0` αντικαθιστά αυτόματα τον μεγάλο σύνδεσμο καλαθιού με έναν σύντομο σύνδεσμο του ίδιου του `agenticspiros.com` στα παράθυρα κοινής χρήσης και εξαγωγής κειμένου. Η υπηρεσία σύντμησης φιλοξενείται μαζί με την εφαρμογή, δεν απαιτεί API key ή συνδρομή, δεν αποστέλλει το καλάθι σε τρίτη υπηρεσία και επιστρέφει αμέσως στον πλήρη σύνδεσμο αν δεν είναι διαθέσιμη. Η σύντμηση γίνεται μόνο όταν ο χρήστης ανοίξει ένα από αυτά τα παράθυρα.
+Η έκδοση `v0.17.0` αντικαθιστά αυτόματα τον μεγάλο σύνδεσμο καλαθιού με έναν σύντομο σύνδεσμο του ίδιου του hosting στα παράθυρα κοινής χρήσης και εξαγωγής κειμένου. Η υπηρεσία σύντμησης φιλοξενείται μαζί με την εφαρμογή, δεν απαιτεί API key ή συνδρομή, δεν αποστέλλει το καλάθι σε τρίτη υπηρεσία και επιστρέφει αμέσως στον πλήρη σύνδεσμο αν δεν είναι διαθέσιμη. Η σύντμηση γίνεται μόνο όταν ο χρήστης ανοίξει ένα από αυτά τα παράθυρα.
 
 Η έκδοση `v0.17.1` ταξινομεί κάθε αναζήτηση προϊόντος από τη χαμηλότερη προς την υψηλότερη καλύτερη διαθέσιμη τιμή. Η βασική ταξινόμηση εφαρμόζεται πριν από τη σελιδοποίηση του καταλόγου, ώστε τα φθηνότερα αποτελέσματα να εμφανίζονται πραγματικά πρώτα. Στη συνέχεια, η σειρά των φορτωμένων αποτελεσμάτων προσαρμόζεται στις αλυσίδες που έχει επιλέξει ο χρήστης ή επιτρέπονται από το ενεργό φίλτρο τοποθεσίας. Προϊόντα χωρίς διαθέσιμη τιμή σε αυτές τις αλυσίδες εμφανίζονται τελευταία.
+
+Η έκδοση `v0.18.0` μεταφέρει την κύρια εφαρμογή στο αποκλειστικό [kalathitimon.com](https://kalathitimon.com/). Η εφαρμογή, τα PHP API, οι εικόνες, οι ευκαιρίες και οι σύντομοι σύνδεσμοι λειτουργούν πλέον από τη ρίζα του νέου domain με HTTPS, ενώ το παλιό `/demo/posokanei-basket/` παραμένει ως συμβατό mirror. Ο ωριαίος συγχρονισμός δημοσιεύει ατομικά τον ίδιο ελεγμένο κατάλογο και στους δύο προορισμούς, ώστε παλιοί σύνδεσμοι να συνεχίσουν να ανοίγουν χωρίς να χωρίζεται η πηγή τιμών.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -134,9 +138,9 @@
 
 Το κουμπί «Κοινή χρήση» δημιουργεί σύνδεσμο για το τρέχον καλάθι. Από την έκδοση `v0.4.0`, ο σύνδεσμος κρατά τα συγκεκριμένα προϊόντα, τις ποσότητες, το επιλεγμένο όριο `1` έως `4` στάσεων και τις αλυσίδες που συμμετέχουν στον υπολογισμό. Όταν τον ανοίξει κάποιος άλλος, η εφαρμογή φορτώνει τα αντίστοιχα προϊόντα από τον πιο πρόσφατο κατάλογο και υπολογίζει ξανά τις διαθέσιμες τιμές, την κατάταξη αλυσίδων και το φθηνότερο πλάνο. Έτσι ο σύνδεσμος μοιράζεται τη λίστα και τις προτιμήσεις αγορών, όχι ένα παλιό στιγμιότυπο τιμών. Οι σύνδεσμοι της έκδοσης `v0.3.0` παραμένουν συμβατοί και ανοίγουν με όλες τις αλυσίδες ενεργές.
 
-Από την έκδοση `v0.17.0`, το παράθυρο δημιουργεί αυτόματα έναν πολύ μικρότερο σύνδεσμο στη μορφή `agenticspiros.com/demo/posokanei-basket/s/AbCd123456`. Η λύση χρησιμοποιεί το υπάρχον hosting χωρίς εξωτερική δωρεάν υπηρεσία, API key, διαφημίσεις ή πρόσθετη συνδρομή. Ο ίδιος σύνδεσμος επιστρέφεται για το ίδιο καλάθι, ενώ browser και server cache αποφεύγουν περιττές εγγραφές. Αν η υπηρεσία δεν μπορέσει να αποθηκεύσει τον σύνδεσμο, η εφαρμογή χρησιμοποιεί εμφανώς τον πλήρη λειτουργικό σύνδεσμο.
+Από την έκδοση `v0.18.0`, το παράθυρο δημιουργεί αυτόματα έναν πολύ μικρότερο σύνδεσμο στη μορφή `kalathitimon.com/s/AbCd123456`. Η λύση χρησιμοποιεί το hosting της εφαρμογής χωρίς εξωτερική δωρεάν υπηρεσία, API key, διαφημίσεις ή πρόσθετη συνδρομή. Ο ίδιος σύνδεσμος επιστρέφεται για το ίδιο καλάθι, ενώ browser και server cache αποφεύγουν περιττές εγγραφές. Αν η υπηρεσία δεν μπορέσει να αποθηκεύσει τον σύνδεσμο, η εφαρμογή χρησιμοποιεί εμφανώς τον πλήρη λειτουργικό σύνδεσμο.
 
-![Παράθυρο κοινής χρήσης με σύντομο σύνδεσμο καλαθιού](screenshots/share-short-link.jpg)
+![Παράθυρο κοινής χρήσης με σύντομο σύνδεσμο στο kalathitimon.com](screenshots/kalathitimon-share-v0.18.0.jpg)
 
 Η εισαγωγή είναι ανθεκτική σε αλλαγές καταλόγου: αν κάποιο προϊόν δεν υπάρχει πλέον, το υπόλοιπο καλάθι ανοίγει κανονικά και εμφανίζεται σαφής προειδοποίηση. Μετά την επιτυχημένη εισαγωγή, η παράμετρος αφαιρείται από τη γραμμή διεύθυνσης ώστε μια μελλοντική ανανέωση να μη γυρίσει τον χρήστη στην αρχική κοινόχρηστη έκδοση, ενώ το καλάθι συνεχίζει να αποθηκεύεται τοπικά όπως πριν.
 
@@ -180,11 +184,13 @@
 
 ## English
 
-**Live app:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
+**Live app:** [kalathitimon.com](https://kalathitimon.com/)
+
+**Compatibility mirror:** [agenticspiros.com/demo/posokanei-basket](https://agenticspiros.com/demo/posokanei-basket/)
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.17.1`
+**Current version:** `v0.18.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -267,9 +273,11 @@ Version `v0.15.0` adds a complete plain-text basket export. It includes a produc
 
 Version `v0.16.0` adds portable JSON export and import. The versioned file stores only product IDs, whole-number quantities, the stop limit, selected chains, and the extra-stop estimate. It never stores location or prices. On import, the app strictly validates the file, fetches those IDs from the current catalogue, and recalculates every price and plan. A basket can therefore be archived, sent, or moved to another browser without carrying stale price data.
 
-Version `v0.17.0` automatically replaces the large basket URL with a compact link on `agenticspiros.com` in the share and plain-text export dialogs. The shortening service is hosted with the app, requires no API key or subscription, sends no basket data to a third-party service, and immediately falls back to the complete URL if it is unavailable. Shortening begins only after the user opens one of those dialogs.
+Version `v0.17.0` automatically replaces the large basket URL with a compact link hosted alongside the app in the share and plain-text export dialogs. The shortening service requires no API key or subscription, sends no basket data to a third-party service, and immediately falls back to the complete URL if it is unavailable. Shortening begins only after the user opens one of those dialogs.
 
 Version `v0.17.1` orders every product search from the lowest to the highest best available price. Catalogue ordering happens before pagination so the genuinely cheapest matches appear first, then the browser reconciles the visible order with the supermarket chains selected by the user or allowed by the active location filter. Products without an available price among those chains appear last.
+
+Version `v0.18.0` launches the primary production app at the dedicated [kalathitimon.com](https://kalathitimon.com/) domain. The React app, PHP APIs, images, bargains, and compact basket links now run from the domain root with HTTPS, while the original `/demo/posokanei-basket/` installation remains available as a compatibility mirror. The hourly refresh atomically publishes the same verified catalogue to both targets so existing links keep working without creating separate price sources.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -395,9 +403,9 @@ plan using the prices available at that time. The URL therefore shares grocery a
 planning preferences, not a stale price quote. Version `v0.3.0` links remain
 compatible and open with every chain enabled.
 
-From `v0.17.0`, the dialog automatically creates a much smaller link in the form `agenticspiros.com/demo/posokanei-basket/s/AbCd123456`. The implementation uses the existing hosting without an external free service, API key, advertising, or additional subscription. The same basket receives the same link, while browser and server caching avoid unnecessary writes. If the service cannot store a link, the app visibly keeps using the complete working URL.
+From `v0.18.0`, the dialog automatically creates a much smaller link in the form `kalathitimon.com/s/AbCd123456`. The implementation uses the app hosting without an external free service, API key, advertising, or additional subscription. The same basket receives the same link, while browser and server caching avoid unnecessary writes. If the service cannot store a link, the app visibly keeps using the complete working URL.
 
-![Share-basket dialog with the compact self-hosted link](screenshots/share-short-link.jpg)
+![Share-basket dialog with a compact self-hosted kalathitimon.com link](screenshots/kalathitimon-share-v0.18.0.jpg)
 
 The import flow handles catalogue changes explicitly. Products that are no longer
 available are omitted with a visible partial-import warning, while the rest of the
@@ -502,15 +510,23 @@ Important limitations:
 
 ### Live Target
 
-The app is built to run as a subpath deployment:
+The primary production app runs from the dedicated domain root:
 
 ```text
-https://agenticspiros.com/demo/posokanei-basket/
+https://kalathitimon.com/
 ```
 
-The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog, product images, retailer logos, update status, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin proxy calls.
+`npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalogue, product images, retailer logos, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must execute PHP for the same-origin calls.
 
 ### Screenshots
+
+Version 0.18.0 on the new production domain:
+
+![Kalathi Timon 0.18.0 at kalathitimon.com](screenshots/kalathitimon-v0.18.0.jpg)
+
+Compact self-hosted sharing on the new domain:
+
+![Compact kalathitimon.com basket link](screenshots/kalathitimon-share-v0.18.0.jpg)
 
 Product-level savings breakdown on desktop and mobile:
 
@@ -554,7 +570,7 @@ Product detail, with a larger image for checking the exact product:
 
 Shareable basket dialog:
 
-![Shareable basket dialog with a compact link on desktop](screenshots/share-short-link.jpg)
+![Shareable basket dialog with a compact link on desktop](screenshots/kalathitimon-share-v0.18.0.jpg)
 
 Supermarket selection and grouped plan export:
 
@@ -675,7 +691,7 @@ During development on 2026-06-18:
 - `POST /products/search` with `{ "title": "γάλα", "countries": ["GR"] }` returned `271` milk-related products.
 - Product images are served from URLs like `https://api.posokanei.gov.gr/images/product/<id>?v=<version>`.
 
-The official API does not allow `https://agenticspiros.com` as a browser CORS origin, so direct `fetch()` calls from a static frontend are blocked. The app handles this with:
+The official API does not allow the production site as a browser CORS origin, so direct `fetch()` calls from the static frontend are blocked. The app handles this with:
 
 - A same-origin PHP proxy in `public/api/posokanei.php`.
 - A cached update-status endpoint in `public/api/update-status.php`.
@@ -691,7 +707,7 @@ The official API does not allow `https://agenticspiros.com` as a browser CORS or
 Current production note, checked on 2026-06-23:
 
 - `https://api.posokanei.gov.gr/meta/stats` returns `200` from allowed development/refresh environments.
-- `https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats` returns `200` with `source: "snapshot"` because the PHP endpoint now falls back to the refreshed catalogue when upstream rejects the Plesk server request.
+- `https://kalathitimon.com/api/posokanei.php?resource=stats` returns `200` with `source: "snapshot"` because the PHP endpoint falls back to the refreshed catalogue when upstream rejects the Plesk server request.
 - Vercel Node, Vercel Edge, and Cloudflare Worker probes also returned upstream `403`.
 - The live app therefore uses `data/catalog.json` and `data/catalog-meta.json`, refreshed by an external scheduled sync from PosoKanei API data, and displays an amber notice with the latest catalogue update time.
 - If a scheduled refresh attempt fails, `data/refresh-status.json` records the failed attempt time and reason. The UI then shows both the last successful catalogue update and the latest failed attempt, so stale data is visible instead of silent.
@@ -803,7 +819,7 @@ The installer prints the scheduler and log paths for the local machine.
 For Plesk Scheduled Tasks, a simple curl check is enough only when the Plesk server can reach the upstream API:
 
 ```bash
-curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1' >/dev/null
+curl -fsS 'https://kalathitimon.com/api/update-status.php?refresh=1' >/dev/null
 ```
 
 When Plesk is upstream-blocked, schedule `npm run live:refresh` on a machine, GitHub runner, or serverless worker that can reach `https://api.posokanei.gov.gr`.

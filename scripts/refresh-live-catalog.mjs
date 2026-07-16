@@ -27,10 +27,8 @@ const dailyBargainPath = resolve(
   process.env.POSOKANEI_BARGAIN_OUT || "dist/data/daily-bargain.json",
 );
 const uploadEnabled = !process.argv.includes("--no-upload");
-const ftpHost = requiredEnv("FTP_HOST");
-const ftpRemoteDir = trimSlashes(requiredEnv("FTP_REMOTE_DIR"));
-const ftpUser = requiredEnv("FTP_USER");
-const keychainService = process.env.FTP_KEYCHAIN_SERVICE || "";
+const ftpTargets = buildFtpTargets();
+const primaryTarget = ftpTargets[0];
 const remoteRefreshHost = process.env.POSOKANEI_REFRESH_HOST || "";
 const remoteRefreshHosts = parseRefreshHosts(
   process.env.POSOKANEI_REFRESH_HOSTS || remoteRefreshHost,
@@ -38,15 +36,9 @@ const remoteRefreshHosts = parseRefreshHosts(
 const minimumProducts = Number(process.env.POSOKANEI_MIN_PRODUCTS || 1000);
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
-  `https://${ftpHost}/${ftpRemoteDir}/data/catalog.json`;
+  publicDataUrl(primaryTarget, "catalog.json");
 const publicMetaUrl =
   process.env.POSOKANEI_PUBLIC_META_URL || publicCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
-const publicRefreshStatusUrl =
-  process.env.POSOKANEI_PUBLIC_REFRESH_STATUS_URL ||
-  publicCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
-const publicDailyBargainUrl =
-  process.env.POSOKANEI_PUBLIC_BARGAIN_URL ||
-  publicCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
 
 try {
   await refreshCatalog();
@@ -94,15 +86,14 @@ async function refreshCatalog() {
   });
 
   if (uploadEnabled) {
-    const password = process.env.FTP_PASS || (await readKeychainPassword());
-    await publishDataFile(snapshotPath, "catalog.json", password);
-    await publishDataFile(metaPath, "catalog-meta.json", password);
-    if (existsSync(dailyBargainPath)) {
-      await publishDataFile(dailyBargainPath, "daily-bargain.json", password);
+    for (const target of ftpTargets) {
+      try {
+        await publishRefreshToTarget(target, snapshot.generated_at);
+      } catch (error) {
+        if (target.required) throw error;
+        console.error(`Optional catalogue mirror ${target.name} failed: ${describeRefreshError(error)}`);
+      }
     }
-    // Publish status last so it only announces a refresh after every data file is live.
-    await publishDataFile(refreshStatusPath, "refresh-status.json", password);
-    await verifyPublicRefreshFiles(snapshot.generated_at);
   } else {
     console.log("Upload skipped because --no-upload was passed.");
   }
@@ -176,8 +167,8 @@ async function recordRefreshFailure(error) {
   if (!uploadEnabled) return;
 
   try {
-    const password = process.env.FTP_PASS || (await readKeychainPassword());
-    await publishDataFile(refreshStatusPath, "refresh-status.json", password);
+    const password = await readTargetPassword(primaryTarget);
+    await publishDataFile(refreshStatusPath, "refresh-status.json", primaryTarget, password);
   } catch (uploadError) {
     console.error(`Could not upload refresh failure status: ${describeRefreshError(uploadError)}`);
   }
@@ -286,16 +277,18 @@ async function runNodeScript(script, extraEnv = {}) {
   });
 }
 
-async function readKeychainPassword() {
-  if (!keychainService) {
+async function readTargetPassword(target) {
+  const directPassword = target.password || "";
+  if (directPassword) return directPassword;
+  if (!target.keychainService) {
     throw new Error("FTP_PASS or FTP_KEYCHAIN_SERVICE must be set in the environment or .env.local.");
   }
   const { stdout } = await run("/usr/bin/security", [
     "find-generic-password",
     "-s",
-    keychainService,
+    target.keychainService,
     "-a",
-    ftpUser,
+    target.user,
     "-w",
   ], { quiet: true });
   const password = stdout.trim();
@@ -305,11 +298,24 @@ async function readKeychainPassword() {
   return password;
 }
 
-async function publishDataFile(filePath, remoteName, password) {
+async function publishRefreshToTarget(target, expectedGeneratedAt) {
+  const password = await readTargetPassword(target);
+  await publishDataFile(snapshotPath, "catalog.json", target, password);
+  await publishDataFile(metaPath, "catalog-meta.json", target, password);
+  if (existsSync(dailyBargainPath)) {
+    await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
+  }
+  // Publish status last so it only announces a refresh after every data file is live.
+  await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
+  await verifyPublicRefreshFiles(expectedGeneratedAt, target);
+}
+
+async function publishDataFile(filePath, remoteName, target, password) {
+  const remoteRoot = target.remoteDir === "." ? "" : `${target.remoteDir}/`;
   await uploadFileAtomic({
     filePath,
-    url: `ftp://${ftpHost}/${ftpRemoteDir}/data/${remoteName}`,
-    user: ftpUser,
+    url: `ftp://${target.host}/${remoteRoot}data/${remoteName}`,
+    user: target.user,
     password,
     cwd: projectRoot,
   });
@@ -325,39 +331,78 @@ async function fetchPublicJson(url) {
   return response.json();
 }
 
-async function verifyPublicRefreshFiles(expectedGeneratedAt) {
-  const publicSnapshot = await fetchPublicJson(publicCatalogUrl);
+async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
+  const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
+  const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
+  const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
+  const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
+  const publicSnapshot = await fetchPublicJson(targetCatalogUrl);
   if (publicSnapshot.generated_at !== expectedGeneratedAt) {
     throw new Error(
       `Public snapshot verification mismatch: expected ${expectedGeneratedAt}, got ${publicSnapshot.generated_at}.`,
     );
   }
 
-  const publicMeta = await fetchPublicJson(publicMetaUrl);
+  const publicMeta = await fetchPublicJson(targetMetaUrl);
   if (publicMeta.generated_at !== expectedGeneratedAt) {
     throw new Error(
       `Public metadata verification mismatch: expected ${expectedGeneratedAt}, got ${publicMeta.generated_at}.`,
     );
   }
 
-  const publicRefreshStatus = await fetchPublicJson(publicRefreshStatusUrl);
+  const publicRefreshStatus = await fetchPublicJson(targetStatusUrl);
   if (publicRefreshStatus.generated_at !== expectedGeneratedAt) {
     throw new Error(
       `Public refresh-status verification mismatch: expected ${expectedGeneratedAt}, got ${publicRefreshStatus.generated_at}.`,
     );
   }
 
-  console.log(`Verified public catalogue at ${publicCatalogUrl}`);
-  console.log(`Verified public metadata at ${publicMetaUrl}`);
-  console.log(`Verified public refresh status at ${publicRefreshStatusUrl}`);
+  console.log(`Verified public catalogue at ${targetCatalogUrl}`);
+  console.log(`Verified public metadata at ${targetMetaUrl}`);
+  console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));
-    const publicDailyBargain = await fetchPublicJson(publicDailyBargainUrl);
+    const publicDailyBargain = await fetchPublicJson(targetBargainUrl);
     if (publicDailyBargain.generated_at !== localDailyBargain.generated_at) {
       throw new Error("Public daily-bargain verification mismatch.");
     }
-    console.log(`Verified public daily bargain at ${publicDailyBargainUrl}`);
+    console.log(`Verified public daily bargain at ${targetBargainUrl}`);
   }
+}
+
+function buildFtpTargets() {
+  const primary = {
+    name: "primary",
+    required: true,
+    host: requiredEnv("FTP_HOST"),
+    remoteDir: trimSlashes(requiredEnv("FTP_REMOTE_DIR")) || ".",
+    user: requiredEnv("FTP_USER"),
+    password: process.env.FTP_PASS || "",
+    keychainService: process.env.FTP_KEYCHAIN_SERVICE || "",
+    publicCatalogUrl: process.env.POSOKANEI_PUBLIC_CATALOG_URL || "",
+  };
+  if (!process.env.FTP_MIRROR_HOST) return [primary];
+  return [
+    primary,
+    {
+      name: "legacy",
+      required: false,
+      host: requiredEnv("FTP_MIRROR_HOST"),
+      remoteDir: trimSlashes(requiredEnv("FTP_MIRROR_REMOTE_DIR")) || ".",
+      user: requiredEnv("FTP_MIRROR_USER"),
+      password: process.env.FTP_MIRROR_PASS || "",
+      keychainService: process.env.FTP_MIRROR_KEYCHAIN_SERVICE || "",
+      publicCatalogUrl: process.env.POSOKANEI_MIRROR_PUBLIC_CATALOG_URL || "",
+    },
+  ];
+}
+
+function publicDataUrl(target, fileName) {
+  if (target.publicCatalogUrl) {
+    return target.publicCatalogUrl.replace(/catalog\.json$/, fileName);
+  }
+  const remoteRoot = target.remoteDir === "." ? "" : `${target.remoteDir}/`;
+  return `https://${target.host}/${remoteRoot}data/${fileName}`;
 }
 
 function run(command, args, options = {}) {

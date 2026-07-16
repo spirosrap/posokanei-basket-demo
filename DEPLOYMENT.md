@@ -1,6 +1,12 @@
 # Deployment Notes
 
-Target URL:
+Primary target:
+
+```text
+https://kalathitimon.com/
+```
+
+Compatibility mirror:
 
 ```text
 https://agenticspiros.com/demo/posokanei-basket/
@@ -15,19 +21,21 @@ deploy/posokanei-basket-dist.zip
 Live status:
 
 ```text
-Deployed on 2026-06-18 under the existing agenticspiros.com document root.
+Dedicated production domain launched on 2026-07-16 with HTTPS.
+The original subpath remains online as a compatibility mirror.
 ```
 
-Example Plesk target path:
+Example Plesk primary target path:
 
 ```text
-/var/www/vhosts/<domain>/httpdocs/demo/posokanei-basket/
+/var/www/vhosts/<subscription>/<kalathitimon-document-root>/
 ```
 
-The remote upload path is:
+The primary FTP account should be scoped to the domain document root, so its
+remote upload path is:
 
 ```text
-demo/posokanei-basket/
+/
 ```
 
 Upload shape:
@@ -35,9 +43,9 @@ Upload shape:
 ```bash
 npm run build
 curl --ftp-create-dirs -T dist/index.html \
-  ftp://agenticspiros.com/demo/posokanei-basket/index.html
+  ftp://<production-ftp-host>/index.html
 curl --ftp-create-dirs -T dist/assets/<asset-file> \
-  ftp://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
+  ftp://<production-ftp-host>/assets/<asset-file>
 ```
 
 If using Plesk File Manager instead, upload and extract:
@@ -46,16 +54,14 @@ If using Plesk File Manager instead, upload and extract:
 deploy/posokanei-basket-dist.zip
 ```
 
-into:
+into the document root of `kalathitimon.com`.
 
-```text
-httpdocs/demo/posokanei-basket/
-```
-
-The production build uses absolute subpath assets via `vite.config.js`
-(`base: "/demo/posokanei-basket/"`) and targets older Safari-compatible syntax.
-The generated `.htaccess` disables PageSpeed and sets `index.html` as the
-directory index.
+The normal production build uses root assets (`base: "/"`) and targets older
+Safari-compatible syntax. `npm run build:legacy` creates the old
+`/demo/posokanei-basket/` subpath build when that mirror needs a full app update.
+The generated `.htaccess` disables PageSpeed, redirects `www` to the apex domain,
+routes `/s/<code>` through the basket opener, and keeps the SPA fallback on
+`index.html`.
 
 Live catalogue support uses these build outputs:
 
@@ -68,9 +74,9 @@ dist/data/catalog-meta.json
 dist/data/refresh-status.json
 ```
 
-`posokanei.php` is a same-origin proxy for the public PosoKanei catalog
+`posokanei.php` is a same-origin proxy for the public PosoKanei catalogue
 endpoints. It exists because `https://api.posokanei.gov.gr` currently rejects
-browser CORS requests from `agenticspiros.com`.
+browser CORS requests from the production site.
 
 Current production caveat, checked on 2026-06-23: the upstream API also returns
 `HTTP 403` to the Plesk server. Vercel Node, Vercel Edge, and Cloudflare Worker
@@ -156,11 +162,13 @@ live catalogue with an older local build artifact. Use `npm run live:refresh` fo
 normal catalogue, refresh-status, and daily-bargain publishing.
 
 `live:refresh` writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
-updates `dist/data/daily-bargain.json` once per Athens calendar day, uploads the
-data files under `demo/posokanei-basket/data/`, and verifies the public catalogue
-and suggestion timestamps. Configure FTP and public URL settings with environment
-variables or `.env.local` based on `.env.example`. Use either `FTP_PASS` or
-`FTP_KEYCHAIN_SERVICE` for FTP authentication.
+updates `dist/data/daily-bargain.json` once per Athens calendar day, publishes the
+data files to the primary domain, and verifies the public catalogue and suggestion
+timestamps. Optional `FTP_MIRROR_*` and `POSOKANEI_MIRROR_PUBLIC_CATALOG_URL`
+settings publish and verify the same files on the old subpath as a best-effort mirror. Configure
+targets with environment variables or the ignored `.env.local`, based on
+`.env.example`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for primary FTP
+authentication; the mirror has matching legacy variables.
 
 Keep `OPENAI_API_KEY` only in the private environment of the Mac running the
 LaunchAgent. The key is not required on Plesk and must never be copied into
@@ -221,7 +229,7 @@ in-memory cache so a later action can recover in the same browser session.
 Plesk scheduled task equivalent:
 
 ```bash
-curl -fsS 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1' >/dev/null
+curl -fsS 'https://kalathitimon.com/api/update-status.php?refresh=1' >/dev/null
 ```
 
 That Plesk task only works when Plesk can reach `api.posokanei.gov.gr`. While
@@ -231,15 +239,19 @@ reach the upstream API.
 Verification:
 
 ```bash
-curl -L https://agenticspiros.com/demo/posokanei-basket/
-curl -L https://agenticspiros.com/demo/posokanei-basket/assets/<asset-file>
-curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog.json
-curl -L https://agenticspiros.com/demo/posokanei-basket/data/catalog-meta.json
-curl -L https://agenticspiros.com/demo/posokanei-basket/data/refresh-status.json
-curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=stats'
-curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1'
-curl -L 'https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'
-curl -fsS -X POST 'https://agenticspiros.com/demo/posokanei-basket/api/branches.php' \
+curl -L https://kalathitimon.com/
+curl -L https://kalathitimon.com/assets/<asset-file>
+curl -L https://kalathitimon.com/data/catalog.json
+curl -L https://kalathitimon.com/data/catalog-meta.json
+curl -L https://kalathitimon.com/data/refresh-status.json
+curl -L 'https://kalathitimon.com/api/posokanei.php?resource=stats'
+curl -L 'https://kalathitimon.com/api/update-status.php?refresh=1'
+curl -L 'https://kalathitimon.com/api/posokanei.php?resource=search&title=%CE%B3%CE%AC%CE%BB%CE%B1&page=1&page_size=2'
+curl -fsS -X POST 'https://kalathitimon.com/api/branches.php' \
   -H 'Content-Type: application/json' \
   --data '{"lat":37.9838,"lon":23.7275,"radiusKm":2}'
 ```
+
+The same catalogue timestamps can be checked on the compatibility mirror after a
+refresh. Primary publishing is required; a mirror failure is reported but does not
+invalidate a successful primary update.

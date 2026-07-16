@@ -1,11 +1,8 @@
+import { APP_BASE_URL, runtimeAppUrl } from "./appConfig.js";
+
 const API_ORIGIN = "https://api.posokanei.gov.gr";
-const APP_BASE_URL = import.meta.env.BASE_URL;
-const PROXY_BASE = import.meta.env.DEV
-  ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
-  : `${APP_BASE_URL}api/posokanei.php`;
-const UPDATE_STATUS_URL = import.meta.env.DEV
-  ? "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php"
-  : `${APP_BASE_URL}api/update-status.php`;
+const PROXY_BASE = runtimeAppUrl("api/posokanei.php");
+const UPDATE_STATUS_URL = runtimeAppUrl("api/update-status.php");
 const CATALOG_SNAPSHOT_URL = `${APP_BASE_URL}data/catalog.json`;
 const DAILY_BARGAIN_URL = `${APP_BASE_URL}data/daily-bargain.json`;
 

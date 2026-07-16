@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const DEFAULT_URL =
-  "https://agenticspiros.com/demo/posokanei-basket/api/update-status.php?refresh=1";
+  "https://kalathitimon.com/api/update-status.php?refresh=1";
 const statusUrl = process.env.POSOKANEI_UPDATE_URL || DEFAULT_URL;
 const statePath = resolve(
   process.env.POSOKANEI_UPDATE_STATE || ".cache/posokanei-update-status.json",

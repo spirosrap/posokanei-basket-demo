@@ -83,6 +83,7 @@ import { formatBasketData, parseBasketData } from "./basketData";
 import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 import { shortenBasketUrl } from "./shortLinks";
+import { runtimeAppUrl } from "./appConfig";
 import {
   getInitialLanguage,
   localeForLanguage,
@@ -128,9 +129,7 @@ const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("
 const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE
   ? null
   : readSharedBasketUrl(window.location.href);
-const IMAGE_PROXY_BASE = import.meta.env.DEV
-  ? "https://agenticspiros.com/demo/posokanei-basket/api/posokanei.php"
-  : `${APP_BASE_PATH}api/posokanei.php`;
+const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
 const SHOPPING_PRIORITY_OPTIONS = [
   { value: 0, labelKey: "priorityLowestPrice" },
   { value: 2, labelKey: "prioritySmallDetour" },
@@ -1332,7 +1331,7 @@ function Header({ health, basketCount }) {
   };
   return (
     <header className="topbar">
-      <a className="brand" href="/" aria-label={t("agenticSpirosHome")}>
+      <a className="brand" href={APP_BASE_PATH} aria-label={t("agenticSpirosHome")}>
         <span className="brand-mark">
           <ShoppingBasket size={21} aria-hidden="true" />
         </span>

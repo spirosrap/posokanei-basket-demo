@@ -1,8 +1,7 @@
-const LIVE_APP_URL = "https://agenticspiros.com/demo/posokanei-basket/";
-const APP_BASE_URL = import.meta.env?.BASE_URL || "/demo/posokanei-basket/";
-const SHORTENER_ENDPOINT = import.meta.env?.DEV
-  ? `${LIVE_APP_URL}api/shorten.php`
-  : `${APP_BASE_URL}api/shorten.php`;
+import { LIVE_APP_URL, runtimeAppUrl } from "./appConfig.js";
+
+const LIVE_APP = new URL(LIVE_APP_URL);
+const SHORTENER_ENDPOINT = runtimeAppUrl("api/shorten.php");
 const CACHE_KEY = "posokanei-short-links-v2";
 const MAX_CACHE_ENTRIES = 20;
 const MAX_SHARE_TOKEN_LENGTH = 8192;
@@ -49,10 +48,13 @@ function normalizeShortUrl(value) {
     const url = new URL(String(value || ""));
     if (
       url.protocol !== "https:"
-      || url.hostname !== "agenticspiros.com"
+      || url.origin !== LIVE_APP.origin
       || url.search
       || url.hash
-      || !/^\/demo\/posokanei-basket\/s\/[a-zA-Z0-9_-]{10,32}$/u.test(url.pathname)
+      || !new RegExp(
+        `^${escapeRegExp(LIVE_APP.pathname)}s/[a-zA-Z0-9_-]{10,32}$`,
+        "u",
+      ).test(url.pathname)
     ) {
       return "";
     }
@@ -60,6 +62,10 @@ function normalizeShortUrl(value) {
   } catch {
     return "";
   }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function canonicalizeBasketUrl(value) {

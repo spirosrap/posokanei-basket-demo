@@ -27,8 +27,8 @@ function valid_basket_url(string $value): bool
     $url = parse_url($value);
     if (!is_array($url)) return false;
     if (($url['scheme'] ?? '') !== 'https') return false;
-    if (strtolower((string) ($url['host'] ?? '')) !== 'agenticspiros.com') return false;
-    if (($url['path'] ?? '') !== '/demo/posokanei-basket/' || isset($url['fragment'])) return false;
+    if (strtolower((string) ($url['host'] ?? '')) !== 'kalathitimon.com') return false;
+    if (($url['path'] ?? '') !== '/' || isset($url['fragment'])) return false;
     $query = [];
     parse_str((string) ($url['query'] ?? ''), $query);
     $token = $query['basket'] ?? null;

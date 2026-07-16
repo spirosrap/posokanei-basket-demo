@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import process from "node:process";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -15,7 +16,7 @@ const stripSameOriginCrossorigin = () => ({
 });
 
 export default defineConfig(({ command }) => ({
-  base: command === "build" ? "/demo/posokanei-basket/" : "/",
+  base: command === "build" ? normalizeBase(process.env.VITE_APP_BASE || "/") : "/",
   define: {
     "import.meta.env.PACKAGE_VERSION": JSON.stringify(packageJson.version),
   },
@@ -24,3 +25,8 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [react(), stripSameOriginCrossorigin()],
 }));
+
+function normalizeBase(value) {
+  const path = String(value || "/").replace(/^\/+|\/+$/g, "");
+  return path ? `/${path}/` : "/";
+}

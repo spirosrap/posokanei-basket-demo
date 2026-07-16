@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-const LIVE_ORIGIN = 'https://agenticspiros.com';
-const LIVE_PATH = '/demo/posokanei-basket/';
+const LIVE_ORIGIN = 'https://kalathitimon.com';
+const LIVE_PATH = '/';
 const CACHE_PREFIX = "<?php exit; ?>\n";
 const MAX_SHARE_TOKEN_LENGTH = 8192;
 const MAX_CACHE_ENTRIES = 5000;
@@ -83,7 +83,7 @@ function canonical_basket_url(string $value): string
     $url = parse_url($value);
     if (!is_array($url)) emit_error(400, 'invalid_basket_url');
     if (($url['scheme'] ?? '') !== 'https') emit_error(400, 'invalid_basket_url');
-    if (strtolower((string) ($url['host'] ?? '')) !== 'agenticspiros.com') {
+    if (strtolower((string) ($url['host'] ?? '')) !== 'kalathitimon.com') {
         emit_error(400, 'invalid_basket_url');
     }
     if (($url['path'] ?? '') !== LIVE_PATH || isset($url['fragment'])) {

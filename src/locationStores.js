@@ -1,6 +1,6 @@
-const BRANCH_PROXY_ENDPOINT = import.meta.env?.DEV
-  ? "https://agenticspiros.com/demo/posokanei-basket/api/branches.php"
-  : "./api/branches.php";
+import { runtimeAppUrl } from "./appConfig.js";
+
+const BRANCH_PROXY_ENDPOINT = runtimeAppUrl("api/branches.php");
 
 const RETAILER_ALIASES = {
   ab_vasilopoulos: ["ab", "αβ", "βασιλοπουλος", "vasilopoulos", "alpha beta"],
