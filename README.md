@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.22.2`
+**Τρέχουσα έκδοση:** `v0.22.3`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -81,6 +81,8 @@
 Η έκδοση `v0.22.1` διορθώνει τις μικρογραφίες που είχαν ήδη ληφθεί από την cache αλλά μπορούσαν να παραμένουν κρυμμένες πίσω από τα αρχικά του προϊόντος. Η εφαρμογή αναγνωρίζει πλέον και μια εικόνα που ολοκληρώθηκε πριν συνδεθεί το event φόρτωσης, χωρίς να αφαιρεί το fallback για πραγματικά αποτυχημένες εικόνες.
 
 Η έκδοση `v0.22.2` διορθώνει τον αυτόματο συγχρονισμό μετά την προσθήκη του συμπαγούς startup καταλόγου. Ο προσωρινός φάκελος κάθε απομακρυσμένου runner λαμβάνει πλέον και το module configuration του project, ώστε ο υγιής Node 18 runner να ολοκληρώνει τη δημιουργία των `catalog`, `runtime` και `bootstrap` αρχείων αντί να σταματά μετά τη λήψη των προϊόντων. Η πρώτη επιτυχής πλήρης λήψη εξακολουθεί να κερδίζει και τα αρχεία δημοσιεύονται ατομικά και επαληθεύονται και στα δύο domains.
+
+Η έκδοση `v0.22.3` διορθώνει τις φωτογραφίες των προσαρμοσμένων καλαθιών μετά από ανανέωση της σελίδας. Όταν οι νέες τιμές αντικαθιστούσαν το τοπικά αποθηκευμένο product object με άλλο που είχε την ίδια ακριβώς εικόνα, η μικρογραφία επέστρεφε άσκοπα σε κατάσταση φόρτωσης χωρίς να ακολουθεί νέο event. Πλέον η κατάσταση της φωτογραφίας μηδενίζεται μόνο όταν αλλάζει πραγματικά το URL της, ώστε προσωπικά, αποθηκευμένα και κοινόχρηστα καλάθια να κρατούν τις εικόνες τους ενώ ενημερώνονται οι τιμές.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -202,7 +204,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.22.2`
+**Current version:** `v0.22.3`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -304,6 +306,8 @@ Version `v0.22.0` nearly halves the first-screen JavaScript again. Components re
 Version `v0.22.1` fixes thumbnails that had already downloaded from browser cache but could remain hidden behind the product initials. The app now also detects an image that completed before its load handler was attached, while retaining the fallback path for genuinely failed images.
 
 Version `v0.22.2` repairs the automatic sync after the compact startup catalogue was introduced. Each remote runner's temporary directory now receives the project's module configuration, allowing the healthy Node 18 runner to finish generating the `catalog`, `runtime`, and `bootstrap` artifacts instead of stopping after product download. The first successful complete build still wins, and every artifact is atomically published and verified on both domains.
+
+Version `v0.22.3` fixes product photos in custom baskets after a page refresh. When current prices replaced a locally restored product object with another object carrying the same image URL, the thumbnail unnecessarily returned to its loading state without a second browser event. Image state now resets only when the URL actually changes, so personal, saved, and shared baskets retain their photos while prices are refreshed.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 

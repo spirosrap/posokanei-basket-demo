@@ -4146,11 +4146,13 @@ function ProductThumb({ product, compact = false, priority = false }) {
   const imageRef = useRef(null);
   const { elementRef, shouldLoad } = useNearViewport(priority);
   const imageUrl = imageSources[sourceIndex] || "";
+  // Price refreshes replace product objects; reset only when an image URL changes.
+  const imageSourceKey = imageSources.join("\n");
 
   useEffect(() => {
     setSourceIndex(0);
     setLoadedImageUrl("");
-  }, [imageSources]);
+  }, [imageSourceKey]);
 
   useEffect(() => {
     const image = imageRef.current;
