@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.14.1`
+**Τρέχουσα έκδοση:** `v0.14.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -53,6 +53,8 @@
 Η έκδοση `v0.14.0` ανανεώνει ολόκληρη την οπτική εμπειρία χωρίς να αλλάζει τιμές ή υπολογισμούς. Μπλε, πράσινες, κεχριμπαρένιες και κοραλλί λεπτομέρειες δίνουν ξεχωριστή ταυτότητα στην πλοήγηση, στο καλάθι, στο πλάνο και στις ευκαιρίες. Οι φωτογραφίες προϊόντων, τα αποτελέσματα και οι ενεργές επιλογές αποκτούν καθαρότερο βάθος και πιο άμεση ανάδραση, ενώ οι διακριτικές κινήσεις απενεργοποιούνται αυτόματα όταν ο χρήστης έχει ενεργό το `reduced motion`.
 
 Η έκδοση `v0.14.1` κάνει όλες τις ποσότητες ακεραίους αριθμούς προϊόντων ή συσκευασιών. Τα κουμπιά αυξομείωσης αλλάζουν πλέον την ποσότητα κατά `1`, ακόμη και όταν η μονάδα του καταλόγου είναι `kg`. Παλιές αποθηκευμένες λίστες ή κοινόχρηστοι σύνδεσμοι με δεκαδικές ποσότητες κανονικοποιούνται αυτόματα στον πλησιέστερο ακέραιο.
+
+Η έκδοση `v0.14.2` ξεχωρίζει τη διαθεσιμότητα ενός προϊόντος από την κάλυψη του επιλεγμένου πλάνου. Αν, για παράδειγμα, ένα προϊόν δεν πωλείται από την αλυσίδα του πλάνου μίας στάσης αλλά υπάρχει σε άλλη αλυσίδα του υπολογισμού, το καλάθι δείχνει πλέον την καλύτερη διαθέσιμη τιμή, την αλυσίδα και πόσες στάσεις χρειάζονται για πλήρες καλάθι. Δεν εμφανίζει πια την παραπλανητική ένδειξη «έλλειψη», η οποία μπορούσε να εκληφθεί ως πληροφορία αποθέματος. Το PosoKanei παρέχει τιμές καταλόγου, όχι ζωντανό απόθεμα ανά υποκατάστημα.
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -158,7 +160,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.14.1`
+**Current version:** `v0.14.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -174,6 +176,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
 - Add products to a basket.
 - Adjust whole-product quantities with integer steppers, including `kg` packages.
+- Distinguish products available at another included chain from products covered by the selected stop plan, showing the best alternative chain, price, and complete stop limit.
 - Include or exclude supermarket chains from every ranking and optimized plan.
 - Automatically limit prices and plans to chains with a nearby branch after enabling location.
 - Check off products while shopping, see remaining spend, and filter the plan to unfinished items.
@@ -229,6 +232,8 @@ Version `v0.13.0` explains where the selected plan's saving comes from. It compa
 Version `v0.14.0` refreshes the complete visual experience without changing prices or calculations. Blue, green, amber, and coral accents give navigation, basket, plan, and bargain states distinct identities. Product imagery, results, and selected controls gain clearer depth and more immediate feedback, while restrained motion automatically switches off when the user prefers reduced motion.
 
 Version `v0.14.1` makes every basket quantity a whole number of products or packages. Quantity controls now move by `1`, including catalogue items whose unit is `kg`. Older saved lists and shared links containing fractional quantities are automatically normalized to the nearest integer.
+
+Version `v0.14.2` separates catalogue availability from selected-plan coverage. When an item is not sold by the chain in a one-stop plan but is available from another included chain, the basket now shows its best alternative price, chain, and the stop limit needed for a complete basket. It no longer labels that case as “missing,” which could be mistaken for store-level stock information. PosoKanei supplies catalogue prices rather than live branch inventory.
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 

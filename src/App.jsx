@@ -941,6 +941,7 @@ function AppContent() {
           rankings={rankings}
           bestCompleteRanking={bestCompleteRanking}
           visitPlan={visitPlan}
+          stopComparison={stopComparison}
           maxChains={maxChains}
           isDemoBasket={isDemoBasket}
           onQuantity={updateQuantity}
@@ -1564,6 +1565,7 @@ function BasketPanel({
   rankings,
   bestCompleteRanking,
   visitPlan,
+  stopComparison,
   maxChains,
   isDemoBasket,
   onQuantity,
@@ -1581,6 +1583,22 @@ function BasketPanel({
   const { money, number, t } = usePreferences();
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
+  const bestAvailableByProduct = useMemo(() => {
+    const retailersById = new Map(rankings.map((row) => [row.retailer.id, row.retailer]));
+    const retailerIds = [...retailersById.keys()];
+    return new Map(
+      basket.flatMap((entry) => {
+        const product = productMap.get(entry.productId);
+        const best = product ? getBestProductPrice(product, retailerIds) : null;
+        const retailer = best ? retailersById.get(best.retailerId) : null;
+        return product && best && retailer
+          ? [[product.id, { price: best.price, retailer }]]
+          : [];
+      }),
+    );
+  }, [basket, productMap, rankings]);
+  const firstCompleteStopLimit =
+    stopComparison.options.find((option) => option.plan?.isComplete)?.limit ?? null;
   const planNames = visitPlan?.groups.map((group) => group.retailer.name).join(" + ");
   const hasPartialPlan = basket.length > 0 && visitPlan?.groups.length > 0;
   const oneStopSavings =
@@ -1672,6 +1690,8 @@ function BasketPanel({
                 product={product}
                 quantity={entry.quantity}
                 planItem={planAssignments.get(product.id)}
+                alternativeOffer={bestAvailableByProduct.get(product.id)}
+                completeStopLimit={firstCompleteStopLimit}
                 onQuantity={onQuantity}
                 onSelect={() => onSelect(product)}
               />
@@ -2107,10 +2127,38 @@ function SavedBasketsDialog({
   );
 }
 
-function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
+function BasketItem({
+  product,
+  quantity,
+  planItem,
+  alternativeOffer,
+  completeStopLimit,
+  onQuantity,
+  onSelect,
+}) {
   const { money, t } = usePreferences();
   const step = quantityStep();
   const bestPrice = planItem?.price ?? null;
+  const isOutsidePlan = bestPrice == null && alternativeOffer?.price != null;
+  const displayedTotal = isOutsidePlan
+    ? alternativeOffer.price * quantity
+    : bestPrice == null
+      ? null
+      : bestPrice * quantity;
+  const displayAmount =
+    displayedTotal == null
+      ? "-"
+      : isOutsidePlan
+        ? t("availableFrom", { amount: money(displayedTotal) })
+        : money(displayedTotal);
+  const priceContext = isOutsidePlan
+    ? t("availableOutsidePlan", {
+        retailer: alternativeOffer.retailer.name || alternativeOffer.retailer.shortName,
+        stops: completeStopLimit,
+      })
+    : bestPrice == null
+      ? t("noPriceInSelectedChains")
+      : `${money(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`;
   return (
     <article className="basket-item">
       <button type="button" className="basket-product" onClick={onSelect}>
@@ -2148,13 +2196,9 @@ function BasketItem({ product, quantity, planItem, onQuantity, onSelect }) {
           <Plus size={15} />
         </button>
       </div>
-      <div className="line-total">
-        <strong>{bestPrice == null ? "-" : money(bestPrice * quantity)}</strong>
-        <small>
-          {bestPrice == null
-            ? t("missing")
-            : `${money(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`}
-        </small>
+      <div className={`line-total${isOutsidePlan ? " outside-plan" : ""}`}>
+        <strong>{displayAmount}</strong>
+        <small>{priceContext}</small>
       </div>
     </article>
   );

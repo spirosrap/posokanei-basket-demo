@@ -133,6 +133,12 @@ const messages = {
     quantity: ({ name }) => `Ποσότητα: ${name}`,
     increaseQuantity: ({ name }) => `Αύξηση ποσότητας: ${name}`,
     missing: "έλλειψη",
+    availableFrom: ({ amount }) => `από ${amount}`,
+    availableOutsidePlan: ({ retailer, stops }) =>
+      stops
+        ? `Διαθέσιμο: ${retailer} · επίλεξε έως ${stops} στάσεις`
+        : `Διαθέσιμο: ${retailer} · εκτός επιλεγμένου πλάνου`,
+    noPriceInSelectedChains: "Δεν βρέθηκε τιμή στις αλυσίδες του υπολογισμού",
     chooseProducts: "διάλεξε προϊόντα",
     oneStopRanking: "Μία στάση, από φθηνότερο σε ακριβότερο",
     incompleteChains: "Αλυσίδες που δεν έχουν όλη τη λίστα",
@@ -453,6 +459,12 @@ const messages = {
     quantity: ({ name }) => `Quantity: ${name}`,
     increaseQuantity: ({ name }) => `Increase quantity: ${name}`,
     missing: "missing",
+    availableFrom: ({ amount }) => `from ${amount}`,
+    availableOutsidePlan: ({ retailer, stops }) =>
+      stops
+        ? `Available at ${retailer} · choose up to ${stops} stops`
+        : `Available at ${retailer} · outside the selected plan`,
+    noPriceInSelectedChains: "No price found among the included chains",
     chooseProducts: "choose products",
     oneStopRanking: "One stop, cheapest to most expensive",
     incompleteChains: "Chains that do not carry the full list",
