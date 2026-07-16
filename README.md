@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.13.0`
+**Τρέχουσα έκδοση:** `v0.14.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -50,6 +50,8 @@
 
 Η έκδοση `v0.13.0` εξηγεί από πού προκύπτει η εξοικονόμηση του επιλεγμένου πλάνου. Συγκρίνει κάθε προϊόν με το φθηνότερο πλήρες καλάθι μίας στάσης, προβάλλει τα προϊόντα που συνεισφέρουν περισσότερο στο κέρδος και συμφωνεί το άθροισμά τους με τη συνολική οικονομία. Αν κάποιο προϊόν κοστίζει περισσότερο στο πλάνο πολλών στάσεων, εμφανίζει ξεχωριστά αυτό το αντιστάθμισμα ώστε το αποτέλεσμα να παραμένει διαφανές.
 
+Η έκδοση `v0.14.0` ανανεώνει ολόκληρη την οπτική εμπειρία χωρίς να αλλάζει τιμές ή υπολογισμούς. Μπλε, πράσινες, κεχριμπαρένιες και κοραλλί λεπτομέρειες δίνουν ξεχωριστή ταυτότητα στην πλοήγηση, στο καλάθι, στο πλάνο και στις ευκαιρίες. Οι φωτογραφίες προϊόντων, τα αποτελέσματα και οι ενεργές επιλογές αποκτούν καθαρότερο βάθος και πιο άμεση ανάδραση, ενώ οι διακριτικές κινήσεις απενεργοποιούνται αυτόματα όταν ο χρήστης έχει ενεργό το `reduced motion`.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
 ### Ανάλυση εξοικονόμησης
@@ -66,7 +68,7 @@
 
 Στην ίδια έκδοση υπάρχει επιλογή θέματος `Σύστημα`, `Φωτεινό` ή `Σκοτεινό`. Το `Σύστημα` ακολουθεί αυτόματα την τρέχουσα ρύθμιση του λειτουργικού, ακόμη κι αν αλλάξει όσο η εφαρμογή είναι ανοιχτή. Η επιλογή αποθηκεύεται ανεξάρτητα από τη γλώσσα και εφαρμόζεται πριν φορτώσει το React, αποφεύγοντας λευκό flash ή λάθος θέμα κατά την εκκίνηση, ιδιαίτερα στο Safari.
 
-![Αγγλική διεπαφή με το σκοτεινό θέμα της έκδοσης 0.5.0](screenshots/english-dark.png)
+![Αγγλική διεπαφή με το ανανεωμένο σκοτεινό θέμα](screenshots/english-dark.png)
 
 ### Ανασχεδιασμός και mobile workspace
 
@@ -76,9 +78,11 @@
 
 Η έκδοση `v0.11.0` μειώνει ακόμη περισσότερο τον χώρο πριν από το κύριο εργαλείο στο κινητό. Το GitHub και οι δευτερεύουσες ενέργειες χρησιμοποιούν αναγνωρίσιμα εικονίδια, η καθημερινή ευκαιρία κρατά μόνο τα στοιχεία που χρειάζονται για γρήγορη απόφαση και το «Νέο καλάθι» παραμένει καθαρά ορατό κάτω από τις συμπαγείς ενέργειες λίστας. Οι μπλε, πράσινες και πορτοκαλί λεπτομέρειες ξεχωρίζουν αντίστοιχα Προϊόντα, Καλάθι και Πλάνο χωρίς να αλλάζουν τη λειτουργική πυκνότητα της desktop διάταξης. Η σύντομη περιγραφή σκοπού εξηγεί πλέον άμεσα ότι το αποτέλεσμα αφορά ολόκληρο το καλάθι.
 
-![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.12.0 με προτεραιότητες αγορών](screenshots/desktop.png)
+Η έκδοση `v0.14.0` κάνει το λειτουργικό workspace πιο ζεστό και ευχάριστο: προσθέτει πολυχρωματική αλλά συγκρατημένη παλέτα αγοράς, καλύτερη ανάδειξη φωτογραφιών και λογοτύπων, πιο απτές καταστάσεις hover/επιλογής και πιο πλούσια παρουσίαση της καθημερινής ευκαιρίας και του προτεινόμενου πλάνου. Το σκοτεινό θέμα μετακινείται από το μπλε-γκρι σε ουδέτερες πράσινες και ανθρακί επιφάνειες, διατηρώντας την αντίθεση. Όλες οι διαστάσεις παραμένουν σταθερές, η διάταξη έχει ελεγχθεί από `320px` έως μεγάλο desktop και οι κινήσεις σέβονται την προτίμηση προσβασιμότητας του λειτουργικού.
 
-![Mobile πλάνο με προτεραιότητες αγορών και πρακτική πρόταση](screenshots/mobile.png)
+![Ανασχεδιασμένη desktop εφαρμογή της έκδοσης 0.14.0](screenshots/desktop.png)
+
+![Mobile πλάνο της έκδοσης 0.14.0 με πρακτική πρόταση](screenshots/mobile.png)
 
 ### Επιλογή αλυσίδων και πρακτικό πλάνο
 
@@ -152,7 +156,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.13.0`
+**Current version:** `v0.14.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -220,6 +224,8 @@ Version `v0.12.0` replaces the abstract per-stop estimate with four understandab
 
 Version `v0.13.0` explains where the selected plan's saving comes from. It compares each item with the cheapest complete one-stop basket, highlights the products that contribute most to the saving, and reconciles those amounts with the overall total. When a product costs more in the multi-stop plan, that tradeoff is shown separately so the comparison remains transparent.
 
+Version `v0.14.0` refreshes the complete visual experience without changing prices or calculations. Blue, green, amber, and coral accents give navigation, basket, plan, and bargain states distinct identities. Product imagery, results, and selected controls gain clearer depth and more immediate feedback, while restrained motion automatically switches off when the user prefers reduced motion.
+
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
 ### Savings Breakdown
@@ -236,7 +242,7 @@ Version `v0.5.0` adds a persistent Greek/English selector to the app header. All
 
 The same release adds independent `System`, `Light`, and `Dark` appearance settings. `System` follows the operating-system colour preference live, while explicit Light or Dark choices override it. Both language and theme are saved locally in the browser. A small pre-render theme bootstrap applies the saved choice before React starts, preventing a mismatched flash and making startup more reliable in Safari.
 
-![English interface using the dark theme in version 0.5.0](screenshots/english-dark.png)
+![English interface using the redesigned dark theme](screenshots/english-dark.png)
 
 ### Redesign and Mobile Workspace
 
@@ -263,7 +269,15 @@ green, and amber accents distinguish Products, Basket, and Plan while preserving
 dense desktop workspace. The shorter purpose copy now states directly that the app
 finds the cheapest complete plan for the whole basket.
 
-![Redesigned version 0.12.0 desktop workspace with shopping priorities](screenshots/desktop.png)
+Version `v0.14.0` makes the operational workspace warmer and more enjoyable. It adds
+a restrained multi-accent market palette, stronger product and retailer imagery,
+more tactile hover and selection states, and richer presentation for the featured
+bargain and recommended plan. Dark appearance moves away from blue-grey toward
+neutral charcoal and green surfaces while preserving contrast. Dimensions remain
+stable, layouts are checked from `320px` through large desktop, and every decorative
+motion respects the operating system's reduced-motion preference.
+
+![Redesigned version 0.14.0 desktop workspace](screenshots/desktop.png)
 
 ![Mobile plan with shopping priorities and an actionable recommendation](screenshots/mobile.png)
 
@@ -450,7 +464,7 @@ Focused mobile plan view:
 
 ![Mobile stop comparison and practical recommendation](screenshots/stop-comparison-mobile.png)
 
-English interface with Dark appearance and the new language/theme selectors:
+Redesigned English interface with Dark appearance:
 
 ![English interface using the dark appearance](screenshots/english-dark.png)
 
@@ -458,11 +472,11 @@ Mobile English interface with Dark appearance:
 
 ![Mobile English interface using the dark appearance](screenshots/english-dark-mobile.png)
 
-Desktop workspace with shopping priorities and the featured daily product:
+Version 0.14.0 desktop workspace and featured daily product:
 
-![Desktop app with shopping priorities and the featured daily bargain](screenshots/desktop.png)
+![Redesigned desktop app with shopping priorities and the featured daily bargain](screenshots/desktop.png)
 
-Mobile shopping-priority recommendation:
+Version 0.14.0 mobile shopping-priority recommendation:
 
 ![Mobile app with shopping priorities and a selected practical plan](screenshots/mobile.png)
 
