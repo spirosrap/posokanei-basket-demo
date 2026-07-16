@@ -25,6 +25,23 @@ export function getBestProductPrice(product, retailerIds = null) {
   return values.sort((a, b) => a.price - b.price)[0] ?? null;
 }
 
+export function getBestProductUnitPrice(product, retailerIds = null) {
+  const allowedRetailers = Array.isArray(retailerIds) ? new Set(retailerIds) : null;
+  const values = Object.entries(product.prices || {})
+    .filter(([retailerId, price]) =>
+      Number.isFinite(price) && (!allowedRetailers || allowedRetailers.has(retailerId)))
+    .map(([retailerId, price]) => {
+      const normalized = Number(product.unitPrices?.[retailerId]);
+      const fallback = Number(product.unitAmount) > 0 ? price / Number(product.unitAmount) : null;
+      const unitPrice = Number.isFinite(normalized) && normalized > 0 ? normalized : fallback;
+      return Number.isFinite(unitPrice) && unitPrice > 0
+        ? { retailerId, price, unitPrice }
+        : null;
+    })
+    .filter(Boolean);
+  return values.sort((a, b) => a.unitPrice - b.unitPrice || a.price - b.price)[0] ?? null;
+}
+
 export function sortProductsByBestPrice(products, retailerIds = null) {
   return products
     .map((product, index) => ({
@@ -40,6 +57,34 @@ export function sortProductsByBestPrice(products, retailerIds = null) {
       return nameOrder || left.index - right.index;
     })
     .map(({ product }) => product);
+}
+
+export function sortProductsByBestUnitPrice(products, retailerIds = null) {
+  return products
+    .map((product, index) => ({
+      product,
+      index,
+      price: getBestProductUnitPrice(product, retailerIds)?.unitPrice ?? null,
+    }))
+    .sort((left, right) => compareProductSortRows(left, right))
+    .map(({ product }) => product);
+}
+
+export function sortProducts(products, mode = "price", retailerIds = null) {
+  if (mode === "name") {
+    return [...products].sort((left, right) => left.name.localeCompare(right.name, "el"));
+  }
+  return mode === "unit_price"
+    ? sortProductsByBestUnitPrice(products, retailerIds)
+    : sortProductsByBestPrice(products, retailerIds);
+}
+
+function compareProductSortRows(left, right) {
+  if (left.price == null && right.price != null) return 1;
+  if (left.price != null && right.price == null) return -1;
+  if (left.price !== right.price) return (left.price ?? 0) - (right.price ?? 0);
+  const nameOrder = left.product.name.localeCompare(right.product.name, "el");
+  return nameOrder || left.index - right.index;
 }
 
 export function calculateRankings(basket, products, retailers) {

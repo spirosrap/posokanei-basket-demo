@@ -57,7 +57,7 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   background: linear-gradient(180deg, #f9fbfa 0, var(--bg) 260px);
   color: var(--text);
 }
@@ -989,6 +989,45 @@ input:focus-visible {
   padding-bottom: 3px;
 }
 
+.sort-control {
+  display: grid;
+  min-width: 0;
+  min-height: 38px;
+  grid-template-columns: 16px auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: -2px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--muted);
+  padding: 5px 8px;
+}
+
+.sort-control > span {
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.sort-control select {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sort-control:focus-within {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
 .chip {
   flex: 0 0 auto;
   height: 32px;
@@ -1083,6 +1122,10 @@ input:focus-visible {
 .product-row.selected {
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.product-row.in-basket {
+  border-color: rgba(15, 159, 110, 0.34);
 }
 
 .product-main,
@@ -1205,8 +1248,12 @@ input:focus-visible {
 }
 
 .product-price {
-  min-width: 58px;
+  min-width: 82px;
   text-align: right;
+}
+
+.product-price small {
+  white-space: nowrap;
 }
 
 .product-price span {
@@ -1276,6 +1323,25 @@ input:focus-visible {
 .primary-action:hover {
   border-color: transparent;
   background: var(--green-dark);
+}
+
+.icon-button.add.in-basket {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: var(--green-soft);
+  color: var(--green-dark);
+  box-shadow: none;
+}
+
+.icon-button.add.in-basket:hover {
+  border-color: transparent;
+  background: var(--green-dark);
+  color: #ffffff;
+}
+
+.add-count {
+  font-size: 12px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
 }
 
 .icon-button.danger {
@@ -4157,7 +4223,26 @@ input:focus-visible {
   }
 
   .product-row {
-    grid-template-columns: minmax(0, 1fr) 58px 34px;
+    grid-template-columns: minmax(0, 1fr) 78px 34px;
+  }
+
+  .sort-control {
+    grid-template-columns: 16px minmax(0, 1fr);
+  }
+
+  .sort-control > span {
+    display: none;
+  }
+
+  .inline-status {
+    display: grid;
+    grid-template-columns: 15px minmax(0, 1fr);
+  }
+
+  .inline-status small {
+    grid-column: 2;
+    margin-left: 0;
+    white-space: normal;
   }
 
   .basket-item {

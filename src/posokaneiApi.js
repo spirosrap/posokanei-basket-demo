@@ -1,4 +1,5 @@
 import { APP_BASE_URL, runtimeAppUrl } from "./appConfig.js";
+import { productSortApiValue } from "./productSort.js";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PROXY_BASE = runtimeAppUrl("api/posokanei.php");
@@ -163,7 +164,7 @@ function unitLabel(raw) {
   return `${formatted} ${unit}`;
 }
 
-function normalizePrice(entry) {
+function normalizeOffer(entry, unitAmount) {
   if (!entry || typeof entry !== "object") return null;
   const retailerId =
     entry.retailer_id ||
@@ -174,12 +175,25 @@ function normalizePrice(entry) {
     entry.retailer_name;
   const price = Number(entry.price ?? entry.final_price ?? entry.value);
   if (!retailerId || !Number.isFinite(price)) return null;
-  return [String(retailerId).toLowerCase(), price];
+  const normalized = Number(entry.price_normalized ?? entry.unit_price);
+  const fallbackUnitPrice = unitAmount > 0 ? price / unitAmount : null;
+  const unitPrice = Number.isFinite(normalized) && normalized > 0
+    ? normalized
+    : fallbackUnitPrice;
+  return {
+    retailerId: String(retailerId).toLowerCase(),
+    price,
+    unitPrice: Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : null,
+  };
 }
 
 export function normalizeProduct(raw, source = "live") {
   const name = raw.name || raw.title || "Προϊόν";
   const id = String(raw.id ?? raw.gtin ?? raw.barcode ?? raw.product_id ?? fallbackProductId(raw, name));
+  const parsedUnitAmount = Number(raw.unit_quantity ?? raw.unitAmount);
+  const unitAmount = Number.isFinite(parsedUnitAmount) && parsedUnitAmount > 0
+    ? parsedUnitAmount
+    : null;
   const priceEntries = firstArray({
     products:
       raw.retailer_prices ||
@@ -189,7 +203,7 @@ export function normalizeProduct(raw, source = "live") {
       raw.daily_prices ||
       [],
   })
-    .map(normalizePrice)
+    .map((entry) => normalizeOffer(entry, unitAmount))
     .filter(Boolean);
 
   return {
@@ -200,12 +214,18 @@ export function normalizeProduct(raw, source = "live") {
     category: raw.category || raw.subcategory || "Προϊόντα",
     categoryIds: raw.category_ids || [],
     unit: raw.unit || "τεμ.",
+    unitAmount,
     unitQuantity: unitLabel(raw),
     imageUrl: absoluteApiUrl(raw.image_url || raw.imageUrl),
     description: raw.description || "",
     tile: productTile(name),
     tint: "#e0f2fe",
-    prices: Object.fromEntries(priceEntries),
+    prices: Object.fromEntries(priceEntries.map((entry) => [entry.retailerId, entry.price])),
+    unitPrices: Object.fromEntries(
+      priceEntries
+        .filter((entry) => entry.unitPrice != null)
+        .map((entry) => [entry.retailerId, entry.unitPrice]),
+    ),
     retailerCount: raw.price_stats?.retailer_count ?? priceEntries.length,
     updatedAt: raw.updated_at || "",
     source,
@@ -263,11 +283,32 @@ function compareProductsByPrice(left, right) {
   return left.name.localeCompare(right.name, "el");
 }
 
+function minimumProductUnitPrice(product) {
+  const unitPrices = Object.values(product.unitPrices || {}).filter(Number.isFinite);
+  return unitPrices.length ? Math.min(...unitPrices) : null;
+}
+
+function compareProductsByUnitPrice(left, right) {
+  const leftPrice = minimumProductUnitPrice(left);
+  const rightPrice = minimumProductUnitPrice(right);
+  if (leftPrice == null && rightPrice != null) return 1;
+  if (leftPrice != null && rightPrice == null) return -1;
+  if (leftPrice !== rightPrice) return (leftPrice ?? 0) - (rightPrice ?? 0);
+  return left.name.localeCompare(right.name, "el");
+}
+
+function productComparator(sortMode) {
+  if (sortMode === "unit_price") return compareProductsByUnitPrice;
+  if (sortMode === "name") return (a, b) => a.name.localeCompare(b.name, "el");
+  return compareProductsByPrice;
+}
+
 async function snapshotProductResponse({
   query = "",
   categoryId = "all",
   page = 1,
   pageSize = PAGE_SIZE,
+  sortMode = "price",
 } = {}) {
   const snapshot = await fetchCatalogSnapshot();
   const normalizedQuery = query.trim().toLocaleLowerCase("el-GR");
@@ -278,11 +319,7 @@ async function snapshotProductResponse({
       if (barcode) return product.gtin === barcode;
       return !normalizedQuery || searchableText(product).includes(normalizedQuery);
     })
-    .sort(
-      normalizedQuery.length >= 2
-        ? compareProductsByPrice
-        : (a, b) => a.name.localeCompare(b.name, "el"),
-    );
+    .sort(productComparator(sortMode));
 
   const safePage = Math.max(1, Number(page) || 1);
   const safePageSize = Math.max(1, Number(pageSize) || PAGE_SIZE);
@@ -462,6 +499,7 @@ export async function fetchProducts({
   categoryId = "all",
   page = 1,
   pageSize = PAGE_SIZE,
+  sortMode = "price",
 } = {}) {
   const trimmed = query.trim();
   const barcode = /^\d{8,14}$/.test(trimmed) ? trimmed : "";
@@ -480,25 +518,31 @@ export async function fetchProducts({
         source: "live",
       };
     } catch {
-      return snapshotProductResponse({ query: trimmed, categoryId, page, pageSize });
+      return snapshotProductResponse({ query: trimmed, categoryId, page, pageSize, sortMode });
     }
   }
 
   if (trimmed.length >= 2 || categoryId !== "all") {
-    return searchByTitle(trimmed, categoryId, page, pageSize).catch(() =>
-      snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }),
+    return searchByTitle(trimmed, categoryId, page, pageSize, sortMode).catch(() =>
+      snapshotProductResponse({ query: trimmed, categoryId, page, pageSize, sortMode }),
     );
   }
 
   return fetchJson("products", {
     page,
     page_size: pageSize,
-    sort_by: "name",
+    sort_by: productSortApiValue(sortMode),
     sort_order: "asc",
     countries: "GR",
   })
     .then((raw) => normalizeProductResponse(raw, "live"))
-    .catch(() => snapshotProductResponse({ query: trimmed, categoryId, page, pageSize }));
+    .catch(() => snapshotProductResponse({
+      query: trimmed,
+      categoryId,
+      page,
+      pageSize,
+      sortMode,
+    }));
 }
 
 export async function fetchProductsByIds(productIds = []) {
@@ -532,12 +576,11 @@ export async function fetchProductsByIds(productIds = []) {
     .filter(Boolean);
 }
 
-function searchByTitle(query, categoryId, page, pageSize) {
-  const priceSorted = query.trim().length >= 2;
+function searchByTitle(query, categoryId, page, pageSize, sortMode) {
   const params = {
     page,
     page_size: pageSize,
-    sort_by: priceSorted ? "price_asc" : "name",
+    sort_by: productSortApiValue(sortMode),
     sort_order: "asc",
     countries: "GR",
   };

@@ -483,8 +483,12 @@ function snapshot_products_payload(array $snapshot, string $resource, array $req
         $sortBy = clean_sort($request['sort_by'] ?? 'name', ['name', 'price_asc', 'unit_price'], 'name');
         $sortOrder = clean_sort($request['sort_order'] ?? 'asc', ['asc', 'desc'], 'asc');
         if ($sortBy === 'price_asc' || $sortBy === 'unit_price') {
-            $left = snapshot_min_price($a);
-            $right = snapshot_min_price($b);
+            $left = $sortBy === 'unit_price'
+                ? snapshot_min_unit_price($a)
+                : snapshot_min_price($a);
+            $right = $sortBy === 'unit_price'
+                ? snapshot_min_unit_price($b)
+                : snapshot_min_price($b);
             $result = $left <=> $right;
         } else {
             $result = strcoll((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
@@ -599,6 +603,32 @@ function snapshot_min_price(array $product): float
         if (!is_array($entry)) continue;
         $price = (float) ($entry['price'] ?? $entry['final_price'] ?? $entry['value'] ?? INF);
         if (is_finite($price) && $price < $min) $min = $price;
+    }
+    return is_finite($min) ? $min : INF;
+}
+
+function snapshot_min_unit_price(array $product): float
+{
+    $prices = first_array([
+        'products' => $product['retailer_prices']
+            ?? $product['prices']
+            ?? $product['retailers']
+            ?? $product['offers']
+            ?? $product['daily_prices']
+            ?? [],
+    ]);
+    $unitQuantity = (float) ($product['unit_quantity'] ?? 0);
+    $min = INF;
+    foreach ($prices as $entry) {
+        if (!is_array($entry)) continue;
+        $normalized = (float) ($entry['price_normalized'] ?? $entry['unit_price'] ?? INF);
+        if ((!is_finite($normalized) || $normalized <= 0) && $unitQuantity > 0) {
+            $price = (float) ($entry['price'] ?? $entry['final_price'] ?? $entry['value'] ?? INF);
+            $normalized = is_finite($price) ? $price / $unitQuantity : INF;
+        }
+        if (is_finite($normalized) && $normalized > 0 && $normalized < $min) {
+            $min = $normalized;
+        }
     }
     return is_finite($min) ? $min : INF;
 }

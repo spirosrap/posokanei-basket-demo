@@ -8,13 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.18.0`
+**Τρέχουσα έκδοση:** `v0.19.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η έκδοση 0.18.0 στο νέο kalathitimon.com με το καλάθι παραδείγματος](screenshots/kalathitimon-v0.18.0.jpg)
+![Η έκδοση 0.19.0 με σύγκριση τιμής ανά συσκευασία ή μονάδα](screenshots/value-sort-v0.19.0.jpg)
 
 Η βασική ιδέα είναι απλή:
 
@@ -69,6 +69,8 @@
 Η έκδοση `v0.17.1` ταξινομεί κάθε αναζήτηση προϊόντος από τη χαμηλότερη προς την υψηλότερη καλύτερη διαθέσιμη τιμή. Η βασική ταξινόμηση εφαρμόζεται πριν από τη σελιδοποίηση του καταλόγου, ώστε τα φθηνότερα αποτελέσματα να εμφανίζονται πραγματικά πρώτα. Στη συνέχεια, η σειρά των φορτωμένων αποτελεσμάτων προσαρμόζεται στις αλυσίδες που έχει επιλέξει ο χρήστης ή επιτρέπονται από το ενεργό φίλτρο τοποθεσίας. Προϊόντα χωρίς διαθέσιμη τιμή σε αυτές τις αλυσίδες εμφανίζονται τελευταία.
 
 Η έκδοση `v0.18.0` μεταφέρει την κύρια εφαρμογή στο αποκλειστικό [kalathitimon.com](https://kalathitimon.com/). Η εφαρμογή, τα PHP API, οι εικόνες, οι ευκαιρίες και οι σύντομοι σύνδεσμοι λειτουργούν πλέον από τη ρίζα του νέου domain με HTTPS, ενώ το παλιό `/demo/posokanei-basket/` παραμένει ως συμβατό mirror. Ο ωριαίος συγχρονισμός δημοσιεύει ατομικά τον ίδιο ελεγμένο κατάλογο και στους δύο προορισμούς, ώστε παλιοί σύνδεσμοι να συνεχίσουν να ανοίγουν χωρίς να χωρίζεται η πηγή τιμών.
+
+Η έκδοση `v0.19.0` προσθέτει επιλογή ταξινόμησης προϊόντων με βάση τη χαμηλότερη τιμή συσκευασίας, την καλύτερη συγκρίσιμη τιμή ανά `kg`, `L` ή τεμάχιο, ή το όνομα. Έτσι ο χρήστης μπορεί είτε να βρει το μικρότερο άμεσο κόστος είτε να συγκρίνει δίκαια διαφορετικά μεγέθη συσκευασίας. Η ταξινόμηση εφαρμόζεται στον κατάλογο πριν από τη σελιδοποίηση και επανελέγχεται στον browser με τις ενεργές αλυσίδες ή το φίλτρο τοποθεσίας. Κάθε αποτέλεσμα δείχνει πλέον και την καλύτερη τιμή μονάδας. Το κουμπί προσθήκης λειτουργεί ως γρήγορη προσθήκη χωρίς να ανοίγει τις λεπτομέρειες και, όταν το προϊόν βρίσκεται ήδη στο καλάθι, εμφανίζει πάνω του την τρέχουσα ποσότητα. Η επιλογή ταξινόμησης αποθηκεύεται μόνο στον browser.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -190,7 +192,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.18.0`
+**Current version:** `v0.19.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -201,6 +203,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 ### What It Does
 
 - Search or filter products by category or barcode.
+- Sort the full catalogue by lowest package price, best comparable price per `kg`, `L`, or item, or product name before pagination.
+- See the best available unit price on each product row and the current basket quantity directly on its quick-add button.
 - Switch the complete interface between Greek and English, including dates, currency, accessibility labels, and copied shopping plans.
 - Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
@@ -278,6 +282,8 @@ Version `v0.17.0` automatically replaces the large basket URL with a compact lin
 Version `v0.17.1` orders every product search from the lowest to the highest best available price. Catalogue ordering happens before pagination so the genuinely cheapest matches appear first, then the browser reconciles the visible order with the supermarket chains selected by the user or allowed by the active location filter. Products without an available price among those chains appear last.
 
 Version `v0.18.0` launches the primary production app at the dedicated [kalathitimon.com](https://kalathitimon.com/) domain. The React app, PHP APIs, images, bargains, and compact basket links now run from the domain root with HTTPS, while the original `/demo/posokanei-basket/` installation remains available as a compatibility mirror. The hourly refresh atomically publishes the same verified catalogue to both targets so existing links keep working without creating separate price sources.
+
+Version `v0.19.0` adds persistent product sorting by lowest package price, best comparable unit price per `kg`, `L`, or item, or product name. Package-price mode answers which product costs least right now; unit-price mode compares different pack sizes fairly. Sorting is applied to the catalogue before pagination and then reconciled in the browser with the chains currently enabled by the user or location filter. Product rows show both the best package and unit price, while the add control now performs a true quick add and displays the quantity already in the basket without opening product details.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -520,6 +526,12 @@ https://kalathitimon.com/
 
 ### Screenshots
 
+Version 0.19.0 value-aware product search and basket-aware quick add:
+
+![Value-aware sorting in Kalathi Timon 0.19.0](screenshots/value-sort-v0.19.0.jpg)
+
+![Value-aware product results on mobile](screenshots/value-sort-mobile-v0.19.0.jpg)
+
 Version 0.18.0 on the new production domain:
 
 ![Kalathi Timon 0.18.0 at kalathitimon.com](screenshots/kalathitimon-v0.18.0.jpg)
@@ -697,6 +709,7 @@ The official API does not allow the production site as a browser CORS origin, so
 - A cached update-status endpoint in `public/api/update-status.php`.
 - A live catalog adapter in `src/posokaneiApi.js`.
 - A server-side snapshot fallback that returns paginated/search JSON from `data/catalog.json` plus lightweight metadata from `data/catalog-meta.json`. This snapshot is script-built from PosoKanei API responses; it is not AI-generated.
+- The snapshot and proxy preserve package and normalized unit prices separately, so `price_asc` and `unit_price` are genuinely different pre-pagination orderings.
 - Snapshot stats are reconciled against the actual `catalog.json` product count so stale metadata does not show a different catalogue size from search results.
 - A product-image proxy mode in `public/api/posokanei.php?resource=image`, used by thumbnails and the detail drawer.
 - A retailer-logo proxy mode in `public/api/posokanei.php?resource=retailer-image`, used by rankings, route cards, and product detail price rows.

@@ -64,8 +64,9 @@ import {
   calculateRankings,
   formatEuro,
   getBestProductPrice,
+  getBestProductUnitPrice,
   getProductPrice,
-  sortProductsByBestPrice,
+  sortProducts,
 } from "./pricing";
 import {
   buildPlanRoute,
@@ -84,6 +85,11 @@ import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 import { shortenBasketUrl } from "./shortLinks";
 import { runtimeAppUrl } from "./appConfig";
+import {
+  getInitialProductSort,
+  PRODUCT_SORT_MODES,
+  saveProductSort,
+} from "./productSort";
 import {
   getInitialLanguage,
   localeForLanguage,
@@ -384,6 +390,7 @@ function AppContent() {
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
+  const [productSort, setProductSort] = useState(getInitialProductSort);
   const [health, setHealth] = useState({ state: "checking", activeProducts: 0 });
   const [updateStatus, setUpdateStatus] = useState(null);
   const [dailyBargain, setDailyBargain] = useState(null);
@@ -564,7 +571,7 @@ function AppContent() {
     let cancelled = false;
     setLiveState("loading");
     const timer = window.setTimeout(() => {
-      fetchProducts({ query, categoryId, page: 1 })
+      fetchProducts({ query, categoryId, page: 1, sortMode: productSort })
         .then((result) => {
           if (cancelled) return;
           setLiveProducts(result.products);
@@ -588,7 +595,11 @@ function AppContent() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [categoryId, query]);
+  }, [categoryId, productSort, query]);
+
+  useEffect(() => {
+    saveProductSort(productSort);
+  }, [productSort]);
 
   const allProducts = useMemo(() => {
     const byId = new Map();
@@ -633,12 +644,16 @@ function AppContent() {
     return locationEligibleRetailers.filter((retailer) => selectedIds.has(retailer.id));
   }, [locationEligibleRetailers, retailerFilterIds]);
   const displayProducts = useMemo(() => {
-    if (query.trim().length < 2) return liveProducts;
-    return sortProductsByBestPrice(
+    return sortProducts(
       liveProducts,
+      productSort,
       activeRetailers.map((retailer) => retailer.id),
     );
-  }, [activeRetailers, liveProducts, query]);
+  }, [activeRetailers, liveProducts, productSort]);
+  const basketQuantities = useMemo(
+    () => new Map(basket.map((entry) => [entry.productId, entry.quantity])),
+    [basket],
+  );
   const displayedDailyBargain = useMemo(() => {
     if (!dailyBargain || !locationFiltersRetailers) return dailyBargain;
     const eligibleIds = new Set(locationEligibleRetailers.map((retailer) => retailer.id));
@@ -738,7 +753,6 @@ function AppContent() {
       }
       return [...current, { productId: product.id, quantity: quantityStep() }];
     });
-    setSelectedProduct(product);
   };
 
   const updateQuantity = (product, nextQuantity) => {
@@ -861,7 +875,7 @@ function AppContent() {
     if (!liveMeta.hasNext || liveState === "loading_more") return;
     const nextPage = liveMeta.page + 1;
     setLiveState("loading_more");
-    fetchProducts({ query, categoryId, page: nextPage })
+    fetchProducts({ query, categoryId, page: nextPage, sortMode: productSort })
       .then((result) => {
         setLiveProducts((current) => {
           const byId = new Map(current.map((product) => [product.id, product]));
@@ -1017,8 +1031,11 @@ function AppContent() {
           setQuery={setQuery}
           categoryId={categoryId}
           setCategoryId={setCategoryId}
+          productSort={productSort}
+          setProductSort={setProductSort}
           categories={categories}
           products={displayProducts}
+          basketQuantities={basketQuantities}
           retailers={activeRetailers}
           catalogSource={liveMeta.source || health.source}
           liveState={liveState}
@@ -1528,8 +1545,11 @@ function SearchPanel({
   setQuery,
   categoryId,
   setCategoryId,
+  productSort,
+  setProductSort,
   categories,
   products,
+  basketQuantities,
   retailers,
   catalogSource,
   liveState,
@@ -1581,12 +1601,28 @@ function SearchPanel({
         ))}
       </div>
 
+      <label className="sort-control">
+        <ArrowDownUp size={15} aria-hidden="true" />
+        <span>{t("sortProducts")}</span>
+        <select
+          value={productSort}
+          aria-label={t("sortProducts")}
+          onChange={(event) => setProductSort(event.target.value)}
+        >
+          {PRODUCT_SORT_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {t(`productSort_${mode}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <LiveNotice
         state={liveState}
         total={liveMeta.total}
         visible={products.length}
         catalogSource={catalogSource}
-        priceSorted={query.trim().length >= 2}
+        sortMode={productSort}
       />
 
       <div className="product-list">
@@ -1595,6 +1631,7 @@ function SearchPanel({
             key={product.id}
             product={product}
             retailers={retailers}
+            basketQuantity={basketQuantities.get(product.id) || 0}
             imagePriority={index < 8}
             selected={selectedProduct?.id === product.id}
             onSelect={() => onSelect(product)}
@@ -1618,7 +1655,7 @@ function SearchPanel({
   );
 }
 
-function LiveNotice({ state, total, visible, catalogSource, priceSorted }) {
+function LiveNotice({ state, total, visible, catalogSource, sortMode }) {
   const { number, t } = usePreferences();
   const labels = {
     idle: t("catalogProducts"),
@@ -1635,21 +1672,34 @@ function LiveNotice({ state, total, visible, catalogSource, priceSorted }) {
     <div className={`inline-status ${state}`}>
       {state === "error" ? <AlertCircle size={15} /> : <RefreshCw size={15} />}
       <span>{labels[state] ?? labels.idle}</span>
-      {priceSorted && (state === "ready" || state === "loading_more") ? (
-        <small>{t("cheapestFirst")}</small>
+      {state === "ready" || state === "loading_more" ? (
+        <small>{t(`productSortStatus_${sortMode}`)}</small>
       ) : null}
     </div>
   );
 }
 
-function ProductRow({ product, retailers, imagePriority, selected, onSelect, onAdd }) {
-  const { money, t } = usePreferences();
+function ProductRow({
+  product,
+  retailers,
+  basketQuantity,
+  imagePriority,
+  selected,
+  onSelect,
+  onAdd,
+}) {
+  const { money, number, t } = usePreferences();
+  const retailerIds = retailers.map((retailer) => retailer.id);
   const best = getBestProductPrice(
     product,
-    retailers.map((retailer) => retailer.id),
+    retailerIds,
   );
+  const bestUnit = getBestProductUnitPrice(product, retailerIds);
+  const addLabel = basketQuantity
+    ? t("addAnotherProduct", { count: number(basketQuantity), name: product.name })
+    : t("addProduct", { name: product.name });
   return (
-    <article className={selected ? "product-row selected" : "product-row"}>
+    <article className={`${selected ? "product-row selected" : "product-row"}${basketQuantity ? " in-basket" : ""}`}>
       <button type="button" className="product-main" onClick={onSelect}>
         <ProductThumb product={product} priority={imagePriority} />
         <span className="product-copy">
@@ -1661,15 +1711,24 @@ function ProductRow({ product, retailers, imagePriority, selected, onSelect, onA
       </button>
       <div className="product-price">
         <span>{best ? money(best.price) : "-"}</span>
-        <small>{t("best")}</small>
+        <small>
+          {bestUnit
+            ? t("unitPrice", { amount: money(bestUnit.unitPrice), unit: product.unit })
+            : t("best")}
+        </small>
       </div>
       <button
         type="button"
-        className="icon-button add"
+        className={`icon-button add${basketQuantity ? " in-basket" : ""}`}
         onClick={onAdd}
-        aria-label={t("addProduct", { name: product.name })}
+        aria-label={addLabel}
+        title={addLabel}
       >
-        <Plus size={18} />
+        {basketQuantity ? (
+          <span className="add-count">{number(basketQuantity)}</span>
+        ) : (
+          <Plus size={18} />
+        )}
       </button>
     </article>
   );
