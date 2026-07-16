@@ -181,6 +181,19 @@ const messages = {
     applyRecommendation: "Χρήση πρότασης",
     recommendationSelected: "Το πλάνο είναι επιλεγμένο",
     recommendationNeedsBasket: "Φτιάξε καλάθι για να συγκρίνεις τις στάσεις.",
+    savingsBreakdownEyebrow: "Ανάλυση εξοικονόμησης",
+    savingsBreakdownTitle: ({ amount }) => `${amount} λιγότερα από μία στάση`,
+    savingsComparedWith: ({ retailer }) =>
+      `Σε σύγκριση με το φθηνότερο πλήρες καλάθι στο ${retailer}.`,
+    savingsPricePath: ({ baselineRetailer, baseline, plannedRetailer, planned }) =>
+      `${baselineRetailer} ${baseline} → ${plannedRetailer} ${planned}`,
+    savedOnProduct: ({ amount }) => `Κέρδος ${amount}`,
+    savingsMoreProducts: ({ count, amount }) =>
+      `Άλλα ${count} ${count === 1 ? "προϊόν" : "προϊόντα"} προσθέτουν ${amount} στο κέρδος.`,
+    savingsTradeoff: ({ count, amount }) =>
+      `${count} ${count === 1 ? "προϊόν κοστίζει" : "προϊόντα κοστίζουν"} συνολικά ${amount} περισσότερο. Έχει ήδη αφαιρεθεί από το καθαρό κέρδος.`,
+    savingsBreakdownNote:
+      "Η σύγκριση χρησιμοποιεί τις ποσότητες του καλαθιού και τις τρέχουσες τιμές PosoKanei. Τα ονόματα προϊόντων μένουν όπως δημοσιεύονται.",
     retailersInCalculation: "Αλυσίδες στον υπολογισμό",
     nearbyRetailersInCalculation: "Κοντινές αλυσίδες στον υπολογισμό",
     allRetailers: "Όλες οι αλυσίδες",
@@ -488,6 +501,19 @@ const messages = {
     applyRecommendation: "Use recommendation",
     recommendationSelected: "Plan selected",
     recommendationNeedsBasket: "Build a basket to compare stop limits.",
+    savingsBreakdownEyebrow: "Savings breakdown",
+    savingsBreakdownTitle: ({ amount }) => `${amount} below one stop`,
+    savingsComparedWith: ({ retailer }) =>
+      `Compared with the cheapest complete basket at ${retailer}.`,
+    savingsPricePath: ({ baselineRetailer, baseline, plannedRetailer, planned }) =>
+      `${baselineRetailer} ${baseline} → ${plannedRetailer} ${planned}`,
+    savedOnProduct: ({ amount }) => `Save ${amount}`,
+    savingsMoreProducts: ({ count, amount }) =>
+      `${count} other ${count === 1 ? "product adds" : "products add"} ${amount} to the saving.`,
+    savingsTradeoff: ({ count, amount }) =>
+      `${count} ${count === 1 ? "product costs" : "products cost"} ${amount} more in total. This is already deducted from the net saving.`,
+    savingsBreakdownNote:
+      "The comparison uses basket quantities and current PosoKanei prices. Product names remain exactly as published.",
     retailersInCalculation: "Chains in calculation",
     nearbyRetailersInCalculation: "Nearby chains in calculation",
     allRetailers: "All chains",

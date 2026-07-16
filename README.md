@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.12.0`
+**Τρέχουσα έκδοση:** `v0.13.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -48,7 +48,17 @@
 
 Η έκδοση `v0.12.0` αντικαθιστά τη δυσνόητη αριθμητική εκτίμηση ανά στάση με τέσσερις κατανοητές προτεραιότητες: «Χαμηλότερη τιμή», «Μικρή παράκαμψη», «Ισορροπία» και «Λιγότερες στάσεις». Η πρακτική πρόταση δείχνει πλέον το συνολικό ποσοστό κέρδους, το κέρδος ανά επιπλέον supermarket και προσφέρει άμεσο κουμπί εφαρμογής του προτεινόμενου πλάνου.
 
+Η έκδοση `v0.13.0` εξηγεί από πού προκύπτει η εξοικονόμηση του επιλεγμένου πλάνου. Συγκρίνει κάθε προϊόν με το φθηνότερο πλήρες καλάθι μίας στάσης, προβάλλει τα προϊόντα που συνεισφέρουν περισσότερο στο κέρδος και συμφωνεί το άθροισμά τους με τη συνολική οικονομία. Αν κάποιο προϊόν κοστίζει περισσότερο στο πλάνο πολλών στάσεων, εμφανίζει ξεχωριστά αυτό το αντιστάθμισμα ώστε το αποτέλεσμα να παραμένει διαφανές.
+
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
+
+### Ανάλυση εξοικονόμησης
+
+Κάτω από το επιλεγμένο πλάνο, η εφαρμογή δείχνει πλέον τα ακριβή προϊόντα που κάνουν τη διαφορά. Για κάθε προϊόν εμφανίζονται η τιμή του στο φθηνότερο πλήρες supermarket μίας στάσης, η τιμή και η αλυσίδα του επιλεγμένου πλάνου, καθώς και το καθαρό κέρδος. Οι ποσότητες του καλαθιού υπολογίζονται κανονικά, ενώ τα ονόματα προϊόντων παραμένουν ακριβώς όπως δημοσιεύονται από το PosoKanei και δεν μεταφράζονται αυτόματα.
+
+![Ανάλυση των προϊόντων που δημιουργούν την εξοικονόμηση](screenshots/savings-breakdown.png)
+
+![Ανάλυση εξοικονόμησης στο κινητό](screenshots/savings-breakdown-mobile.png)
 
 ### Γλώσσα και θέμα εμφάνισης
 
@@ -142,7 +152,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.12.0`
+**Current version:** `v0.13.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -174,6 +184,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Compare the cheapest complete totals for all four stop limits at the same time.
 - Choose a plain-language shopping priority, from lowest price to fewer stops, without changing grocery prices.
 - See total percentage savings and savings per extra supermarket, then apply the practical recommendation in one action.
+- See which products create the saving against the cheapest complete one-stop basket, including any higher-price tradeoffs.
 - Show which products to buy from each chain in a multi-stop plan.
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
@@ -207,7 +218,17 @@ Version `v0.11.0` makes the decision path faster to read and use. On mobile, the
 
 Version `v0.12.0` replaces the abstract per-stop estimate with four understandable shopping priorities: `Lowest price`, `Small detour`, `Balanced`, and `Fewer stops`. The recommendation now states the total percentage saved, the saving per additional supermarket, and includes a one-action control for selecting the recommended plan. The underlying grocery totals and optimizer are unchanged, and the priority remains a local browser preference rather than PosoKanei price data.
 
+Version `v0.13.0` explains where the selected plan's saving comes from. It compares each item with the cheapest complete one-stop basket, highlights the products that contribute most to the saving, and reconciles those amounts with the overall total. When a product costs more in the multi-stop plan, that tradeoff is shown separately so the comparison remains transparent.
+
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
+
+### Savings Breakdown
+
+Below the selected plan, the app now identifies the exact products that make the difference. Each row shows the item's price at the cheapest complete one-stop supermarket, its price and assigned chain in the selected plan, and the resulting saving. Basket quantities are included in the calculation. Product names remain exactly as PosoKanei publishes them and are deliberately not machine-translated.
+
+![Products that create the selected plan's saving](screenshots/savings-breakdown.png)
+
+![Mobile savings breakdown](screenshots/savings-breakdown-mobile.png)
 
 ### Language and Appearance
 
@@ -414,6 +435,12 @@ https://agenticspiros.com/demo/posokanei-basket/
 The production React build uses the absolute subpath base `/demo/posokanei-basket/` in `vite.config.js`, so Safari and other browsers load the correct JS/CSS even if the URL is opened without relying on relative asset resolution. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The live catalog, product images, retailer logos, update status, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must be able to execute PHP for the same-origin proxy calls.
 
 ### Screenshots
+
+Product-level savings breakdown on desktop and mobile:
+
+![Desktop product-level savings breakdown](screenshots/savings-breakdown.png)
+
+![Mobile product-level savings breakdown](screenshots/savings-breakdown-mobile.png)
 
 Stop-limit comparison with a practical recommendation:
 

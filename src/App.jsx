@@ -73,6 +73,7 @@ import {
   mapsSearchUrl,
 } from "./locationStores";
 import { formatPlanText } from "./planText";
+import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 import {
   getInitialLanguage,
@@ -2194,6 +2195,10 @@ function RankingsPanel({
     rankings.find((row) => row.retailer.id === effectiveRetailerId)?.retailer ||
     visitPlan?.groups?.find((group) => group.retailer.id === effectiveRetailerId)?.retailer ||
     null;
+  const savingsBreakdown = useMemo(
+    () => calculateSavingsBreakdown(visitPlan, bestCompleteRanking, 3),
+    [bestCompleteRanking, visitPlan],
+  );
 
   useEffect(() => {
     setPlanCopyState("idle");
@@ -2235,6 +2240,8 @@ function RankingsPanel({
         maxChains={maxChains}
         oneStopTotal={oneStopTotal}
       />
+
+      <SavingsBreakdownCard breakdown={savingsBreakdown} />
 
       <LocationControl
         locationState={locationState}
@@ -2683,6 +2690,77 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
         {savings > 0 ? <span>{t("belowOneStop", { amount: money(savings) })}</span> : null}
       </div>
     </div>
+  );
+}
+
+function SavingsBreakdownCard({ breakdown }) {
+  const { money, t } = usePreferences();
+  if (!breakdown) return null;
+
+  return (
+    <section className="savings-breakdown" aria-labelledby="savings-breakdown-title">
+      <div className="savings-breakdown-heading">
+        <span className="savings-breakdown-icon" aria-hidden="true">
+          <CircleDollarSign size={17} />
+        </span>
+        <span>
+          <small>{t("savingsBreakdownEyebrow")}</small>
+          <strong id="savings-breakdown-title">
+            {t("savingsBreakdownTitle", { amount: money(breakdown.totalSavings) })}
+          </strong>
+          <span>
+            {t("savingsComparedWith", { retailer: breakdown.baselineRetailer.name })}
+          </span>
+        </span>
+      </div>
+
+      <div className="savings-breakdown-list">
+        {breakdown.visibleItems.map((item) => (
+          <article className="savings-breakdown-row" key={item.product.id}>
+            <ProductThumb product={item.product} compact />
+            <span className="savings-breakdown-product">
+              <strong>{item.product.name}</strong>
+              <small>
+                {t("savingsPricePath", {
+                  baselineRetailer: item.baselineRetailer.name,
+                  baseline: money(item.baselineLineTotal),
+                  plannedRetailer: item.plannedRetailer.name,
+                  planned: money(item.plannedLineTotal),
+                })}
+              </small>
+            </span>
+            <strong className="savings-breakdown-amount">
+              {t("savedOnProduct", { amount: money(item.savings) })}
+            </strong>
+          </article>
+        ))}
+      </div>
+
+      {breakdown.remainingItemCount ? (
+        <div className="savings-breakdown-more">
+          <span>
+            {t("savingsMoreProducts", {
+              count: breakdown.remainingItemCount,
+              amount: money(breakdown.remainingSavings),
+            })}
+          </span>
+        </div>
+      ) : null}
+
+      {breakdown.tradeoffItemCount ? (
+        <div className="savings-breakdown-tradeoff">
+          <Info size={14} aria-hidden="true" />
+          <span>
+            {t("savingsTradeoff", {
+              count: breakdown.tradeoffItemCount,
+              amount: money(breakdown.tradeoffCost),
+            })}
+          </span>
+        </div>
+      ) : null}
+
+      <p>{t("savingsBreakdownNote")}</p>
+    </section>
   );
 }
 
