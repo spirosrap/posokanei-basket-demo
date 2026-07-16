@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.17.0`
+**Τρέχουσα έκδοση:** `v0.17.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -63,6 +63,8 @@
 Η έκδοση `v0.16.0` προσθέτει φορητή εξαγωγή και εισαγωγή σε JSON. Το versioned αρχείο κρατά μόνο κωδικούς προϊόντων, ακέραιες ποσότητες, όριο στάσεων, επιλεγμένες αλυσίδες και την εκτίμηση κόστους επιπλέον στάσης. Δεν κρατά τοποθεσία ή τιμές. Κατά τη φόρτωση, η εφαρμογή ελέγχει αυστηρά το αρχείο, αναζητά τους κωδικούς στον τρέχοντα κατάλογο και υπολογίζει ξανά όλες τις τιμές και τα πλάνα. Έτσι ένα καλάθι μπορεί να αποθηκευτεί, να σταλεί ή να μεταφερθεί σε άλλον browser χωρίς να μεταφέρει παλιές τιμές.
 
 Η έκδοση `v0.17.0` αντικαθιστά αυτόματα τον μεγάλο σύνδεσμο καλαθιού με έναν σύντομο σύνδεσμο του ίδιου του `agenticspiros.com` στα παράθυρα κοινής χρήσης και εξαγωγής κειμένου. Η υπηρεσία σύντμησης φιλοξενείται μαζί με την εφαρμογή, δεν απαιτεί API key ή συνδρομή, δεν αποστέλλει το καλάθι σε τρίτη υπηρεσία και επιστρέφει αμέσως στον πλήρη σύνδεσμο αν δεν είναι διαθέσιμη. Η σύντμηση γίνεται μόνο όταν ο χρήστης ανοίξει ένα από αυτά τα παράθυρα.
+
+Η έκδοση `v0.17.1` ταξινομεί κάθε αναζήτηση προϊόντος από τη χαμηλότερη προς την υψηλότερη καλύτερη διαθέσιμη τιμή. Η βασική ταξινόμηση εφαρμόζεται πριν από τη σελιδοποίηση του καταλόγου, ώστε τα φθηνότερα αποτελέσματα να εμφανίζονται πραγματικά πρώτα. Στη συνέχεια, η σειρά των φορτωμένων αποτελεσμάτων προσαρμόζεται στις αλυσίδες που έχει επιλέξει ο χρήστης ή επιτρέπονται από το ενεργό φίλτρο τοποθεσίας. Προϊόντα χωρίς διαθέσιμη τιμή σε αυτές τις αλυσίδες εμφανίζονται τελευταία.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -182,7 +184,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.17.0`
+**Current version:** `v0.17.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -266,6 +268,8 @@ Version `v0.15.0` adds a complete plain-text basket export. It includes a produc
 Version `v0.16.0` adds portable JSON export and import. The versioned file stores only product IDs, whole-number quantities, the stop limit, selected chains, and the extra-stop estimate. It never stores location or prices. On import, the app strictly validates the file, fetches those IDs from the current catalogue, and recalculates every price and plan. A basket can therefore be archived, sent, or moved to another browser without carrying stale price data.
 
 Version `v0.17.0` automatically replaces the large basket URL with a compact link on `agenticspiros.com` in the share and plain-text export dialogs. The shortening service is hosted with the app, requires no API key or subscription, sends no basket data to a third-party service, and immediately falls back to the complete URL if it is unavailable. Shortening begins only after the user opens one of those dialogs.
+
+Version `v0.17.1` orders every product search from the lowest to the highest best available price. Catalogue ordering happens before pagination so the genuinely cheapest matches appear first, then the browser reconciles the visible order with the supermarket chains selected by the user or allowed by the active location filter. Products without an available price among those chains appear last.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 

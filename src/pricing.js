@@ -25,6 +25,23 @@ export function getBestProductPrice(product, retailerIds = null) {
   return values.sort((a, b) => a.price - b.price)[0] ?? null;
 }
 
+export function sortProductsByBestPrice(products, retailerIds = null) {
+  return products
+    .map((product, index) => ({
+      product,
+      index,
+      price: getBestProductPrice(product, retailerIds)?.price ?? null,
+    }))
+    .sort((left, right) => {
+      if (left.price == null && right.price != null) return 1;
+      if (left.price != null && right.price == null) return -1;
+      if (left.price !== right.price) return (left.price ?? 0) - (right.price ?? 0);
+      const nameOrder = left.product.name.localeCompare(right.product.name, "el");
+      return nameOrder || left.index - right.index;
+    })
+    .map(({ product }) => product);
+}
+
 export function calculateRankings(basket, products, retailers) {
   const productMap = new Map(products.map((product) => [product.id, product]));
   const rows = retailers.map((retailer) => {

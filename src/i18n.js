@@ -58,6 +58,7 @@ const messages = {
     catalogResults: ({ visible, total }) =>
       `${visible} από ${total} προϊόντα από ενημερωμένο κατάλογο`,
     liveResults: ({ visible, total }) => `${visible} από ${total} live προϊόντα`,
+    cheapestFirst: "φθηνότερα πρώτα",
     noResults: "Δεν βρέθηκαν αποτελέσματα",
     catalogUnavailable: "Ο κατάλογος δεν είναι διαθέσιμος",
     noBrand: "Χωρίς brand",
@@ -431,6 +432,7 @@ const messages = {
     loadingMoreProducts: "Loading more products",
     catalogResults: ({ visible, total }) => `${visible} of ${total} products from the updated catalogue`,
     liveResults: ({ visible, total }) => `${visible} of ${total} live products`,
+    cheapestFirst: "cheapest first",
     noResults: "No results found",
     catalogUnavailable: "The catalogue is unavailable",
     noBrand: "No brand",

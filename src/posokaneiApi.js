@@ -252,6 +252,20 @@ function productMatchesCategory(product, categoryId) {
   return product.category === categoryId || product.categoryIds?.includes(categoryId);
 }
 
+function minimumProductPrice(product) {
+  const prices = Object.values(product.prices || {}).filter(Number.isFinite);
+  return prices.length ? Math.min(...prices) : null;
+}
+
+function compareProductsByPrice(left, right) {
+  const leftPrice = minimumProductPrice(left);
+  const rightPrice = minimumProductPrice(right);
+  if (leftPrice == null && rightPrice != null) return 1;
+  if (leftPrice != null && rightPrice == null) return -1;
+  if (leftPrice !== rightPrice) return (leftPrice ?? 0) - (rightPrice ?? 0);
+  return left.name.localeCompare(right.name, "el");
+}
+
 async function snapshotProductResponse({
   query = "",
   categoryId = "all",
@@ -267,7 +281,11 @@ async function snapshotProductResponse({
       if (barcode) return product.gtin === barcode;
       return !normalizedQuery || searchableText(product).includes(normalizedQuery);
     })
-    .sort((a, b) => a.name.localeCompare(b.name, "el"));
+    .sort(
+      normalizedQuery.length >= 2
+        ? compareProductsByPrice
+        : (a, b) => a.name.localeCompare(b.name, "el"),
+    );
 
   const safePage = Math.max(1, Number(page) || 1);
   const safePageSize = Math.max(1, Number(pageSize) || PAGE_SIZE);
@@ -518,10 +536,11 @@ export async function fetchProductsByIds(productIds = []) {
 }
 
 function searchByTitle(query, categoryId, page, pageSize) {
+  const priceSorted = query.trim().length >= 2;
   const params = {
     page,
     page_size: pageSize,
-    sort_by: "name",
+    sort_by: priceSorted ? "price_asc" : "name",
     sort_order: "asc",
     countries: "GR",
   };

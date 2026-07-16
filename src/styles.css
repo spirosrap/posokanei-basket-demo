@@ -1021,6 +1021,14 @@ input:focus-visible {
   font-weight: 750;
 }
 
+.inline-status small {
+  margin-left: auto;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
 .inline-status.error {
   background: #fef2f2;
   color: var(--red);

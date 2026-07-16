@@ -65,6 +65,7 @@ import {
   formatEuro,
   getBestProductPrice,
   getProductPrice,
+  sortProductsByBestPrice,
 } from "./pricing";
 import {
   buildPlanRoute,
@@ -597,10 +598,6 @@ function AppContent() {
     return [...byId.values()];
   }, [liveBasketProducts, liveProducts]);
 
-  const displayProducts = useMemo(() => {
-    return liveProducts;
-  }, [liveProducts]);
-
   const categories = useMemo(() => {
     return [
       { id: "all", name: t("all"), count: liveMeta.activeProducts || liveMeta.total },
@@ -636,6 +633,13 @@ function AppContent() {
     const selectedIds = new Set(retailerFilterIds);
     return locationEligibleRetailers.filter((retailer) => selectedIds.has(retailer.id));
   }, [locationEligibleRetailers, retailerFilterIds]);
+  const displayProducts = useMemo(() => {
+    if (query.trim().length < 2) return liveProducts;
+    return sortProductsByBestPrice(
+      liveProducts,
+      activeRetailers.map((retailer) => retailer.id),
+    );
+  }, [activeRetailers, liveProducts, query]);
   const displayedDailyBargain = useMemo(() => {
     if (!dailyBargain || !locationFiltersRetailers) return dailyBargain;
     const eligibleIds = new Set(locationEligibleRetailers.map((retailer) => retailer.id));
@@ -1583,6 +1587,7 @@ function SearchPanel({
         total={liveMeta.total}
         visible={products.length}
         catalogSource={catalogSource}
+        priceSorted={query.trim().length >= 2}
       />
 
       <div className="product-list">
@@ -1614,7 +1619,7 @@ function SearchPanel({
   );
 }
 
-function LiveNotice({ state, total, visible, catalogSource }) {
+function LiveNotice({ state, total, visible, catalogSource, priceSorted }) {
   const { number, t } = usePreferences();
   const labels = {
     idle: t("catalogProducts"),
@@ -1631,6 +1636,9 @@ function LiveNotice({ state, total, visible, catalogSource }) {
     <div className={`inline-status ${state}`}>
       {state === "error" ? <AlertCircle size={15} /> : <RefreshCw size={15} />}
       <span>{labels[state] ?? labels.idle}</span>
+      {priceSorted && (state === "ready" || state === "loading_more") ? (
+        <small>{t("cheapestFirst")}</small>
+      ) : null}
     </div>
   );
 }
