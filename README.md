@@ -6,7 +6,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.15.0`
+**Τρέχουσα έκδοση:** `v0.16.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -59,6 +59,10 @@
 Η έκδοση `v0.14.3` επιταχύνει σημαντικά τις φωτογραφίες προϊόντων. Τα αποτελέσματα αναζήτησης ζητούν πλέον μικρές, συμπιεσμένες εικόνες WebP αντί για τις πλήρεις αρχικές φωτογραφίες, οι πρώτες ορατές εικόνες έχουν προτεραιότητα και οι υπόλοιπες φορτώνονται μόνο όταν χρειάζονται. Η λεπτομερής προβολή διατηρεί ξεχωριστή εικόνα υψηλότερης ανάλυσης. Μέχρι να ολοκληρωθεί η λήψη, εμφανίζεται το έγχρωμο σύμβολο του προϊόντος αντί για κενό πλαίσιο, ενώ οι versioned εικόνες αποθηκεύονται μακροχρόνια στην cache του browser.
 
 Η έκδοση `v0.15.0` προσθέτει ολοκληρωμένη εξαγωγή της λίστας ως απλό κείμενο. Το κείμενο περιλαμβάνει checklist προϊόντων και ποσοτήτων, επιλεγμένο όριο στάσεων, πλήρες πλάνο ανά supermarket με τιμές και σύνολα, καθώς και σύνδεσμο που ανοίγει ξανά το καλάθι. Αν το επιλεγμένο όριο δεν καλύπτει όλη τη λίστα, εξηγείται καθαρά και εξάγεται το πρώτο διαθέσιμο πλήρες πλάνο. Ο χρήστης μπορεί να αντιγράψει το κείμενο, να ανοίξει το native share sheet ή να κατεβάσει αρχείο `.txt` συμβατό με Windows Notepad και macOS TextEdit.
+
+Η έκδοση `v0.16.0` προσθέτει φορητή εξαγωγή και εισαγωγή σε JSON. Το versioned αρχείο κρατά μόνο κωδικούς προϊόντων, ακέραιες ποσότητες, όριο στάσεων, επιλεγμένες αλυσίδες και την εκτίμηση κόστους επιπλέον στάσης. Δεν κρατά τοποθεσία ή τιμές. Κατά τη φόρτωση, η εφαρμογή ελέγχει αυστηρά το αρχείο, αναζητά τους κωδικούς στον τρέχοντα κατάλογο και υπολογίζει ξανά όλες τις τιμές και τα πλάνα. Έτσι ένα καλάθι μπορεί να αποθηκευτεί, να σταλεί ή να μεταφερθεί σε άλλον browser χωρίς να μεταφέρει παλιές τιμές.
+
+![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
 ![Σύγκριση τεσσάρων ορίων στάσεων και πρακτική πρόταση](screenshots/stop-comparison.png)
 
@@ -134,7 +138,13 @@
 
 ### Λίστα ως κείμενο
 
-Το κουμπί «Κείμενο» δημιουργεί μία ευανάγνωστη έκδοση για μηνύματα, email ή εφαρμογές σημειώσεων. Η προεπισκόπηση περιλαμβάνει τη γενική λίστα και το αναλυτικό πλάνο αγορών, χωρίς να αλλάζει το καλάθι. Η λήψη `.txt` χρησιμοποιεί UTF-8 BOM και line endings `CRLF`, ώστε τα ελληνικά και η διάταξη να διατηρούνται σωστά σε σύγχρονο Windows Notepad, macOS TextEdit και άλλους text editors.
+Το κουμπί «Εξαγωγή» και η επιλογή «Απλό κείμενο» δημιουργούν μία ευανάγνωστη έκδοση για μηνύματα, email ή εφαρμογές σημειώσεων. Η προεπισκόπηση περιλαμβάνει τη γενική λίστα και το αναλυτικό πλάνο αγορών, χωρίς να αλλάζει το καλάθι. Η λήψη `.txt` χρησιμοποιεί UTF-8 BOM και line endings `CRLF`, ώστε τα ελληνικά και η διάταξη να διατηρούνται σωστά σε σύγχρονο Windows Notepad, macOS TextEdit και άλλους text editors.
+
+### Φορητό JSON
+
+Η επιλογή «JSON» στο ίδιο παράθυρο προσφέρει αντιγραφή, λήψη `.json` και φόρτωση αρχείου. Το format έχει αναγνωριστικό `agenticspiros.posokanei-basket` και αριθμό έκδοσης schema, ώστε μελλοντικές ασύμβατες αλλαγές να απορρίπτονται καθαρά. Κάθε εισαγωγή περιορίζεται σε 60 προϊόντα και ελέγχει κωδικούς, ακέραιες ποσότητες `1` έως `999`, όριο `1` έως `4` στάσεων, έως 30 κωδικούς αλυσίδων και μία από τις υποστηριζόμενες εκτιμήσεις επιπλέον στάσης.
+
+Τα ονόματα μέσα στο JSON είναι μόνο για να διαβάζεται ευκολότερα το αρχείο και αγνοούνται κατά την εισαγωγή. Η εφαρμογή εμπιστεύεται μόνο τους ελεγμένους κωδικούς και ζητά τα προϊόντα από τον τρέχοντα κατάλογο. Δεν εισάγονται τιμές, τοποθεσία, υποκαταστήματα ή πρόοδος αγορών. Το μέγιστο μέγεθος αρχείου είναι 256 KB.
 
 ### Ευκαιρία της ημέρας
 
@@ -168,7 +178,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.15.0`
+**Current version:** `v0.16.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -193,6 +203,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Copy the optimized plan as a store-by-store shopping list with quantities and subtotals.
 - Share the exact basket, quantities, selected stop limit, and supermarket selection with a compact link.
 - Copy, natively share, or download a complete plain-text basket with a checklist, stop limit, store-by-store plan, prices, totals, and reopening link.
+- Export or import a versioned machine-readable JSON basket that restores product IDs, whole quantities, stop settings, and chain selections against current catalogue prices.
 - Restore a shared basket against the latest catalogue and recalculate current prices automatically.
 - Save up to 12 named baskets locally and reopen them against the latest catalogue prices.
 - Rank supermarket chains by total basket price.
@@ -247,6 +258,10 @@ Version `v0.14.2` separates catalogue availability from selected-plan coverage. 
 Version `v0.14.3` makes product imagery substantially faster. Search results now request small compressed WebP thumbnails instead of full-size source photos, prioritize the first visible images, and lazy-load the rest. Product details retain a separate higher-resolution image. A colored product fallback remains visible while each photo loads, and versioned image responses receive long-lived browser caching.
 
 Version `v0.15.0` adds a complete plain-text basket export. It includes a product and quantity checklist, the selected stop limit, a supermarket-by-supermarket plan with prices and totals, and a link that reopens the basket. When the selected limit cannot cover the full list, the export explains that limitation and includes the first available complete plan. Users can copy the text, open the native share sheet, or download a `.txt` file compatible with Windows Notepad and macOS TextEdit.
+
+Version `v0.16.0` adds portable JSON export and import. The versioned file stores only product IDs, whole-number quantities, the stop limit, selected chains, and the extra-stop estimate. It never stores location or prices. On import, the app strictly validates the file, fetches those IDs from the current catalogue, and recalculates every price and plan. A basket can therefore be archived, sent, or moved to another browser without carrying stale price data.
+
+![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
 ![Four-stop comparison and practical recommendation](screenshots/stop-comparison.png)
 
@@ -388,7 +403,13 @@ stricter Safari or clipboard environments.
 
 ### Plain-Text Lists
 
-The `Text` basket action creates a clean version for messages, email, and note-taking apps without changing the basket. Its `.txt` download uses a UTF-8 BOM and `CRLF` line endings so Greek product names and formatting remain intact in modern Windows Notepad, macOS TextEdit, and other text editors.
+The `Export` basket action and its `Plain text` mode create a clean version for messages, email, and note-taking apps without changing the basket. Its `.txt` download uses a UTF-8 BOM and `CRLF` line endings so Greek product names and formatting remain intact in modern Windows Notepad, macOS TextEdit, and other text editors.
+
+### Portable JSON
+
+The same dialog's `JSON` mode can copy, download, or load a `.json` file. The format carries the `agenticspiros.posokanei-basket` identifier and a schema version so future incompatible files fail clearly. Every import is capped at 60 products and validates product IDs, whole quantities from `1` to `999`, a `1` to `4` stop limit, up to 30 retailer IDs, and one of the supported extra-stop estimates.
+
+Names in the JSON exist only to make the file readable and are ignored during import. The app trusts only validated IDs and fetches those products from the current catalogue. Prices, location, branches, and shopping progress are never imported. Files are limited to 256 KB.
 
 ### Daily Product Suggestion
 

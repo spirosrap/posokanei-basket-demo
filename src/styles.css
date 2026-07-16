@@ -2952,6 +2952,65 @@ input:focus-visible {
   color: var(--blue);
 }
 
+.export-format-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 4px;
+}
+
+.export-format-tabs button {
+  display: inline-flex;
+  min-width: 0;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.export-format-tabs button.active {
+  border-color: rgba(37, 99, 235, 0.24);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.09);
+  color: var(--blue);
+}
+
+.export-format-tabs button:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 1px;
+}
+
+.json-export-note {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  margin: 10px 0 0;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: var(--radius);
+  background: #ecfdf5;
+  color: #047857;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.json-export-note svg {
+  margin-top: 1px;
+}
+
 .saved-baskets-dialog-icon {
   background: #eff6ff;
   color: var(--blue);
@@ -3180,7 +3239,7 @@ input:focus-visible {
 
 .text-export-preview textarea {
   width: 100%;
-  min-height: min(400px, 50vh);
+  min-height: clamp(180px, 34vh, 300px);
   resize: vertical;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -3222,6 +3281,10 @@ input:focus-visible {
 
 .share-feedback.success {
   color: #047857;
+}
+
+.share-feedback.error {
+  color: var(--red);
 }
 
 .share-privacy-note {
@@ -3505,6 +3568,12 @@ input:focus-visible {
   border-color: rgba(117, 167, 255, 0.28);
   background: var(--blue-soft);
   color: var(--blue);
+}
+
+[data-theme="dark"] .json-export-note {
+  border-color: rgba(72, 215, 176, 0.28);
+  background: var(--green-soft);
+  color: var(--green-dark);
 }
 
 [data-theme="dark"] .saved-dialog-status.error {

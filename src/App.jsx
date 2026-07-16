@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Copy,
   Download,
+  FileJson2,
   FileText,
   Github,
   FolderOpen,
@@ -38,6 +39,7 @@ import {
   Sun,
   Tag,
   Trash2,
+  Upload,
   Wifi,
   WifiOff,
   X,
@@ -76,6 +78,7 @@ import {
 } from "./locationStores";
 import { formatPlanText } from "./planText";
 import { formatBasketText, formatPortableTextFile } from "./basketText";
+import { formatBasketData, parseBasketData } from "./basketData";
 import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
 import {
@@ -268,9 +271,7 @@ const copyText = async (value) => {
   }
 };
 
-const downloadTextFile = (value, filename) => {
-  const windowsCompatibleText = formatPortableTextFile(value);
-  const blob = new Blob([windowsCompatibleText], { type: "text/plain;charset=utf-8" });
+const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -279,6 +280,17 @@ const downloadTextFile = (value, filename) => {
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+const downloadTextFile = (value, filename) => {
+  const windowsCompatibleText = formatPortableTextFile(value);
+  const blob = new Blob([windowsCompatibleText], { type: "text/plain;charset=utf-8" });
+  downloadBlob(blob, filename);
+};
+
+const downloadJsonFile = (value, filename) => {
+  const blob = new Blob([value], { type: "application/json;charset=utf-8" });
+  downloadBlob(blob, filename);
 };
 
 function App() {
@@ -374,7 +386,7 @@ function AppContent() {
     return null;
   });
   const [shareUrl, setShareUrl] = useState("");
-  const [basketTextOpen, setBasketTextOpen] = useState(false);
+  const [basketExportOpen, setBasketExportOpen] = useState(false);
   const [savedBaskets, setSavedBaskets] = useState(loadSavedBaskets);
   const [savedBasketsOpen, setSavedBasketsOpen] = useState(false);
   const [savedBasketNotice, setSavedBasketNotice] = useState(null);
@@ -714,7 +726,7 @@ function AppContent() {
     setBasket([]);
     setMaxChains(1);
     setSharedBasketStatus(null);
-    setBasketTextOpen(false);
+    setBasketExportOpen(false);
     setMobileView("products");
   };
 
@@ -735,14 +747,14 @@ function AppContent() {
 
   const openShareBasket = () => {
     if (!basket.length) return;
-    setBasketTextOpen(false);
+    setBasketExportOpen(false);
     setShareUrl(currentBasketUrl());
   };
 
-  const openBasketText = () => {
+  const openBasketExport = () => {
     if (!basket.length) return;
     setShareUrl("");
-    setBasketTextOpen(true);
+    setBasketExportOpen(true);
   };
 
   const saveCurrentBasket = (name) => {
@@ -783,6 +795,30 @@ function AppContent() {
     setSavedBasketNotice({
       status: "loaded",
       name: saved.name,
+      productCount: availableBasket.length,
+      missingCount,
+    });
+    refreshedDemoProducts.current = false;
+  };
+
+  const importBasketData = async (data) => {
+    const products = await fetchProductsByIds(data.basket.map((entry) => entry.productId));
+    const foundIds = new Set(products.map((product) => product.id));
+    const availableBasket = data.basket.filter((entry) => foundIds.has(entry.productId));
+    if (!availableBasket.length) throw new Error("basket_data_products_unavailable");
+    const missingCount = data.basket.length - availableBasket.length;
+
+    setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
+    setBasket(availableBasket);
+    setMaxChains(data.maxChains);
+    setRetailerFilterIds(data.retailerIds);
+    setExtraStopCost(data.extraStopCost);
+    setSharedBasketStatus(null);
+    setSelectedProduct(null);
+    setMobileView("plan");
+    setBasketExportOpen(false);
+    setSavedBasketNotice({
+      status: "imported",
       productCount: availableBasket.length,
       missingCount,
     });
@@ -973,7 +1009,7 @@ function AppContent() {
           isDemoBasket={isDemoBasket}
           onQuantity={updateQuantity}
           onClear={clearBasket}
-          onExportText={openBasketText}
+          onExport={openBasketExport}
           onShare={openShareBasket}
           onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
           onLoadDemo={loadDemoBasket}
@@ -1029,16 +1065,20 @@ function AppContent() {
         />
       ) : null}
 
-      {basketTextOpen && basket.length ? (
-        <BasketTextDialog
+      {basketExportOpen && basket.length ? (
+        <BasketExportDialog
           basket={basket}
           productMap={productMap}
+          maxChains={maxChains}
+          retailerIds={retailerFilterIds}
+          extraStopCost={extraStopCost}
           selectedStopLimit={maxChains}
           selectedPlanComplete={Boolean(visitPlan?.isComplete)}
           plan={textExportPlan}
           planStopLimit={textExportPlanLimit}
           shareUrl={currentBasketUrl()}
-          onClose={() => setBasketTextOpen(false)}
+          onImport={importBasketData}
+          onClose={() => setBasketExportOpen(false)}
         />
       ) : null}
 
@@ -1611,7 +1651,7 @@ function BasketPanel({
   isDemoBasket,
   onQuantity,
   onClear,
-  onExportText,
+  onExport,
   onShare,
   onOpenSavedBaskets,
   onLoadDemo,
@@ -1678,12 +1718,12 @@ function BasketPanel({
         <button
           type="button"
           className="text-button compact-action"
-          onClick={onExportText}
+          onClick={onExport}
           disabled={!basket.length}
-          title={t("textExportTitle")}
+          title={t("basketExportTitle")}
         >
-          <FileText size={16} />
-          <span className="button-label">{t("textExport")}</span>
+          <FileJson2 size={16} />
+          <span className="button-label">{t("basketExport")}</span>
         </button>
         <button
           type="button"
@@ -1773,17 +1813,23 @@ function BasketPanel({
 function SavedBasketNotice({ state, onDismiss }) {
   const { number, t } = usePreferences();
   if (!state) return null;
+  const isImported = state.status === "imported";
   return (
     <div className="saved-basket-notice" role="status">
-      <Bookmark size={15} />
+      {isImported ? <FileJson2 size={15} /> : <Bookmark size={15} />}
       <span>
         {state.status === "saved"
           ? t("savedBasketSaved", { name: state.name })
-          : t("savedBasketLoaded", {
-              name: state.name,
-              products: formatProductCount(state.productCount, t, number),
-              missing: number(state.missingCount),
-            })}
+          : isImported
+            ? t("basketDataImported", {
+                products: formatProductCount(state.productCount, t, number),
+                missing: number(state.missingCount),
+              })
+            : t("savedBasketLoaded", {
+                name: state.name,
+                products: formatProductCount(state.productCount, t, number),
+                missing: number(state.missingCount),
+              })}
       </span>
       <button
         type="button"
@@ -1838,19 +1884,26 @@ function SharedBasketNotice({ state }) {
   );
 }
 
-function BasketTextDialog({
+function BasketExportDialog({
   basket,
   productMap,
+  maxChains,
+  retailerIds,
+  extraStopCost,
   selectedStopLimit,
   selectedPlanComplete,
   plan,
   planStopLimit,
   shareUrl,
+  onImport,
   onClose,
 }) {
   const { language, t } = usePreferences();
+  const [format, setFormat] = useState("text");
   const [actionState, setActionState] = useState("idle");
+  const [exportedAt] = useState(() => new Date().toISOString());
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
   const text = useMemo(
     () =>
@@ -1875,10 +1928,23 @@ function BasketTextDialog({
       shareUrl,
     ],
   );
+  const json = useMemo(
+    () =>
+      formatBasketData({
+        basket,
+        productMap,
+        maxChains,
+        retailerIds,
+        extraStopCost,
+        exportedAt,
+      }),
+    [basket, exportedAt, extraStopCost, maxChains, productMap, retailerIds],
+  );
+  const preview = format === "json" ? json : text;
 
   useEffect(() => {
     setActionState("idle");
-  }, [text]);
+  }, [format, json, text]);
 
   useEffect(() => {
     const closeOnEscape = (event) => {
@@ -1888,17 +1954,17 @@ function BasketTextDialog({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
-  const selectText = () => {
+  const selectPreview = () => {
     textareaRef.current?.focus();
     textareaRef.current?.select();
   };
 
   const copyExport = async () => {
     try {
-      await copyText(text);
+      await copyText(preview);
       setActionState("copied");
     } catch {
-      selectText();
+      selectPreview();
       setActionState("manual");
     }
   };
@@ -1913,45 +1979,96 @@ function BasketTextDialog({
   };
 
   const downloadExport = () => {
-    const filename = language === "el" ? "kalathi-timon.txt" : "supermarket-basket.txt";
-    downloadTextFile(text, filename);
+    if (format === "json") {
+      downloadJsonFile(json, "posokanei-basket.json");
+    } else {
+      const filename = language === "el" ? "kalathi-timon.txt" : "supermarket-basket.txt";
+      downloadTextFile(text, filename);
+    }
     setActionState("downloaded");
   };
 
+  const loadJson = async (event) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    setActionState("importing");
+    try {
+      if (file.size > 256 * 1024) throw new Error("invalid_file_size");
+      const data = parseBasketData(await file.text());
+      await onImport(data);
+    } catch {
+      setActionState("import-error");
+    }
+  };
+
   const feedback = {
-    copied: t("copied"),
+    copied: format === "json" ? t("jsonExportCopied") : t("copied"),
     shared: t("textExportShared"),
-    downloaded: t("textExportDownloaded"),
-    manual: t("textExportManual"),
+    downloaded: format === "json" ? t("jsonExportDownloaded") : t("textExportDownloaded"),
+    manual: format === "json" ? t("jsonExportManual") : t("textExportManual"),
+    importing: t("jsonImporting"),
+    "import-error": t("jsonImportError"),
   }[actionState];
+  const feedbackIsError = actionState === "import-error";
 
   return (
     <aside
       className="drawer text-export-dialog"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="text-export-title"
+      aria-labelledby="basket-export-title"
     >
       <div className="drawer-backdrop" onClick={onClose} />
       <div className="drawer-panel share-panel text-export-panel">
         <div className="drawer-head">
           <span className="text-export-dialog-icon" aria-hidden="true">
-            <FileText size={20} />
+            {format === "json" ? <FileJson2 size={20} /> : <FileText size={20} />}
           </span>
           <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
             <X size={18} />
           </button>
         </div>
         <div className="drawer-title">
-          <small>{t("textExportEyebrow")}</small>
-          <h2 id="text-export-title">{t("textExportTitle")}</h2>
+          <small>{t("basketExportEyebrow")}</small>
+          <h2 id="basket-export-title">{t("basketExportTitle")}</h2>
         </div>
 
+        <div className="export-format-tabs" role="tablist" aria-label={t("basketExportFormat")}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={format === "text"}
+            className={format === "text" ? "active" : ""}
+            onClick={() => setFormat("text")}
+          >
+            <FileText size={16} />
+            {t("textExportFormat")}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={format === "json"}
+            className={format === "json" ? "active" : ""}
+            onClick={() => setFormat("json")}
+          >
+            <FileJson2 size={16} />
+            JSON
+          </button>
+        </div>
+
+        {format === "json" ? (
+          <p className="json-export-note">
+            <Info size={16} />
+            <span>{t("jsonExportNote")}</span>
+          </p>
+        ) : null}
+
         <label className="text-export-preview">
-          <span>{t("textExportPreview")}</span>
+          <span>{format === "json" ? t("jsonExportPreview") : t("textExportPreview")}</span>
           <textarea
             ref={textareaRef}
-            value={text}
+            value={preview}
             readOnly
             spellCheck="false"
             onFocus={(event) => event.currentTarget.select()}
@@ -1961,9 +2078,15 @@ function BasketTextDialog({
         <div className="share-dialog-actions text-export-actions">
           <button type="button" className="primary-action" onClick={copyExport}>
             {actionState === "copied" ? <Check size={18} /> : <Copy size={18} />}
-            {actionState === "copied" ? t("copied") : t("copyTextExport")}
+            {actionState === "copied"
+              ? format === "json"
+                ? t("jsonExportCopied")
+                : t("copied")
+              : format === "json"
+                ? t("copyJsonExport")
+                : t("copyTextExport")}
           </button>
-          {supportsNativeShare ? (
+          {format === "text" && supportsNativeShare ? (
             <button type="button" className="text-button" onClick={shareExport}>
               <Share2 size={17} />
               {t("share")}
@@ -1971,14 +2094,37 @@ function BasketTextDialog({
           ) : null}
           <button type="button" className="text-button" onClick={downloadExport}>
             <Download size={17} />
-            {t("downloadTextExport")}
+            {format === "json" ? t("downloadJsonExport") : t("downloadTextExport")}
           </button>
+          {format === "json" ? (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={actionState === "importing"}
+            >
+              {actionState === "importing" ? (
+                <RefreshCw size={17} className="spin" />
+              ) : (
+                <Upload size={17} />
+              )}
+              {t("loadJsonExport")}
+            </button>
+          ) : null}
         </div>
+
+        <input
+          ref={fileInputRef}
+          hidden
+          type="file"
+          accept=".json,application/json"
+          onChange={loadJson}
+        />
 
         {feedback ? (
           <p
-            className={actionState === "manual" ? "share-feedback" : "share-feedback success"}
-            role="status"
+            className={`share-feedback${feedbackIsError ? " error" : actionState === "manual" ? "" : " success"}`}
+            role={feedbackIsError ? "alert" : "status"}
           >
             {feedback}
           </p>

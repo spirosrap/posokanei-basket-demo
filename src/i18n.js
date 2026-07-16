@@ -66,6 +66,11 @@ const messages = {
     basket: "Καλάθι",
     example: "Παράδειγμα",
     copy: "Αντιγραφή",
+    basketExport: "Εξαγωγή",
+    basketExportEyebrow: "TXT / JSON · Windows / Mac",
+    basketExportTitle: "Εξαγωγή και εισαγωγή καλαθιού",
+    basketExportFormat: "Μορφή λίστας",
+    textExportFormat: "Απλό κείμενο",
     textExport: "Κείμενο",
     textExportEyebrow: "TXT · Windows / Mac",
     textExportTitle: "Λίστα ως απλό κείμενο",
@@ -86,6 +91,18 @@ const messages = {
     textExportLinkHeading: "Άνοιγμα καλαθιού",
     textExportPriceNote:
       "Οι τιμές προέρχονται από τον πιο πρόσφατο συγχρονισμένο κατάλογο PosoKanei και μπορεί να αλλάξουν.",
+    jsonExportPreview: "Προεπισκόπηση JSON",
+    jsonExportNote:
+      "Το JSON περιέχει κωδικούς προϊόντων, ακέραιες ποσότητες και ρυθμίσεις πλάνου. Δεν περιέχει τοποθεσία ή τιμές· κατά τη φόρτωση οι τιμές υπολογίζονται ξανά από τον τρέχοντα κατάλογο.",
+    copyJsonExport: "Αντιγραφή JSON",
+    downloadJsonExport: "Λήψη .json",
+    loadJsonExport: "Φόρτωση .json",
+    jsonExportCopied: "Το JSON αντιγράφηκε.",
+    jsonExportDownloaded: "Το αρχείο .json αποθηκεύτηκε.",
+    jsonExportManual: "Το JSON επιλέχθηκε. Αντίγραψέ το από το πεδίο.",
+    jsonImporting: "Έλεγχος αρχείου και φόρτωση προϊόντων από τον τρέχοντα κατάλογο...",
+    jsonImportError:
+      "Το αρχείο δεν φορτώθηκε. Έλεγξε ότι είναι έγκυρο αρχείο JSON που εξήχθη από αυτή την εφαρμογή και δοκίμασε ξανά.",
     share: "Κοινή χρήση",
     savedBaskets: "Λίστες",
     savedBasketsTitle: "Αποθήκευσε τα καλάθια που χρησιμοποιείς συχνά",
@@ -110,6 +127,8 @@ const messages = {
     savedBasketSaved: ({ name }) => `Αποθηκεύτηκε η λίστα «${name}».`,
     savedBasketLoaded: ({ name, products, missing }) =>
       `Φορτώθηκε η λίστα «${name}» με ${products} και τις σημερινές τιμές.${missing !== "0" ? ` ${missing} προϊόντα δεν υπάρχουν πλέον.` : ""}`,
+    basketDataImported: ({ products, missing }) =>
+      `Φορτώθηκε το αρχείο με ${products} και τιμές από τον τρέχοντα κατάλογο.${missing !== "0" ? ` ${missing} προϊόντα δεν υπάρχουν πλέον.` : ""}`,
     savedBasketSaveError: "Η λίστα δεν αποθηκεύτηκε. Έλεγξε το όνομα και δοκίμασε ξανά.",
     savedBasketLoadError: "Η λίστα δεν μπόρεσε να φορτωθεί από τον τρέχοντα κατάλογο.",
     savedBasketDeleteError: "Η λίστα δεν διαγράφηκε από αυτόν τον browser.",
@@ -415,6 +434,11 @@ const messages = {
     basket: "Basket",
     example: "Example",
     copy: "Copy",
+    basketExport: "Export",
+    basketExportEyebrow: "TXT / JSON · Windows / Mac",
+    basketExportTitle: "Export and import basket",
+    basketExportFormat: "List format",
+    textExportFormat: "Plain text",
     textExport: "Text",
     textExportEyebrow: "TXT · Windows / Mac",
     textExportTitle: "List as plain text",
@@ -435,6 +459,18 @@ const messages = {
     textExportLinkHeading: "Open basket",
     textExportPriceNote:
       "Prices come from the latest synchronized PosoKanei catalogue and may change.",
+    jsonExportPreview: "JSON preview",
+    jsonExportNote:
+      "JSON contains product IDs, whole-number quantities, and planning settings. It contains no location or prices; loading it recalculates prices from the current catalogue.",
+    copyJsonExport: "Copy JSON",
+    downloadJsonExport: "Download .json",
+    loadJsonExport: "Load .json",
+    jsonExportCopied: "JSON copied.",
+    jsonExportDownloaded: "The .json file was saved.",
+    jsonExportManual: "The JSON is selected. Copy it from the field.",
+    jsonImporting: "Validating the file and loading products from the current catalogue...",
+    jsonImportError:
+      "The file could not be loaded. Check that it is a valid JSON file exported by this app and try again.",
     share: "Share",
     savedBaskets: "Lists",
     savedBasketsTitle: "Save the baskets you use regularly",
@@ -459,6 +495,8 @@ const messages = {
     savedBasketSaved: ({ name }) => `Saved “${name}”.`,
     savedBasketLoaded: ({ name, products, missing }) =>
       `Loaded “${name}” with ${products} and today's prices.${missing !== "0" ? ` ${missing} products are no longer available.` : ""}`,
+    basketDataImported: ({ products, missing }) =>
+      `Loaded the file with ${products} and prices from the current catalogue.${missing !== "0" ? ` ${missing} products are no longer available.` : ""}`,
     savedBasketSaveError: "The list was not saved. Check the name and try again.",
     savedBasketLoadError: "The list could not be restored from the current catalogue.",
     savedBasketDeleteError: "The list could not be deleted from this browser.",
