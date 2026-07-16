@@ -7,7 +7,7 @@ self.addEventListener("message", async (event) => {
   if (message.type === "init") {
     try {
       const response = await fetch(message.url, {
-        cache: "default",
+        cache: message.cacheMode === "force-cache" ? "force-cache" : "default",
         headers: { Accept: "application/json" },
       });
       if (!response.ok) throw new Error(`catalog_runtime_${response.status}`);

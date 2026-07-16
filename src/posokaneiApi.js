@@ -202,7 +202,11 @@ export function warmCatalogSearch(catalogVersion = "") {
     catalogSearchInitPromise = new Promise((resolve) => {
       resolveCatalogSearchInit = resolve;
     });
-    catalogSearchWorker.postMessage({ type: "init", url: runtimeUrl.toString() });
+    catalogSearchWorker.postMessage({
+      type: "init",
+      url: runtimeUrl.toString(),
+      cacheMode: catalogVersion ? "force-cache" : "default",
+    });
     return catalogSearchInitPromise;
   } catch {
     resetCatalogSearchWorker();
@@ -696,7 +700,7 @@ export async function fetchUpdateStatus() {
 }
 
 export async function fetchDailyBargain() {
-  const raw = await fetchDirectJson(`${DAILY_BARGAIN_URL}?v=${Date.now()}`, 9000);
+  const raw = await fetchDirectJson(DAILY_BARGAIN_URL, 9000);
   if (!raw?.product_id || !raw?.product || !raw?.evidence) {
     throw new Error("Daily bargain data is incomplete.");
   }

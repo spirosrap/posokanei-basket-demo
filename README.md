@@ -8,13 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.21.0`
+**Τρέχουσα έκδοση:** `v0.22.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η ταχύτερη έκδοση 0.21.0 στο kalathitimon.com](screenshots/performance-v0.21.0.jpg)
+![Η ταχύτερη έκδοση 0.22.0 στο kalathitimon.com](screenshots/performance-v0.22.0.jpg)
 
 Η βασική ιδέα είναι απλή:
 
@@ -75,6 +75,8 @@
 Η έκδοση `v0.20.0` εστιάζει στην ταχύτητα και την ανθεκτικότητα. Η πρώτη οθόνη παίρνει στοιχεία καταλόγου, αλυσίδες, κατηγορίες, αρχικά προϊόντα και προϊόντα καλαθιού με ένα ενιαίο snapshot-first request, χωρίς να περιμένει τον γνωστά μπλοκαρισμένο request-time proxy. Ένας νέος συμπαγής runtime κατάλογος κρατά ακριβώς τα πεδία που χρειάζονται οι υπολογισμοί και μειώνει το JSON από περίπου `17 MB` σε `6,7 MB`, ενώ ο πλήρης δημόσιος κατάλογος παραμένει διαθέσιμος. Οι επαναλαμβανόμενες αναζητήσεις χρησιμοποιούν σύντομη browser cache, οι ταυτόχρονες ίδιες κλήσεις ενοποιούνται και παλιότερες αργές απαντήσεις δεν μπορούν να αντικαταστήσουν νεότερα αποτελέσματα. Η πληκτρολόγηση μένει άμεση με τοπικό πεδίο αναζήτησης και καθυστέρηση μόλις `180 ms` πριν από το request, οι αρχικές εικόνες υψηλής προτεραιότητας μειώνονται σε τέσσερις και σταθερά skeletons αποφεύγουν τα απότομα άλματα διάταξης. Ο χειροκίνητος και ο ωριαίος συγχρονισμός μοιράζονται πλέον lock, ώστε δύο refreshes να μην μπορούν να δημοσιεύσουν ταυτόχρονα διαφορετικές γενιές αρχείων, ενώ ο έλεγχος περιμένει περιορισμένα μέχρι να συμφωνήσουν όλα τα δημόσια timestamps. Σε ενδεικτικό PHP benchmark της έκδοσης, μία ταξινομημένη σελίδα 30 προϊόντων ολοκληρώθηκε σε περίπου `0,22 s` και αναζήτηση σε περίπου `0,14 s`· οι πραγματικοί χρόνοι εξαρτώνται από hosting και δίκτυο.
 
 Η έκδοση `v0.21.0` αφαιρεί το PHP από την κρίσιμη διαδρομή της πρώτης οθόνης. Ένα στατικό startup catalogue περίπου `200 KB` (`~31 KB` με Brotli) αρχίζει να κατεβαίνει απευθείας από το `<head>` και περιέχει τα metadata, τις τρεις αρχικές ταξινομήσεις και τα προϊόντα του παραδείγματος. Συνήθως είναι ήδη διαθέσιμο όταν ξεκινήσει το React, ενώ το προηγούμενο PHP bootstrap παραμένει ασφαλές fallback. Αφού σταθεροποιηθεί η οθόνη, ένας Web Worker φορτώνει χαμηλής προτεραιότητας τον compact runtime κατάλογο και εκτελεί τις επόμενες αναζητήσεις, τα φίλτρα, την ταξινόμηση και τη σελιδοποίηση τοπικά, χωρίς νέο network round trip. Η καθυστέρηση πληκτρολόγησης παραμένει `180 ms`, αλλά ο warmed-up υπολογισμός ολοκληρώνεται συνήθως σε λίγα milliseconds. Οι εικόνες χρησιμοποιούν πλέον πραγματικό `IntersectionObserver`, ώστε προϊόντα που βρίσκονται χαμηλότερα σε scrollable λίστα ή καλάθι να μην ξεκινούν καθόλου request μέχρι να πλησιάσουν την οθόνη. Τέλος, αφαιρέθηκε το διπλό ενσωματωμένο αντίγραφο των 30 προϊόντων παραδείγματος: το κύριο production JavaScript μειώθηκε από περίπου `410 KB` σε `371 KB` (`123,8 KB` σε `112,5 KB` gzip).
+
+Η έκδοση `v0.22.0` μειώνει ξανά σχεδόν στο μισό το JavaScript που χρειάζεται η πρώτη οθόνη. Η εφαρμογή διατηρεί το React-compatible component API, αλλά το production build χρησιμοποιεί το μικρότερο `preact/compat` runtime: το κύριο bundle πέφτει από `112,5 KB` σε περίπου `59,7 KB` gzip. Ο startup κατάλογος κρατά πλέον μόνο τα metadata που εμφανίζονται πραγματικά, παραμένει πλήρης για τις τρεις ταξινομήσεις και το καλάθι παραδείγματος, και μειώνεται από περίπου `33,4 KB` σε `15,8 KB` με Brotli. Ένα ελαφρύ HTML shell εμφανίζει αμέσως τη διάταξη πριν ολοκληρωθεί το JavaScript, οι μεγάλες λεπτομέρειες του πλάνου αποδίδονται όταν αδειάσει το κύριο thread και οι εκτός οθόνης σειρές χρησιμοποιούν `content-visibility`. Οι φωτογραφίες ζητούνται απευθείας από το edge image cache, με τον υπάρχοντα same-origin PHP proxy ως αυτόματο fallback, ενώ ο versioned runtime κατάλογος επαναχρησιμοποιείται από την browser cache και φορτώνεται αμέσως όταν ο χρήστης εστιάσει στην αναζήτηση.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -172,9 +174,9 @@
 
 Ο κώδικας είναι δημόσιος στο GitHub: [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo). Η εφαρμογή έχει και σύνδεσμο `GitHub` στην κορυφή της σελίδας, ώστε όποιος τη δοκιμάζει να μπορεί να δει άμεσα το repository.
 
-Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα, φωτογραφίες και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο. Οι φωτογραφίες προϊόντων περνούν επίσης από same-origin proxy, για να εμφανίζονται σταθερά σε Safari και σε browsers που μπλοκάρουν ή απορρίπτουν τα direct image requests.
+Η εφαρμογή προσπαθεί πρώτα να διαβάσει live προϊόντα και τιμές μέσω μικρού PHP proxy, επειδή το επίσημο API δεν επιτρέπει απευθείας browser requests από τρίτα domains. Αν ο proxy μπλοκαριστεί, ο ίδιος PHP endpoint απαντά από τον πιο πρόσφατο συγχρονισμένο κατάλογο, σε μικρές σελίδες αποτελεσμάτων, ώστε ο browser να μη φορτώνει ολόκληρο το αρχείο. Οι φωτογραφίες προϊόντων ζητούνται πρώτα ως μικρά WebP από το edge cache του `images.weserv.nl`. Αν αυτό αποτύχει, κάθε εικόνα δοκιμάζει αυτόματα τον υπάρχοντα same-origin PHP proxy, ο οποίος με τη σειρά του μπορεί να χρησιμοποιήσει το PosoKanei ως τελικό fallback.
 
-Τα λογότυπα των αλυσίδων διαβάζονται από τα retailer metadata του PosoKanei και περνούν από το ίδιο same-origin proxy, ώστε το πλάνο να δείχνει πραγματικά supermarket logos αντί για αρχικά γραμμάτων. Για λίγες αλυσίδες υπάρχουν fallback logo URLs από επίσημες ή δημόσιες πηγές, αν η upstream εικόνα δεν φορτώσει.
+Τα λογότυπα των αλυσίδων διαβάζονται από τα retailer metadata του PosoKanei και χρησιμοποιούν την ίδια σειρά edge cache, same-origin proxy και ελεγμένων fallback URLs, ώστε το πλάνο να δείχνει πραγματικά supermarket logos αντί για αρχικά γραμμάτων.
 
 Προαιρετικά, ο χρήστης μπορεί να πατήσει «Χρήση τοποθεσίας» για να περιορίσει τη σύγκριση σε κοντινές αλυσίδες και να δει αποστάσεις τύπου `57 μ. μακριά`. Η τοποθεσία ζητείται από τον browser μόνο μετά από ενέργεια του χρήστη, το app τη στέλνει στο δικό του `api/branches.php` endpoint με `no-store` cache, και το endpoint αναζητά supermarket στο OpenStreetMap/Overpass. Οι αποστάσεις είναι ευθεία γραμμή και βοηθητικές, όχι πλοήγηση με διαδρομή/κίνηση.
 
@@ -196,11 +198,11 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.21.0`
+**Current version:** `v0.22.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
-This React app lets users build a supermarket basket from the PosoKanei catalogue and ranks Greek supermarket chains by the total price of the selected groceries.
+This web app lets users build a supermarket basket from the PosoKanei catalogue and ranks Greek supermarket chains by the total price of the selected groceries.
 
 The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which compares supermarket product prices in Greece. The workflow is basket-first: choose the exact products and quantities, decide whether you can make `1`, `2`, `3`, or `4` supermarket stops, and see the cheapest complete buying plan.
 
@@ -238,7 +240,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
-- Load optimized, cacheable WebP product thumbnails through a same-origin image proxy, with a separate high-resolution detail image and fallback handling.
+- Load optimized, cacheable WebP product thumbnails directly from an edge image cache, with a same-origin proxy fallback and a separate high-resolution detail image.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
 - Optionally request browser location and show nearby supermarket branches.
 - Show nearest-branch distance labels, such as `57 μ. μακριά`, next to chains when location is enabled.
@@ -285,13 +287,15 @@ Version `v0.17.0` automatically replaces the large basket URL with a compact lin
 
 Version `v0.17.1` orders every product search from the lowest to the highest best available price. Catalogue ordering happens before pagination so the genuinely cheapest matches appear first, then the browser reconciles the visible order with the supermarket chains selected by the user or allowed by the active location filter. Products without an available price among those chains appear last.
 
-Version `v0.18.0` launches the primary production app at the dedicated [kalathitimon.com](https://kalathitimon.com/) domain. The React app, PHP APIs, images, bargains, and compact basket links now run from the domain root with HTTPS, while the original `/demo/posokanei-basket/` installation remains available as a compatibility mirror. The hourly refresh atomically publishes the same verified catalogue to both targets so existing links keep working without creating separate price sources.
+Version `v0.18.0` launches the primary production app at the dedicated [kalathitimon.com](https://kalathitimon.com/) domain. The web app, PHP APIs, images, bargains, and compact basket links now run from the domain root with HTTPS, while the original `/demo/posokanei-basket/` installation remains available as a compatibility mirror. The hourly refresh atomically publishes the same verified catalogue to both targets so existing links keep working without creating separate price sources.
 
 Version `v0.19.0` adds persistent product sorting by lowest package price, best comparable unit price per `kg`, `L`, or item, or product name. Package-price mode answers which product costs least right now; unit-price mode compares different pack sizes fairly. Sorting is applied to the catalogue before pagination and then reconciled in the browser with the chains currently enabled by the user or location filter. Product rows show both the best package and unit price, while the add control now performs a true quick add and displays the quantity already in the basket without opening product details.
 
 Version `v0.20.0` focuses on speed and resilience. One snapshot-first bootstrap request now returns catalogue health, chains, categories, the first product page, and basket products without waiting for the known-blocked request-time upstream proxy. A compact runtime catalogue retains exactly the pricing fields used by the app and reduces request-time JSON from roughly `17 MB` to `6.7 MB`, while the complete public snapshot remains available. Short-lived browser caching deduplicates identical requests, stale slow responses can no longer replace newer search results, and a locally controlled search field keeps typing immediate with a `180 ms` request delay. Only four initial product images receive high priority, while stable loading skeletons reduce layout movement. Manual and scheduled refreshes now share a lock so two jobs cannot publish different file generations concurrently, and bounded verification waits for all public timestamps to converge. In a reference PHP benchmark, a sorted 30-product page completed in about `0.22 s` and a search in about `0.14 s`; production timings still depend on hosting and network conditions.
 
 Version `v0.21.0` removes PHP from the critical first-screen path. A static startup catalogue of roughly `200 KB` (`~31 KB` with Brotli) begins downloading directly from the document `<head>` and contains metadata, the first page for all three sort modes, and the example-basket products. It is normally ready by the time React starts, while the previous PHP bootstrap remains a resilient fallback. Once the interface is stable, a low-priority Web Worker loads the compact runtime catalogue and performs subsequent searches, category filtering, sorting, and pagination locally without another network round trip. The `180 ms` typing delay remains, but the warmed-up catalogue calculation itself normally takes only a few milliseconds. Product images now use an explicit `IntersectionObserver`, so thumbnails lower in a scrollable product or basket list do not make any request until they approach the viewport. Removing the duplicate embedded copy of the 30 example products also reduces the production JavaScript from roughly `410 KB` to `371 KB` (`123.8 KB` to `112.5 KB` gzip).
+
+Version `v0.22.0` nearly halves the first-screen JavaScript again. Components retain the React-compatible API, while production aliases it to the smaller `preact/compat` runtime, reducing the main bundle from `112.5 KB` to about `59.7 KB` gzip. The startup catalogue now keeps only metadata used by the interface while preserving all three sort modes and the complete example basket, reducing its Brotli transfer from about `33.4 KB` to `15.8 KB`. A lightweight HTML shell paints the workspace before JavaScript completes, large plan details render when the main thread is idle, and offscreen rows use `content-visibility`. Product and retailer images go directly to the edge image cache with the existing same-origin proxy retained as fallback. The versioned worker catalogue is reusable from browser cache and starts immediately on search focus or later during idle time.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -530,9 +534,15 @@ The primary production app runs from the dedicated domain root:
 https://kalathitimon.com/
 ```
 
-`npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The first screen and warmed catalogue search use synchronized static JSON files; product hydration fallbacks, images, retailer logos, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must still execute PHP for those same-origin calls.
+`npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The first screen and warmed catalogue search use synchronized static JSON files. Product hydration, image fallback, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must still execute PHP for those same-origin fallbacks and features.
 
 ### Screenshots
+
+Version 0.22.0 smaller runtime, immediate loading shell, compact bootstrap, and edge-served images:
+
+![Faster Kalathi Timon 0.22.0 desktop interface](screenshots/performance-v0.22.0.jpg)
+
+![Faster Kalathi Timon 0.22.0 mobile interface](screenshots/performance-mobile-v0.22.0.jpg)
 
 Version 0.21.0 static first paint, local warmed search, and deferred images:
 
@@ -806,6 +816,12 @@ mode, and current example-basket products. The PHP bootstrap is retained as a fa
 for shared baskets and unavailable static data. Public refresh verification now
 requires the full snapshot, runtime snapshot, startup catalogue, metadata, and status
 to agree on the same generation timestamp before a refresh is accepted.
+
+Version 0.22.0 keeps the same atomic files and generation checks while stripping the
+startup payload to the 80 categories and Greek retailer fields the interface uses.
+All three initial product sorts and every available example-basket product remain in
+the file. The hourly refresh therefore regenerates the smaller bootstrap from the
+same verified runtime catalogue rather than introducing a separate source of prices.
 
 After first paint, a module Web Worker loads `catalog-runtime.json` without blocking
 the interface and builds three pre-sorted in-memory views. Once ready, product search,

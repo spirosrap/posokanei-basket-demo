@@ -13,8 +13,16 @@ DirectoryIndex index.html
   </FilesMatch>
 
   <FilesMatch "^catalog-(bootstrap|runtime)\.json$">
-    Header set Cache-Control "public, max-age=60, stale-while-revalidate=300"
+    Header set Cache-Control "public, max-age=300, stale-while-revalidate=300"
   </FilesMatch>
+
+  <Files "daily-bargain.json">
+    Header set Cache-Control "public, max-age=900, stale-while-revalidate=3600"
+  </Files>
+
+  <Files "favicon.svg">
+    Header set Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+  </Files>
 </IfModule>
 
 <IfModule mod_rewrite.c>

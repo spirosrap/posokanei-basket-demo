@@ -1190,6 +1190,29 @@ input:focus-visible {
     transform 160ms ease;
 }
 
+.product-row,
+.basket-item,
+.rank-card,
+.route-card {
+  content-visibility: auto;
+}
+
+.product-row {
+  contain-intrinsic-size: auto 64px;
+}
+
+.basket-item {
+  contain-intrinsic-size: auto 72px;
+}
+
+.rank-card {
+  contain-intrinsic-size: auto 176px;
+}
+
+.route-card {
+  contain-intrinsic-size: auto 360px;
+}
+
 .product-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 36px;
@@ -1234,6 +1257,32 @@ input:focus-visible {
 
   to {
     transform: translateX(194%) scaleX(1.08);
+  }
+}
+
+.plan-detail-loading {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.plan-detail-loading span {
+  display: block;
+  height: 72px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--faint);
+  animation: plan-detail-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes plan-detail-pulse {
+  from { opacity: 0.52; }
+  to { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-detail-loading span {
+    animation: none;
   }
 }
 

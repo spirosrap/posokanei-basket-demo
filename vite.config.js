@@ -17,6 +17,15 @@ const stripSameOriginCrossorigin = () => ({
 
 export default defineConfig(({ command }) => ({
   base: command === "build" ? normalizeBase(process.env.VITE_APP_BASE || "/") : "/",
+  resolve: {
+    alias: [
+      { find: "react/jsx-runtime", replacement: "preact/jsx-runtime" },
+      { find: "react-dom/test-utils", replacement: "preact/test-utils" },
+      { find: "react-dom/client", replacement: "preact/compat/client" },
+      { find: "react-dom", replacement: "preact/compat" },
+      { find: "react", replacement: "preact/compat" },
+    ],
+  },
   define: {
     "import.meta.env.PACKAGE_VERSION": JSON.stringify(packageJson.version),
   },

@@ -8,11 +8,76 @@
       content="Βρες το φθηνότερο πλάνο supermarket για το καλάθι σου με live τιμές από τον κατάλογο PosoKanei."
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://images.weserv.nl" />
+    <link rel="dns-prefetch" href="//images.weserv.nl" />
     <title>Καλάθι Τιμών Supermarket</title>
+    <style>
+      :root {
+        --boot-bg: #f4f7fb;
+        --boot-panel: #ffffff;
+        --boot-border: #d8e0eb;
+        --boot-ink: #172033;
+        --boot-muted: #e7edf5;
+        --boot-accent: #0f8376;
+        --boot-blue: #3578e5;
+        --boot-amber: #cb7a0a;
+      }
+      :root[data-theme="dark"] {
+        --boot-bg: #11151b;
+        --boot-panel: #191f28;
+        --boot-border: #303946;
+        --boot-ink: #edf2f7;
+        --boot-muted: #29323e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--boot-bg);
+        color: var(--boot-ink);
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .boot-shell { width: min(100% - 28px, 1510px); margin: 0 auto; padding: 10px 0 24px; }
+      .boot-header { height: 46px; display: flex; align-items: center; gap: 10px; }
+      .boot-mark { width: 40px; height: 40px; border-radius: 8px; background: var(--boot-accent); }
+      .boot-brand { display: grid; gap: 6px; }
+      .boot-brand strong { font-size: 17px; line-height: 1; }
+      .boot-brand small { color: #687487; font-size: 11px; }
+      :root[data-theme="dark"] .boot-brand small { color: #aab5c3; }
+      .boot-copy-en { display: none; }
+      :root[data-boot-language="en"] .boot-copy-el { display: none; }
+      :root[data-boot-language="en"] .boot-copy-en { display: inline; }
+      .boot-line { display: block; height: 10px; border-radius: 4px; background: var(--boot-muted); }
+      .boot-grid { display: grid; grid-template-columns: minmax(280px, .95fr) minmax(360px, 1.35fr) minmax(300px, 1fr); gap: 12px; margin-top: 10px; }
+      .boot-panel { min-height: 510px; padding: 15px; border: 1px solid var(--boot-border); border-top: 3px solid var(--boot-blue); border-radius: 7px; background: var(--boot-panel); }
+      .boot-panel:nth-child(2) { border-top-color: var(--boot-accent); }
+      .boot-panel:nth-child(3) { border-top-color: var(--boot-amber); }
+      .boot-panel-head { display: flex; align-items: center; gap: 9px; padding-bottom: 14px; border-bottom: 1px solid var(--boot-border); }
+      .boot-square { width: 30px; height: 30px; border-radius: 6px; background: var(--boot-muted); }
+      .boot-panel-head .boot-line { width: 92px; height: 13px; }
+      .boot-bar { height: 42px; margin: 12px 0; border: 1px solid var(--boot-border); border-radius: 7px; background: var(--boot-bg); }
+      .boot-row { display: grid; grid-template-columns: 42px 1fr 66px; gap: 10px; align-items: center; min-height: 66px; margin-top: 8px; padding: 8px; border: 1px solid var(--boot-border); border-radius: 7px; }
+      .boot-row .boot-square { width: 42px; height: 42px; }
+      .boot-copy { display: grid; gap: 7px; }
+      .boot-copy .boot-line:first-child { width: min(100%, 210px); }
+      .boot-copy .boot-line:last-child { width: min(70%, 120px); height: 8px; }
+      .boot-price { width: 56px; height: 14px; justify-self: end; }
+      .boot-line, .boot-square, .boot-bar { animation: boot-pulse 1.2s ease-in-out infinite alternate; }
+      @keyframes boot-pulse { from { opacity: .58; } to { opacity: 1; } }
+      @media (max-width: 900px) {
+        .boot-shell { width: min(100% - 20px, 620px); }
+        .boot-grid { grid-template-columns: 1fr; }
+        .boot-panel { display: none; min-height: 600px; }
+        .boot-panel:nth-child(3) { display: block; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-line, .boot-square, .boot-bar { animation: none; }
+      }
+    </style>
     <script>
       (() => {
         try {
           const savedTheme = localStorage.getItem("posokanei-theme") || "system";
+          const savedLanguage = localStorage.getItem("posokanei-language") || "el";
           const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           const resolvedTheme =
             savedTheme === "dark" || (savedTheme === "system" && prefersDark)
@@ -20,9 +85,11 @@
               : "light";
           document.documentElement.dataset.theme = resolvedTheme;
           document.documentElement.dataset.themePreference = savedTheme;
+          document.documentElement.dataset.bootLanguage = savedLanguage === "en" ? "en" : "el";
           document.documentElement.style.colorScheme = resolvedTheme;
         } catch {
           document.documentElement.dataset.theme = "light";
+          document.documentElement.dataset.bootLanguage = "el";
         }
       })();
     </script>
@@ -31,7 +98,7 @@
         if (window.location.pathname.replace(/\/+$/, "").endsWith("/bargains")) return;
         const url = new URL("%BASE_URL%data/catalog-bootstrap.json", window.location.origin);
         window.__catalogBootstrapPromise = fetch(url, {
-          cache: "no-cache",
+          cache: "default",
           headers: { Accept: "application/json" },
         })
           .then((response) => {
@@ -43,7 +110,40 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-shell" role="status" aria-label="Loading application">
+        <div class="boot-header">
+          <span class="boot-mark"></span>
+          <span class="boot-brand">
+            <strong><span class="boot-copy-el">Καλάθι Τιμών</span><span class="boot-copy-en">Supermarket Price Basket</span></strong>
+            <small><span class="boot-copy-el">Φόρτωση καταλόγου...</span><span class="boot-copy-en">Loading catalogue...</span></small>
+          </span>
+        </div>
+        <div class="boot-grid">
+          <section class="boot-panel">
+            <div class="boot-panel-head"><span class="boot-square"></span><span class="boot-line"></span></div>
+            <div class="boot-bar"></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+          </section>
+          <section class="boot-panel">
+            <div class="boot-panel-head"><span class="boot-square"></span><span class="boot-line"></span></div>
+            <div class="boot-bar"></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+          </section>
+          <section class="boot-panel">
+            <div class="boot-panel-head"><span class="boot-square"></span><span class="boot-line"></span></div>
+            <div class="boot-bar"></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+            <div class="boot-row"><span class="boot-square"></span><span class="boot-copy"><span class="boot-line"></span><span class="boot-line"></span></span><span class="boot-line boot-price"></span></div>
+          </section>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

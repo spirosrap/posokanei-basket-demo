@@ -128,6 +128,7 @@ import {
   removeSavedBasket,
   upsertSavedBasket,
 } from "./savedBaskets";
+import { buildCatalogImageSources } from "./imageSources";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -588,7 +589,7 @@ function AppContent() {
       } else {
         warm();
       }
-    }, 1200);
+    }, 2600);
     return () => {
       window.clearTimeout(timer);
       if (idleId !== null && typeof window.cancelIdleCallback === "function") {
@@ -1119,6 +1120,7 @@ function AppContent() {
           liveState={liveState}
           liveMeta={liveMeta}
           selectedProduct={selectedProduct}
+          onSearchFocus={() => warmCatalogSearch(health.snapshotGeneratedAt)}
           onSelect={setSelectedProduct}
           onAdd={addToBasket}
           onLoadMore={loadMoreLiveProducts}
@@ -1656,6 +1658,7 @@ function SearchPanel({
   liveState,
   liveMeta,
   selectedProduct,
+  onSearchFocus,
   onSelect,
   onAdd,
   onLoadMore,
@@ -1682,6 +1685,7 @@ function SearchPanel({
       <ProductSearchInput
         value={query}
         onChange={setQuery}
+        onFocus={onSearchFocus}
         placeholder={t("searchPlaceholder")}
       />
 
@@ -1757,7 +1761,7 @@ function SearchPanel({
   );
 }
 
-function ProductSearchInput({ value, onChange, placeholder }) {
+function ProductSearchInput({ value, onChange, onFocus, placeholder }) {
   const { t } = usePreferences();
   const [draft, setDraft] = useState(value);
   const isComposing = useRef(false);
@@ -1784,6 +1788,7 @@ function ProductSearchInput({ value, onChange, placeholder }) {
         type="search"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
+        onFocus={onFocus}
         onCompositionStart={() => {
           isComposing.current = true;
         }}
@@ -2868,6 +2873,7 @@ function RankingsPanel({
   onSelectAllRetailers,
 }) {
   const { language, t } = usePreferences();
+  const showDeferredDetails = useIdleReveal();
   const completeRankings = rankings.filter((row) => row.isComplete);
   const partialRankings = rankings.filter((row) => !row.isComplete);
   const maxTotal = Math.max(...completeRankings.map((row) => row.total), 0);
@@ -2963,7 +2969,7 @@ function RankingsPanel({
         />
       ) : null}
 
-      {visitPlan?.isComplete ? (
+      {showDeferredDetails && visitPlan?.isComplete ? (
         <VisitPlanBreakdown
           plan={visitPlan}
           locationReady={locationReady}
@@ -2976,7 +2982,7 @@ function RankingsPanel({
         />
       ) : null}
 
-      {completeRankings.length ? (
+      {showDeferredDetails && completeRankings.length ? (
         <div className="rank-group">
           <div className="rank-group-title">
             <ArrowDownUp size={15} />
@@ -3000,7 +3006,7 @@ function RankingsPanel({
         </div>
       ) : null}
 
-      {partialRankings.length ? (
+      {showDeferredDetails && partialRankings.length ? (
         <div className="rank-group">
           <div className="rank-group-title muted">
             <Info size={15} />
@@ -3023,8 +3029,39 @@ function RankingsPanel({
           </div>
         </div>
       ) : null}
+
+      {!showDeferredDetails && basketSize ? (
+        <div className="plan-detail-loading" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      ) : null}
     </section>
   );
+}
+
+function useIdleReveal(delay = 450) {
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    let idleId = null;
+    const timer = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(() => setRevealed(true), { timeout: 1200 });
+      } else {
+        setRevealed(true);
+      }
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [delay]);
+
+  return revealed;
 }
 
 function LocationControl({
@@ -4044,20 +4081,24 @@ function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
 
 function ProductPreviewImage({ product }) {
   const { t } = usePreferences();
-  const [failedImageUrl, setFailedImageUrl] = useState("");
-  const imageUrl = proxiedProductImageUrl(product, 640);
-  const showImage = imageUrl && failedImageUrl !== imageUrl;
+  const imageSources = useMemo(() => productImageSources(product, 640), [product]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const imageUrl = imageSources[sourceIndex] || "";
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [imageSources]);
 
   return (
     <div className="drawer-image-frame" aria-label={t("productImage", { name: product.name })}>
-      {showImage ? (
+      {imageUrl ? (
         <img
           src={imageUrl}
           alt=""
           decoding="async"
           loading="eager"
           fetchPriority="high"
-          onError={() => setFailedImageUrl(imageUrl)}
+          onError={() => setSourceIndex((index) => index + 1)}
         />
       ) : (
         <span style={{ "--thumb": product.tint }} aria-hidden="true">
@@ -4096,11 +4137,21 @@ function useNearViewport(priority) {
 }
 
 function ProductThumb({ product, compact = false, priority = false }) {
-  const [failedImageUrl, setFailedImageUrl] = useState("");
+  const imageSources = useMemo(
+    () => productImageSources(product, compact ? 72 : 96),
+    [compact, product],
+  );
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedImageUrl, setLoadedImageUrl] = useState("");
   const { elementRef, shouldLoad } = useNearViewport(priority);
-  const imageUrl = proxiedProductImageUrl(product, compact ? 72 : 96);
-  if (imageUrl && failedImageUrl !== imageUrl) {
+  const imageUrl = imageSources[sourceIndex] || "";
+
+  useEffect(() => {
+    setSourceIndex(0);
+    setLoadedImageUrl("");
+  }, [imageSources]);
+
+  if (imageUrl) {
     const isLoaded = loadedImageUrl === imageUrl;
     return (
       <span
@@ -4125,7 +4176,7 @@ function ProductThumb({ product, compact = false, priority = false }) {
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "low"}
             onLoad={() => setLoadedImageUrl(imageUrl)}
-            onError={() => setFailedImageUrl(imageUrl)}
+            onError={() => setSourceIndex((index) => index + 1)}
           />
         ) : null}
       </span>
@@ -4142,45 +4193,23 @@ function ProductThumb({ product, compact = false, priority = false }) {
   );
 }
 
-function proxiedProductImageUrl(product, size = 96) {
-  const imageUrl = product?.imageUrl || "";
-  if (!imageUrl) return "";
-
-  const match = imageUrl.match(/\/images\/product\/([^/?#]+)/i);
-  if (!match) return imageUrl;
-
-  const proxyUrl = new URL(IMAGE_PROXY_BASE, window.location.href);
-  proxyUrl.searchParams.set("resource", "image");
-  proxyUrl.searchParams.set("id", decodeURIComponent(match[1]));
-  proxyUrl.searchParams.set("size", String(size));
-
-  try {
-    const sourceUrl = new URL(imageUrl);
-    const version = sourceUrl.searchParams.get("v");
-    if (version) proxyUrl.searchParams.set("v", version);
-  } catch {
-    // Keep the image usable even if an upstream catalog emits a partial URL.
-  }
-
-  return proxyUrl.toString();
-}
-
-function proxiedRetailerLogoUrl(retailer) {
-  const logoUrl = retailer?.logoUrl || "";
-  if (!logoUrl) return "";
-
-  const match = logoUrl.match(/\/images\/retailer\/([^/?#]+)/i);
-  if (!match) return logoUrl;
-
-  const proxyUrl = new URL(IMAGE_PROXY_BASE, window.location.href);
-  proxyUrl.searchParams.set("resource", "retailer-image");
-  proxyUrl.searchParams.set("id", decodeURIComponent(match[1]));
-  return proxyUrl.toString();
+function productImageSources(product, size = 96) {
+  return buildCatalogImageSources(product?.imageUrl || "", {
+    kind: "product",
+    size,
+    proxyBase: IMAGE_PROXY_BASE,
+    baseUrl: window.location.href,
+  });
 }
 
 function retailerLogoSources(retailer) {
   return [
-    proxiedRetailerLogoUrl(retailer),
+    ...buildCatalogImageSources(retailer?.logoUrl || "", {
+      kind: "retailer",
+      size: 240,
+      proxyBase: IMAGE_PROXY_BASE,
+      baseUrl: window.location.href,
+    }),
     ...(RETAILER_LOGO_FALLBACKS[retailer?.id] || []),
   ].filter(Boolean);
 }
