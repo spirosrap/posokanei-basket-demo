@@ -21,6 +21,8 @@ export const PRICE_CHANGE_CSV_COLUMNS = [
   "offer_last_updated",
 ];
 
+export const PRICE_CHANGES_SCHEMA_VERSION = 1;
+
 function finiteNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
@@ -96,6 +98,7 @@ export function collectPriceChangeRows(snapshot) {
         product_name: String(product?.name || ""),
         brand: String(product?.brand || ""),
         category: String(product?.category || ""),
+        product_image_url: String(product?.image_url || ""),
         retailer_id: id,
         retailer_name: retailerName(offer, retailersById),
         previous_price_eur: decimal(previousPrice, 2),
@@ -114,6 +117,45 @@ export function createPriceChangesCsv(snapshot) {
   return renderPriceChangesCsv(collectPriceChangeRows(snapshot));
 }
 
+export function createPriceChangesPayload(snapshot) {
+  const rows = collectPriceChangeRows(snapshot);
+  const productIds = new Set(rows.map((row) => row.product_id));
+  const retailerIds = new Set(rows.map((row) => row.retailer_id));
+  const changes = rows.map((row) => ({
+    product_id: row.product_id,
+    product_name: row.product_name,
+    brand: row.brand,
+    category: row.category,
+    image_url: row.product_image_url,
+    retailer_id: row.retailer_id,
+    retailer_name: row.retailer_name,
+    previous_price: Number(row.previous_price_eur),
+    current_price: Number(row.current_price_eur),
+    amount: Number(row.change_eur),
+    percentage: Number(row.change_percent),
+    direction: row.direction,
+    changed_at: row.change_recorded_at,
+    compared_at: row.comparison_snapshot_at,
+    offer_updated_at: row.offer_last_updated,
+  }));
+
+  return {
+    schema_version: PRICE_CHANGES_SCHEMA_VERSION,
+    generated_at: String(snapshot?.generated_at || ""),
+    source: String(snapshot?.source || ""),
+    retention_days: Number(snapshot?.price_change_stats?.retention_days || 0),
+    stats: {
+      changes: changes.length,
+      products: productIds.size,
+      retailers: retailerIds.size,
+      decreases: changes.filter((change) => change.direction === "decrease").length,
+      increases: changes.filter((change) => change.direction === "increase").length,
+      catalog_products: Array.isArray(snapshot?.products) ? snapshot.products.length : 0,
+    },
+    changes,
+  };
+}
+
 function renderPriceChangesCsv(rows) {
   const lines = [
     PRICE_CHANGE_CSV_COLUMNS.join(","),
@@ -128,6 +170,13 @@ export async function writePriceChangesCsv(snapshot, outputPath) {
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, csv, "utf8");
   return rows.length;
+}
+
+export async function writePriceChangesJson(snapshot, outputPath) {
+  const payload = createPriceChangesPayload(snapshot);
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, `${JSON.stringify(payload)}\n`, "utf8");
+  return payload.changes.length;
 }
 
 export function inspectPriceChangesCsv(csv) {
@@ -148,5 +197,30 @@ export function inspectPriceChangesCsv(csv) {
   return {
     rowCount: Math.max(0, lines.length - 1),
     generatedAt: generatedAtValues.size === 1 ? [...generatedAtValues][0] : "",
+  };
+}
+
+export function inspectPriceChangesJson(value) {
+  const payload = typeof value === "string" ? JSON.parse(value) : value;
+  if (
+    payload?.schema_version !== PRICE_CHANGES_SCHEMA_VERSION
+    || !Array.isArray(payload?.changes)
+    || !payload.changes.every((change) => (
+      change
+      && typeof change.product_id === "string"
+      && typeof change.retailer_id === "string"
+      && Number.isFinite(change.previous_price)
+      && Number.isFinite(change.current_price)
+      && Number.isFinite(change.amount)
+      && Number.isFinite(change.percentage)
+      && ["decrease", "increase"].includes(change.direction)
+    ))
+  ) {
+    throw new Error("price-change JSON is invalid");
+  }
+
+  return {
+    rowCount: payload.changes.length,
+    generatedAt: String(payload.generated_at || ""),
   };
 }

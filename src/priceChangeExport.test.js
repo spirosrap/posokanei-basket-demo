@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createPriceChangesCsv,
+  createPriceChangesPayload,
   inspectPriceChangesCsv,
+  inspectPriceChangesJson,
 } from "../scripts/price-change-export.mjs";
 
 function snapshot() {
@@ -18,6 +20,7 @@ function snapshot() {
         name: "Καφές \"Ελληνικός\"",
         brand: "Μάρκα",
         category: "Καφές",
+        image_url: "https://example.com/coffee.jpg",
         retailer_prices: [
           {
             retailer: "chain-a",
@@ -79,4 +82,45 @@ test("price-change CSV remains a valid header-only export when no changes are ac
     rowCount: 0,
     generatedAt: "",
   });
+});
+
+test("price-change JSON contains compact display records and summary counts", () => {
+  const payload = createPriceChangesPayload(snapshot());
+
+  assert.deepEqual(payload.stats, {
+    changes: 2,
+    products: 2,
+    retailers: 2,
+    decreases: 1,
+    increases: 1,
+    catalog_products: 2,
+  });
+  assert.deepEqual(payload.changes[0], {
+    product_id: "product-1",
+    product_name: "Καφές \"Ελληνικός\"",
+    brand: "Μάρκα",
+    category: "Καφές",
+    image_url: "https://example.com/coffee.jpg",
+    retailer_id: "chain-a",
+    retailer_name: "Αλυσίδα Α",
+    previous_price: 4,
+    current_price: 3.5,
+    amount: -0.5,
+    percentage: -12.5,
+    direction: "decrease",
+    changed_at: "2026-07-17T11:00:00.000Z",
+    compared_at: "2026-07-17T10:00:00.000Z",
+    offer_updated_at: "2026-07-17T00:00:00",
+  });
+  assert.deepEqual(inspectPriceChangesJson(payload), {
+    rowCount: 2,
+    generatedAt: "2026-07-17T12:00:00.000Z",
+  });
+});
+
+test("price-change JSON inspection rejects malformed display data", () => {
+  assert.throws(
+    () => inspectPriceChangesJson({ schema_version: 1, changes: [{ amount: "0.50" }] }),
+    /invalid/,
+  );
 });

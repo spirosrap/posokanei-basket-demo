@@ -4,7 +4,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
-import { writePriceChangesCsv } from "./price-change-export.mjs";
+import {
+  writePriceChangesCsv,
+  writePriceChangesJson,
+} from "./price-change-export.mjs";
 import { annotatePriceChanges } from "./price-change-history.mjs";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
@@ -31,6 +34,10 @@ const bootstrapOutputPath = resolve(
 const priceChangesOutputPath = resolve(
   process.env.POSOKANEI_PRICE_CHANGES_OUT ||
     outputPath.replace(/catalog\.json$/, "price-changes.csv"),
+);
+const priceChangesJsonOutputPath = resolve(
+  process.env.POSOKANEI_PRICE_CHANGES_JSON_OUT ||
+    outputPath.replace(/catalog\.json$/, "price-changes.json"),
 );
 const previousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
@@ -149,6 +156,7 @@ await writeFile(metaOutputPath, `${JSON.stringify(metadata)}\n`, "utf8");
 const runtimeCatalog = await writeRuntimeCatalog(snapshot, runtimeOutputPath);
 await writeCatalogBootstrap(runtimeCatalog, bootstrapOutputPath);
 const exportedPriceChanges = await writePriceChangesCsv(snapshot, priceChangesOutputPath);
+await writePriceChangesJson(snapshot, priceChangesJsonOutputPath);
 
 console.log(
   `Wrote ${products.length} products, ${snapshot.categories.length} categories, ${snapshot.retailers.length} retailers to ${outputPath}`,
@@ -157,6 +165,7 @@ console.log(`Wrote catalogue metadata to ${metaOutputPath}`);
 console.log(`Wrote compact runtime catalogue to ${runtimeOutputPath}`);
 console.log(`Wrote static startup catalogue to ${bootstrapOutputPath}`);
 console.log(`Wrote ${exportedPriceChanges} price changes to ${priceChangesOutputPath}`);
+console.log(`Wrote price-change display data to ${priceChangesJsonOutputPath}`);
 console.log(
   `Price changes: ${priceChangeStats.new_changes} new, ${priceChangeStats.active_offers} active across ${priceChangeStats.products_with_recent_changes} products`,
 );

@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.24.0`
+**Τρέχουσα έκδοση:** `v0.25.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -88,6 +88,8 @@
 Η έκδοση `v0.23.0` προσθέτει πρόσφατες μεταβολές τιμών ανά προϊόν και αλυσίδα. Κάθε επιτυχής συγχρονισμός συγκρίνει το νέο snapshot με την αμέσως προηγούμενη δημοσιευμένη γενιά και καταγράφει μόνο ουσιαστικές διαφορές: τουλάχιστον `0,10 €` και `3%`, ή τουλάχιστον `0,50 €` ανεξάρτητα από το ποσοστό. Πράσινη ένδειξη σημαίνει πτώση και κόκκινη αύξηση, με ποσοστό, προηγούμενη τιμή και ακριβή χρόνο στο tooltip. Η ένδειξη ακολουθεί την αλυσίδα της τιμής που εμφανίζεται στα αποτελέσματα, στο προσωπικό καλάθι και στις αναλυτικές τιμές προϊόντος. Μία μεταβολή διατηρείται για έως επτά ημέρες, ακόμη κι αν τα επόμενα ωριαία snapshots δεν αλλάξουν ξανά την τιμή, και αφαιρείται νωρίτερα αν μια νεότερη μικρή μεταβολή την καταστήσει ανακριβή. Πρόκειται για ιστορικό που παρατηρεί η εφαρμογή μεταξύ επιτυχημένων συγχρονισμών και όχι για επίσημο μακροχρόνιο ιστορικό του PosoKanei.
 
 Η έκδοση `v0.24.0` συγκεντρώνει όλες τις ενεργές πρόσφατες μεταβολές τιμών από κάθε αλυσίδα σε ένα ενιαίο αρχείο CSV. Κάθε γραμμή περιλαμβάνει προϊόν, μάρκα, κατηγορία, αλυσίδα, προηγούμενη και τρέχουσα τιμή, διαφορά σε ευρώ και ποσοστό, κατεύθυνση και χρόνους καταγραφής. Το αρχείο είναι UTF-8 με BOM και CRLF για σωστή εμφάνιση ελληνικών σε Excel και άλλες εφαρμογές υπολογιστικών φύλλων. Δημιουργείται και δημοσιεύεται ατομικά μαζί με κάθε επιτυχή ωριαίο συγχρονισμό στο σταθερό URL [`/data/price-changes.csv`](https://kalathitimon.com/data/price-changes.csv).
+
+Η έκδοση `v0.25.0` προσθέτει τη δημόσια σελίδα [`/changes/`](https://kalathitimon.com/changes/) για φιλική εξερεύνηση των ίδιων μεταβολών. Εμφανίζει σύνοψη αλλαγών, προϊόντων, μειώσεων και αυξήσεων, με αναζήτηση χωρίς διάκριση ελληνικών τόνων, φίλτρο αλυσίδας, τμηματικό έλεγχο κατεύθυνσης και ταξινόμηση ανά χρόνο, ποσοστό, διαφορά σε ευρώ ή όνομα. Κάθε γραμμή δείχνει προϊόν και εικόνα, αλυσίδα, προηγούμενη και τρέχουσα τιμή, υπογεγραμμένη διαφορά σε ευρώ και ποσοστό, σχετικό χρόνο και ακριβή ώρα καταγραφής. Η σελίδα φορτώνει ένα μικρό, αυστηρά ελεγμένο `price-changes.json` αντί για τον πλήρη κατάλογο, ενώ το CSV παραμένει διαθέσιμο ως τεχνική εξαγωγή. Και τα δύο αρχεία δημοσιεύονται ατομικά και επαληθεύονται ως προς γενιά και αριθμό γραμμών σε κάθε συγχρονισμό.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -209,7 +211,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.24.0`
+**Current version:** `v0.25.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -318,6 +320,8 @@ Version `v0.22.3` fixes product photos in custom baskets after a page refresh. W
 Version `v0.23.0` adds recent product-price movement per supermarket chain. Every successful catalogue refresh compares its new snapshot with the previously published generation and records only meaningful differences: at least `€0.10` and `3%`, or at least `€0.50` regardless of percentage. Green denotes a decrease and red an increase, with the percentage, previous price, and exact recorded time available in the interface. The marker follows the chain behind the displayed price across search results, personal baskets, and the per-chain product detail table. A change remains visible for up to seven days when later hourly snapshots keep the same price, but is cleared sooner when a newer small adjustment makes it inaccurate. This is application-observed history between successful refreshes, not an official long-term PosoKanei price-history service.
 
 Version `v0.24.0` collects every active recent price movement from every supermarket chain in one CSV file. Each row includes the product, brand, category, chain, previous and current price, euro and percentage difference, direction, and observation timestamps. The file uses UTF-8 with a BOM and CRLF line endings so Greek text opens correctly in Excel and other spreadsheet tools. It is regenerated and published atomically with every successful hourly catalogue sync at the stable [`/data/price-changes.csv`](https://kalathitimon.com/data/price-changes.csv) URL.
+
+Version `v0.25.0` adds the public [`/changes/`](https://kalathitimon.com/changes/) page for a readable view of the same movements. It provides change, product, drop, and rise totals; accent-insensitive Greek search; chain and direction filters; and sorting by time, percentage, euro difference, or product name. Each row shows the product and image, chain, previous and current price, signed euro and percentage movement, relative time, and exact recorded timestamp. The page loads a small, strictly validated `price-changes.json` artifact instead of the complete catalogue, while CSV remains available as the technical export. Both files are atomically published and verified for generation and row count during every refresh.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 

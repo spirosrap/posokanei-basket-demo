@@ -132,6 +132,11 @@ import {
   upsertSavedBasket,
 } from "./savedBaskets";
 import { buildCatalogImageSources } from "./imageSources";
+import {
+  filterPriceChanges,
+  normalizePriceChangesPayload,
+  priceChangeRetailers,
+} from "./priceChangesView";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -141,8 +146,10 @@ const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
 const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
+const PRICE_CHANGES_PATH = `${APP_BASE_PATH}changes/`;
 const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
-const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE
+const IS_PRICE_CHANGES_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/changes");
+const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE || IS_PRICE_CHANGES_PAGE
   ? null
   : readSharedBasketUrl(window.location.href);
 const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
@@ -351,10 +358,17 @@ function App() {
   useEffect(() => {
     saveLanguage(language);
     document.documentElement.lang = language;
-    document.title = preferences.t("documentTitle");
+    document.title = preferences.t(
+      IS_PRICE_CHANGES_PAGE ? "priceChangesDocumentTitle" : "documentTitle",
+    );
     document
       .querySelector('meta[name="description"]')
-      ?.setAttribute("content", preferences.t("documentDescription"));
+      ?.setAttribute(
+        "content",
+        preferences.t(
+          IS_PRICE_CHANGES_PAGE ? "priceChangesDocumentDescription" : "documentDescription",
+        ),
+      );
   }, [language, preferences]);
 
   useEffect(() => {
@@ -375,7 +389,7 @@ function App() {
 
   return (
     <PreferencesContext.Provider value={preferences}>
-      <AppContent />
+      {IS_PRICE_CHANGES_PAGE ? <PriceChangesApp /> : <AppContent />}
     </PreferencesContext.Provider>
   );
 }
@@ -1313,6 +1327,346 @@ function DailyBargainSkeleton() {
   );
 }
 
+function PriceChangesApp() {
+  const { locale, money, number, t } = usePreferences();
+  const [state, setState] = useState({ status: "loading", data: null });
+  const [requestVersion, setRequestVersion] = useState(0);
+  const [query, setQuery] = useState("");
+  const [retailerId, setRetailerId] = useState("all");
+  const [direction, setDirection] = useState("all");
+  const [sort, setSort] = useState("recent");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setState((current) => ({ ...current, status: "loading" }));
+    fetch(runtimeAppUrl("data/price-changes.json"), {
+      headers: { Accept: "application/json" },
+      cache: "no-cache",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((raw) => {
+        const normalized = normalizePriceChangesPayload(raw);
+        setState({
+          status: "ready",
+          data: {
+            ...normalized,
+            changes: normalized.changes.map((change) => ({
+              ...change,
+              product: priceChangeProduct(change),
+            })),
+          },
+        });
+      })
+      .catch((error) => {
+        if (error?.name !== "AbortError") {
+          setState((current) => ({ ...current, status: "error" }));
+        }
+      });
+    return () => controller.abort();
+  }, [requestVersion]);
+
+  const data = state.data;
+  const retailers = useMemo(
+    () => priceChangeRetailers(data?.changes || []),
+    [data?.changes],
+  );
+  const visibleChanges = useMemo(
+    () => filterPriceChanges(data?.changes || [], {
+      query,
+      retailerId,
+      direction,
+      sort,
+    }),
+    [data?.changes, direction, query, retailerId, sort],
+  );
+  const health = data
+    ? {
+        state: "cached",
+        source: "snapshot",
+        activeProducts: data.catalogProducts,
+      }
+    : {
+        state: state.status === "error" ? "offline" : "checking",
+        activeProducts: 0,
+      };
+  const updatedAt = data ? formatDataTime(data.generatedAt, locale, t) : "";
+
+  return (
+    <div className="app-shell changes-shell">
+      <Header health={health} basketCount={0} showBasket={false} />
+      <main className="price-changes-page">
+        <a className="bargains-back" href={APP_BASE_PATH}>
+          <ArrowLeft size={17} aria-hidden="true" />
+          {t("backToBasket")}
+        </a>
+
+        <header className="changes-heading">
+          <div>
+            <span className="changes-eyebrow">
+              <ArrowDownUp size={16} aria-hidden="true" />
+              {t("priceChangesEyebrow")}
+            </span>
+            <h1>{t("priceChangesTitle")}</h1>
+            <p>{t("priceChangesDescription", { days: number(data?.retentionDays || 7) })}</p>
+          </div>
+          <div className="changes-heading-actions">
+            {updatedAt ? (
+              <span className="changes-updated">
+                {t("priceChangesUpdated", {
+                  time: updatedAt,
+                  retailers: number(data?.stats.retailers || 0),
+                })}
+              </span>
+            ) : null}
+            <a
+              className="text-button changes-download"
+              href={runtimeAppUrl("data/price-changes.csv")}
+              download="kalathi-timon-price-changes.csv"
+            >
+              <Download size={16} aria-hidden="true" />
+              {t("downloadPriceChanges")}
+            </a>
+          </div>
+        </header>
+
+        {state.status === "loading" && !data ? (
+          <div className="changes-status" role="status">
+            <RefreshCw size={20} className="spin" aria-hidden="true" />
+            {t("priceChangesLoading")}
+          </div>
+        ) : null}
+
+        {state.status === "error" && !data ? (
+          <div className="changes-status error" role="alert">
+            <AlertCircle size={20} aria-hidden="true" />
+            <span>{t("priceChangesUnavailable")}</span>
+            <button type="button" className="text-button" onClick={() => setRequestVersion((value) => value + 1)}>
+              <RefreshCw size={15} aria-hidden="true" />
+              {t("retryPriceChanges")}
+            </button>
+          </div>
+        ) : null}
+
+        {data ? (
+          <>
+            <section className="changes-summary" aria-label={t("priceChangesSummary")}>
+              <PriceChangeSummary
+                icon={<ArrowDownUp size={18} />}
+                label={t("recordedChanges")}
+                value={number(data.stats.changes)}
+              />
+              <PriceChangeSummary
+                icon={<PackageSearch size={18} />}
+                label={t("changedProducts")}
+                value={number(data.stats.products)}
+              />
+              <PriceChangeSummary
+                direction="decrease"
+                icon={<ArrowDownRight size={18} />}
+                label={t("priceDrops")}
+                value={number(data.stats.decreases)}
+              />
+              <PriceChangeSummary
+                direction="increase"
+                icon={<ArrowUpRight size={18} />}
+                label={t("priceRises")}
+                value={number(data.stats.increases)}
+              />
+            </section>
+
+            <section className="changes-controls" aria-label={t("priceChangeFilters")}>
+              <label className="changes-field changes-search-field">
+                <span>{t("searchChanges")}</span>
+                <span className="changes-input">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={query}
+                    placeholder={t("searchChangesPlaceholder")}
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </span>
+              </label>
+
+              <label className="changes-field">
+                <span>{t("chainColumn")}</span>
+                <select value={retailerId} onChange={(event) => setRetailerId(event.target.value)}>
+                  <option value="all">{t("allChains")}</option>
+                  {retailers.map((retailer) => (
+                    <option key={retailer.id} value={retailer.id}>{retailer.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="changes-field changes-direction-field">
+                <span>{t("directionFilter")}</span>
+                <div className="changes-segmented" role="group" aria-label={t("directionFilter")}>
+                  {[
+                    ["all", t("allChanges")],
+                    ["decrease", t("priceDrops")],
+                    ["increase", t("priceRises")],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={direction === value ? "active" : ""}
+                      aria-pressed={direction === value}
+                      onClick={() => setDirection(value)}
+                    >
+                      {value === "decrease" ? <ArrowDownRight size={14} /> : null}
+                      {value === "increase" ? <ArrowUpRight size={14} /> : null}
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="changes-field">
+                <span>{t("sortChanges")}</span>
+                <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                  <option value="recent">{t("sortRecentChanges")}</option>
+                  <option value="percentage">{t("sortLargestPercentage")}</option>
+                  <option value="amount">{t("sortLargestAmount")}</option>
+                  <option value="name">{t("sortChangeName")}</option>
+                </select>
+              </label>
+            </section>
+
+            <div className="changes-results-summary" aria-live="polite">
+              <strong>{t("visiblePriceChanges", {
+                visible: number(visibleChanges.length),
+                total: number(data.stats.changes),
+              })}</strong>
+              <span>{t("priceChangesRetention", { days: number(data.retentionDays || 7) })}</span>
+            </div>
+
+            {visibleChanges.length ? (
+              <section className="changes-table" aria-label={t("priceChangesTitle")}>
+                <div className="changes-table-head" aria-hidden="true">
+                  <span>{t("productColumn")}</span>
+                  <span>{t("chainColumn")}</span>
+                  <span>{t("priceColumn")}</span>
+                  <span>{t("movementColumn")}</span>
+                  <span>{t("changedColumn")}</span>
+                </div>
+                <div className="changes-list">
+                  {visibleChanges.map((change) => (
+                    <PriceChangeRow
+                      key={`${change.productId}:${change.retailerId}:${change.changedAt}`}
+                      change={change}
+                      locale={locale}
+                      money={money}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <div className="changes-empty">
+                <PackageSearch size={26} aria-hidden="true" />
+                <strong>{t("noMatchingPriceChanges")}</strong>
+                <span>{t("noMatchingPriceChangesDescription")}</span>
+              </div>
+            )}
+          </>
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+function PriceChangeSummary({ direction = "", icon, label, value }) {
+  return (
+    <div className={`changes-summary-item ${direction}`}>
+      <span className="changes-summary-icon" aria-hidden="true">{icon}</span>
+      <span>
+        <strong>{value}</strong>
+        <small>{label}</small>
+      </span>
+    </div>
+  );
+}
+
+function PriceChangeRow({ change, locale, money, t }) {
+  const decreased = change.direction === "decrease";
+  const exactTime = formatDateTime(new Date(change.changedAt), locale);
+  const relativeTime = formatRelativeTime(change.changedAt, locale, t);
+  const signedAmount = `${decreased ? "-" : "+"}${money(Math.abs(change.amount))}`;
+  const signedPercentage = `${decreased ? "-" : "+"}${Math.abs(change.percentage).toLocaleString(locale)}%`;
+
+  return (
+    <article className={`change-row ${change.direction}`}>
+      <div className="change-product-cell">
+        <ProductThumb product={change.product} compact />
+        <span>
+          <strong>{change.productName}</strong>
+          <small>{[change.brand, change.category].filter(Boolean).join(" · ") || t("noBrand")}</small>
+        </span>
+      </div>
+      <div className="change-cell change-retailer-cell">
+        <small className="change-cell-label">{t("chainColumn")}</small>
+        <strong>{change.retailerName}</strong>
+      </div>
+      <div className="change-cell change-price-cell">
+        <small className="change-cell-label">{t("priceColumn")}</small>
+        <span className="change-price-flow">
+          <del>{money(change.previousPrice)}</del>
+          <ChevronRight size={15} aria-hidden="true" />
+          <strong>{money(change.currentPrice)}</strong>
+        </span>
+      </div>
+      <div className="change-cell change-movement-cell">
+        <small className="change-cell-label">{t("movementColumn")}</small>
+        <strong>
+          {decreased ? <ArrowDownRight size={16} /> : <ArrowUpRight size={16} />}
+          {signedAmount}
+        </strong>
+        <span>{signedPercentage}</span>
+      </div>
+      <time className="change-cell change-time-cell" dateTime={change.changedAt} title={exactTime}>
+        <small className="change-cell-label">{t("changedColumn")}</small>
+        <strong>{relativeTime}</strong>
+        <small>{exactTime}</small>
+      </time>
+    </article>
+  );
+}
+
+function priceChangeProduct(change) {
+  const words = change.productName.split(/\s+/).filter(Boolean).slice(0, 2);
+  const tile = words.map((word) => word[0]).join("").toLocaleLowerCase("el-GR") || "?";
+  return {
+    id: change.productId,
+    name: change.productName,
+    brand: change.brand,
+    imageUrl: change.imageUrl,
+    tile,
+    tint: change.direction === "decrease" ? "#d1fae5" : "#fee2e2",
+  };
+}
+
+function formatRelativeTime(value, locale, t) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return t("unknown");
+  const difference = timestamp - Date.now();
+  const absolute = Math.abs(difference);
+  const units = absolute >= 24 * 60 * 60 * 1000
+    ? ["day", 24 * 60 * 60 * 1000]
+    : absolute >= 60 * 60 * 1000
+      ? ["hour", 60 * 60 * 1000]
+      : ["minute", 60 * 1000];
+  const amount = Math.round(difference / units[1]);
+  try {
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(amount, units[0]);
+  } catch {
+    return formatDateTime(new Date(timestamp), locale);
+  }
+}
+
 function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
   const { language, locale, money, number, t } = usePreferences();
   const bargains = pick?.bargains || [];
@@ -1437,7 +1791,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
   );
 }
 
-function Header({ health, basketCount }) {
+function Header({ health, basketCount, showBasket = true }) {
   const { language, number, setLanguage, setTheme, t, theme } = usePreferences();
   const isOnline = health.state === "online";
   const isCached = health.state === "cached";
@@ -1517,10 +1871,12 @@ function Header({ health, basketCount }) {
           {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
           <span>{healthLabel}</span>
         </div>
-        <div className="basket-pill" title={t("basketItems")}>
-          <ShoppingBasket size={16} />
-          <span>{number(basketCount)}</span>
-        </div>
+        {showBasket ? (
+          <div className="basket-pill" title={t("basketItems")}>
+            <ShoppingBasket size={16} />
+            <span>{number(basketCount)}</span>
+          </div>
+        ) : null}
       </div>
     </header>
   );
@@ -1598,13 +1954,12 @@ function DataFreshnessNotice({ health, updateStatus }) {
         </p>
         <a
           className="price-change-export"
-          href={runtimeAppUrl("data/price-changes.csv")}
-          download="kalathi-timon-price-changes.csv"
+          href={PRICE_CHANGES_PATH}
         >
-          <Download size={16} aria-hidden="true" />
+          <ArrowDownUp size={16} aria-hidden="true" />
           <span>
-            <strong>{t("downloadPriceChanges")}</strong>
-            <small>{t("priceChangesExportDescription")}</small>
+            <strong>{t("viewPriceChanges")}</strong>
+            <small>{t("priceChangesPageDescription")}</small>
           </span>
         </a>
       </div>
