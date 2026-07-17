@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
+import { inspectPriceChangesCsv } from "./price-change-export.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -25,6 +26,10 @@ const runtimePath = resolve(
 const bootstrapPath = resolve(
   projectRoot,
   process.env.POSOKANEI_BOOTSTRAP_OUT || "dist/data/catalog-bootstrap.json",
+);
+const priceChangesPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_PRICE_CHANGES_OUT || "dist/data/price-changes.csv",
 );
 const refreshStatusPath = resolve(
   projectRoot,
@@ -103,6 +108,7 @@ async function refreshCatalog() {
       POSOKANEI_META_OUT: metaPath,
       POSOKANEI_RUNTIME_OUT: runtimePath,
       POSOKANEI_BOOTSTRAP_OUT: bootstrapPath,
+      POSOKANEI_PRICE_CHANGES_OUT: priceChangesPath,
       ...(previousSnapshotPath
         ? { POSOKANEI_PREVIOUS_SNAPSHOT: previousSnapshotPath }
         : {}),
@@ -176,6 +182,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteScript = `${remoteScriptsDir}/build-catalog-snapshot.mjs`;
   const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
+  const remotePriceExportModule = `${remoteScriptsDir}/price-change-export.mjs`;
   const remotePriceHistoryModule = `${remoteScriptsDir}/price-change-history.mjs`;
   const remoteDemoBasket = `${remoteSrcDir}/demoBasket.js`;
   const remotePackage = `${remoteDir}/package.json`;
@@ -183,6 +190,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteMeta = `${remoteDir}/catalog-meta.json`;
   const remoteRuntime = `${remoteDir}/catalog-runtime.json`;
   const remoteBootstrap = `${remoteDir}/catalog-bootstrap.json`;
+  const remotePriceChanges = `${remoteDir}/price-changes.csv`;
   const remotePreviousSnapshot = `${remoteDir}/catalog-previous.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
@@ -190,6 +198,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   await mkdir(dirname(metaPath), { recursive: true });
   await mkdir(dirname(runtimePath), { recursive: true });
   await mkdir(dirname(bootstrapPath), { recursive: true });
+  await mkdir(dirname(priceChangesPath), { recursive: true });
 
   try {
     await run("ssh", [
@@ -211,6 +220,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       ...sshOptions,
       resolve(projectRoot, "scripts/catalog-bootstrap.mjs"),
       `${host}:${remoteBootstrapModule}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "scripts/price-change-export.mjs"),
+      `${host}:${remotePriceExportModule}`,
     ]);
     await run("scp", [
       ...sshOptions,
@@ -242,6 +256,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
         `POSOKANEI_META_OUT=${shellQuote(remoteMeta)}`,
         `POSOKANEI_RUNTIME_OUT=${shellQuote(remoteRuntime)}`,
         `POSOKANEI_BOOTSTRAP_OUT=${shellQuote(remoteBootstrap)}`,
+        `POSOKANEI_PRICE_CHANGES_OUT=${shellQuote(remotePriceChanges)}`,
         ...(previousSnapshotPath
           ? [`POSOKANEI_PREVIOUS_SNAPSHOT=${shellQuote(remotePreviousSnapshot)}`]
           : []),
@@ -252,6 +267,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
     await run("scp", [...sshOptions, `${host}:${remoteMeta}`, metaPath]);
     await run("scp", [...sshOptions, `${host}:${remoteRuntime}`, runtimePath]);
     await run("scp", [...sshOptions, `${host}:${remoteBootstrap}`, bootstrapPath]);
+    await run("scp", [...sshOptions, `${host}:${remotePriceChanges}`, priceChangesPath]);
   } finally {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)}`], {
       allowFailure: true,
@@ -477,6 +493,7 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(metaPath, "catalog-meta.json", target, password);
   await publishDataFile(runtimePath, "catalog-runtime.json", target, password);
   await publishDataFile(bootstrapPath, "catalog-bootstrap.json", target, password);
+  await publishDataFile(priceChangesPath, "price-changes.csv", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
@@ -507,11 +524,23 @@ async function fetchPublicJson(url) {
   return response.json();
 }
 
+async function fetchPublicText(url) {
+  const response = await fetch(`${url}?v=${Date.now()}`, {
+    headers: { Accept: "text/csv" },
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!response.ok) {
+    throw new Error(`${url} verification returned HTTP ${response.status}.`);
+  }
+  return response.text();
+}
+
 async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
   const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-runtime.json");
   const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-bootstrap.json");
+  const targetPriceChangesUrl = targetCatalogUrl.replace(/catalog\.json$/, "price-changes.csv");
   const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
   const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
   let observed = null;
@@ -522,19 +551,30 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         publicMeta,
         publicRuntime,
         publicBootstrap,
+        publicPriceChanges,
         publicRefreshStatus,
       ] = await Promise.all([
         fetchPublicJson(targetCatalogUrl),
         fetchPublicJson(targetMetaUrl),
         fetchPublicJson(targetRuntimeUrl),
         fetchPublicJson(targetBootstrapUrl),
+        fetchPublicText(targetPriceChangesUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
+      const priceChanges = inspectPriceChangesCsv(publicPriceChanges);
+      const activePriceChanges = Number(
+        publicMeta?.price_change_stats?.active_offers
+          ?? publicSnapshot?.price_change_stats?.active_offers
+          ?? 0,
+      );
       observed = {
         snapshot: publicSnapshot.generated_at || "",
         metadata: publicMeta.generated_at || "",
         runtime: publicRuntime.generated_at || "",
         bootstrap: publicBootstrap.generated_at || "",
+        priceChanges: priceChanges.generatedAt || "",
+        priceChangeRows: priceChanges.rowCount,
+        activePriceChanges,
         status: publicRefreshStatus.generated_at || "",
         statusValue: publicRefreshStatus.status || "",
       };
@@ -551,7 +591,9 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         timestamps.every((value) => value === observed.snapshot) &&
         observed.statusValue === "ok" &&
         Number.isFinite(publishedAt) &&
-        publishedAt >= expectedAt
+        publishedAt >= expectedAt &&
+        priceChanges.rowCount === activePriceChanges &&
+        (priceChanges.rowCount === 0 || priceChanges.generatedAt === observed.snapshot)
       ) {
         if (observed.snapshot !== expectedGeneratedAt) {
           console.log(`Accepted newer concurrent catalogue ${observed.snapshot}.`);
@@ -574,6 +616,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified public metadata at ${targetMetaUrl}`);
   console.log(`Verified compact runtime catalogue at ${targetRuntimeUrl}`);
   console.log(`Verified static startup catalogue at ${targetBootstrapUrl}`);
+  console.log(`Verified price-change CSV at ${targetPriceChangesUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));

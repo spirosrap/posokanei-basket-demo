@@ -1596,6 +1596,17 @@ function DataFreshnessNotice({ health, updateStatus }) {
               })
             : ""}
         </p>
+        <a
+          className="price-change-export"
+          href={runtimeAppUrl("data/price-changes.csv")}
+          download="kalathi-timon-price-changes.csv"
+        >
+          <Download size={16} aria-hidden="true" />
+          <span>
+            <strong>{t("downloadPriceChanges")}</strong>
+            <small>{t("priceChangesExportDescription")}</small>
+          </span>
+        </a>
       </div>
     </details>
   );

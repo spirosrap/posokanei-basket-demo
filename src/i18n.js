@@ -43,6 +43,9 @@ const messages = {
     refreshSnapshotBody: ({ time }) =>
       `Η εφαρμογή δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση καταλόγου: ${time}.`,
     refreshAttempt: ({ time, error }) => ` Τελευταία προσπάθεια: ${time} (${error}).`,
+    downloadPriceChanges: "Λήψη όλων των πρόσφατων αλλαγών (.csv)",
+    priceChangesExportDescription:
+      "Ένα αρχείο για όλες τις αλυσίδες, με προηγούμενη και τρέχουσα τιμή.",
     workspace: "Εφαρμογή σύγκρισης καλαθιού",
     mobileWorkspaceNavigation: "Προβολή εφαρμογής",
     products: "Προϊόντα",
@@ -434,6 +437,9 @@ const messages = {
     refreshSnapshotBody: ({ time }) =>
       `The app does not contact PosoKanei on every page load. It uses the latest automatically synchronized catalogue. Latest catalogue update: ${time}.`,
     refreshAttempt: ({ time, error }) => ` Latest attempt: ${time} (${error}).`,
+    downloadPriceChanges: "Download all recent changes (.csv)",
+    priceChangesExportDescription:
+      "One file for every chain, with previous and current prices.",
     workspace: "Basket comparison app",
     mobileWorkspaceNavigation: "App view",
     products: "Products",
