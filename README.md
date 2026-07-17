@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.22.3`
+**Τρέχουσα έκδοση:** `v0.23.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -23,6 +23,7 @@
 - Επιλέγεις πόσες στάσεις είσαι διατεθειμένος να κάνεις: `1`, `2`, `3` ή `4` αλυσίδες.
 - Η εφαρμογή βρίσκει το φθηνότερο πλήρες πλάνο για τη λίστα σου.
 - Αν επιλέξεις περισσότερες από μία στάσεις, σου δείχνει τι αγοράζεις από κάθε αλυσίδα.
+- Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
@@ -83,6 +84,8 @@
 Η έκδοση `v0.22.2` διορθώνει τον αυτόματο συγχρονισμό μετά την προσθήκη του συμπαγούς startup καταλόγου. Ο προσωρινός φάκελος κάθε απομακρυσμένου runner λαμβάνει πλέον και το module configuration του project, ώστε ο υγιής Node 18 runner να ολοκληρώνει τη δημιουργία των `catalog`, `runtime` και `bootstrap` αρχείων αντί να σταματά μετά τη λήψη των προϊόντων. Η πρώτη επιτυχής πλήρης λήψη εξακολουθεί να κερδίζει και τα αρχεία δημοσιεύονται ατομικά και επαληθεύονται και στα δύο domains.
 
 Η έκδοση `v0.22.3` διορθώνει τις φωτογραφίες των προσαρμοσμένων καλαθιών μετά από ανανέωση της σελίδας. Όταν οι νέες τιμές αντικαθιστούσαν το τοπικά αποθηκευμένο product object με άλλο που είχε την ίδια ακριβώς εικόνα, η μικρογραφία επέστρεφε άσκοπα σε κατάσταση φόρτωσης χωρίς να ακολουθεί νέο event. Πλέον η κατάσταση της φωτογραφίας μηδενίζεται μόνο όταν αλλάζει πραγματικά το URL της, ώστε προσωπικά, αποθηκευμένα και κοινόχρηστα καλάθια να κρατούν τις εικόνες τους ενώ ενημερώνονται οι τιμές.
+
+Η έκδοση `v0.23.0` προσθέτει πρόσφατες μεταβολές τιμών ανά προϊόν και αλυσίδα. Κάθε επιτυχής συγχρονισμός συγκρίνει το νέο snapshot με την αμέσως προηγούμενη δημοσιευμένη γενιά και καταγράφει μόνο ουσιαστικές διαφορές: τουλάχιστον `0,10 €` και `3%`, ή τουλάχιστον `0,50 €` ανεξάρτητα από το ποσοστό. Πράσινη ένδειξη σημαίνει πτώση και κόκκινη αύξηση, με ποσοστό, προηγούμενη τιμή και ακριβή χρόνο στο tooltip. Η ένδειξη ακολουθεί την αλυσίδα της τιμής που εμφανίζεται στα αποτελέσματα, στο προσωπικό καλάθι και στις αναλυτικές τιμές προϊόντος. Μία μεταβολή διατηρείται για έως επτά ημέρες, ακόμη κι αν τα επόμενα ωριαία snapshots δεν αλλάξουν ξανά την τιμή, και αφαιρείται νωρίτερα αν μια νεότερη μικρή μεταβολή την καταστήσει ανακριβή. Πρόκειται για ιστορικό που παρατηρεί η εφαρμογή μεταξύ επιτυχημένων συγχρονισμών και όχι για επίσημο μακροχρόνιο ιστορικό του PosoKanei.
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -204,7 +207,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.22.3`
+**Current version:** `v0.23.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -217,6 +220,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Search or filter products by category or barcode.
 - Sort the full catalogue by lowest package price, best comparable price per `kg`, `L`, or item, or product name before pagination.
 - See the best available unit price on each product row and the current basket quantity directly on its quick-add button.
+- See notable recent price drops or increases for the exact supermarket behind a displayed price, including the percentage and previous value.
 - Switch the complete interface between Greek and English, including dates, currency, accessibility labels, and copied shopping plans.
 - Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
@@ -308,6 +312,8 @@ Version `v0.22.1` fixes thumbnails that had already downloaded from browser cach
 Version `v0.22.2` repairs the automatic sync after the compact startup catalogue was introduced. Each remote runner's temporary directory now receives the project's module configuration, allowing the healthy Node 18 runner to finish generating the `catalog`, `runtime`, and `bootstrap` artifacts instead of stopping after product download. The first successful complete build still wins, and every artifact is atomically published and verified on both domains.
 
 Version `v0.22.3` fixes product photos in custom baskets after a page refresh. When current prices replaced a locally restored product object with another object carrying the same image URL, the thumbnail unnecessarily returned to its loading state without a second browser event. Image state now resets only when the URL actually changes, so personal, saved, and shared baskets retain their photos while prices are refreshed.
+
+Version `v0.23.0` adds recent product-price movement per supermarket chain. Every successful catalogue refresh compares its new snapshot with the previously published generation and records only meaningful differences: at least `€0.10` and `3%`, or at least `€0.50` regardless of percentage. Green denotes a decrease and red an increase, with the percentage, previous price, and exact recorded time available in the interface. The marker follows the chain behind the displayed price across search results, personal baskets, and the per-chain product detail table. A change remains visible for up to seven days when later hourly snapshots keep the same price, but is cleared sooner when a newer small adjustment makes it inaccurate. This is application-observed history between successful refreshes, not an official long-term PosoKanei price-history service.
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -872,6 +878,7 @@ The app includes a lightweight update checker:
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, the compact `public/data/catalog-runtime.json`, and the first-paint `public/data/catalog-bootstrap.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file, while `npm run catalog:bootstrap` rebuilds the startup payload from an existing runtime catalogue.
+- `npm run live:refresh` validates the last published catalogue, passes it to the selected refresh runner, and annotates notable per-chain price changes before generating the full, runtime, bootstrap, and metadata artifacts. Recent valid markers are retained for seven days; no user, basket, or location data is involved.
 - `npm run live:refresh` builds fresh full, metadata, runtime, and startup catalogues under `dist/data/`, uploads them to the live FTP path, and verifies the public `catalog`, `runtime`, `bootstrap`, `metadata`, and `refresh-status` timestamps.
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.

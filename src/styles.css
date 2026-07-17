@@ -1431,11 +1431,40 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-.product-price span {
+.product-price > span:first-child {
   display: block;
   color: var(--green-dark);
   font-size: 13px;
   font-weight: 900;
+}
+
+.price-change {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.price-change.decrease {
+  color: var(--green-dark);
+}
+
+.price-change.increase {
+  color: var(--red);
+}
+
+.price-change svg {
+  flex: 0 0 auto;
+}
+
+.price-change.compact {
+  width: 100%;
 }
 
 .load-more {
@@ -1712,6 +1741,10 @@ input:focus-visible {
   max-width: 150px;
   color: var(--amber);
   font-weight: 800;
+}
+
+.line-total .price-change {
+  margin-left: auto;
 }
 
 .best-strip {
@@ -3672,6 +3705,17 @@ input:focus-visible {
   border-radius: 7px;
   padding: 0 10px;
   font-size: 13px;
+}
+
+.price-row-value {
+  display: grid;
+  justify-items: end;
+  min-width: 96px;
+  text-align: right;
+}
+
+.price-row-value .price-change {
+  margin-top: 1px;
 }
 
 .primary-action {

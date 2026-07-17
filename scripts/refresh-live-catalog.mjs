@@ -51,6 +51,10 @@ const refreshLockPath = resolve(
   projectRoot,
   process.env.POSOKANEI_REFRESH_LOCK || ".cache/catalog-refresh.lock",
 );
+const previousSnapshotCachePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_PREVIOUS_SNAPSHOT_CACHE || ".cache/catalog-previous.json",
+);
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
@@ -90,14 +94,18 @@ async function acquireRefreshLock(lockPath, retried = false) {
 }
 
 async function refreshCatalog() {
+  const previousSnapshotPath = await preparePreviousSnapshot();
   if (remoteRefreshHosts.length) {
-    await buildSnapshotOnRemoteHosts(remoteRefreshHosts);
+    await buildSnapshotOnRemoteHosts(remoteRefreshHosts, previousSnapshotPath);
   } else {
     await runNodeScript("scripts/build-catalog-snapshot.mjs", {
       POSOKANEI_SNAPSHOT_OUT: snapshotPath,
       POSOKANEI_META_OUT: metaPath,
       POSOKANEI_RUNTIME_OUT: runtimePath,
       POSOKANEI_BOOTSTRAP_OUT: bootstrapPath,
+      ...(previousSnapshotPath
+        ? { POSOKANEI_PREVIOUS_SNAPSHOT: previousSnapshotPath }
+        : {}),
     });
   }
 
@@ -143,13 +151,13 @@ async function refreshCatalog() {
   }
 }
 
-async function buildSnapshotOnRemoteHosts(hosts) {
+async function buildSnapshotOnRemoteHosts(hosts, previousSnapshotPath) {
   let lastError;
 
   for (const host of hosts) {
     try {
       console.log(`Building catalogue snapshot on ${host}...`);
-      await buildSnapshotOnRemoteHost(host);
+      await buildSnapshotOnRemoteHost(host, previousSnapshotPath);
       console.log(`Catalogue snapshot built on ${host}.`);
       return;
     } catch (error) {
@@ -161,19 +169,21 @@ async function buildSnapshotOnRemoteHosts(hosts) {
   throw lastError || new Error("All refresh runners failed.");
 }
 
-async function buildSnapshotOnRemoteHost(host) {
+async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteDir = `/tmp/posokanei-basket-refresh-${Date.now()}`;
   const remoteScriptsDir = `${remoteDir}/scripts`;
   const remoteSrcDir = `${remoteDir}/src`;
   const remoteScript = `${remoteScriptsDir}/build-catalog-snapshot.mjs`;
   const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
+  const remotePriceHistoryModule = `${remoteScriptsDir}/price-change-history.mjs`;
   const remoteDemoBasket = `${remoteSrcDir}/demoBasket.js`;
   const remotePackage = `${remoteDir}/package.json`;
   const remoteSnapshot = `${remoteDir}/catalog.json`;
   const remoteMeta = `${remoteDir}/catalog-meta.json`;
   const remoteRuntime = `${remoteDir}/catalog-runtime.json`;
   const remoteBootstrap = `${remoteDir}/catalog-bootstrap.json`;
+  const remotePreviousSnapshot = `${remoteDir}/catalog-previous.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
   await mkdir(dirname(snapshotPath), { recursive: true });
@@ -204,6 +214,11 @@ async function buildSnapshotOnRemoteHost(host) {
     ]);
     await run("scp", [
       ...sshOptions,
+      resolve(projectRoot, "scripts/price-change-history.mjs"),
+      `${host}:${remotePriceHistoryModule}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
       resolve(projectRoot, "src/demoBasket.js"),
       `${host}:${remoteDemoBasket}`,
     ]);
@@ -212,6 +227,13 @@ async function buildSnapshotOnRemoteHost(host) {
       resolve(projectRoot, "package.json"),
       `${host}:${remotePackage}`,
     ]);
+    if (previousSnapshotPath) {
+      await run("scp", [
+        ...sshOptions,
+        previousSnapshotPath,
+        `${host}:${remotePreviousSnapshot}`,
+      ]);
+    }
     await run("ssh", [
       ...sshOptions,
       host,
@@ -220,6 +242,9 @@ async function buildSnapshotOnRemoteHost(host) {
         `POSOKANEI_META_OUT=${shellQuote(remoteMeta)}`,
         `POSOKANEI_RUNTIME_OUT=${shellQuote(remoteRuntime)}`,
         `POSOKANEI_BOOTSTRAP_OUT=${shellQuote(remoteBootstrap)}`,
+        ...(previousSnapshotPath
+          ? [`POSOKANEI_PREVIOUS_SNAPSHOT=${shellQuote(remotePreviousSnapshot)}`]
+          : []),
         `node ${shellQuote(remoteScript)}`,
       ].join(" "),
     ]);
@@ -233,6 +258,72 @@ async function buildSnapshotOnRemoteHost(host) {
       quiet: true,
     });
   }
+}
+
+async function preparePreviousSnapshot() {
+  await mkdir(dirname(previousSnapshotCachePath), { recursive: true });
+  const localCandidate = await readSnapshotCandidate(snapshotPath);
+  let publicGeneratedAt = "";
+
+  try {
+    const response = await fetch(`${publicMetaUrl}?v=${Date.now()}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) throw new Error(`metadata returned HTTP ${response.status}`);
+    publicGeneratedAt = String((await response.json())?.generated_at || "");
+  } catch (error) {
+    console.error(`Could not verify the previous public catalogue metadata: ${error.message}`);
+  }
+
+  if (
+    localCandidate
+    && (!publicGeneratedAt || localCandidate.snapshot.generated_at === publicGeneratedAt)
+  ) {
+    await writeFile(previousSnapshotCachePath, localCandidate.raw, "utf8");
+    console.log(`Using local catalogue ${localCandidate.snapshot.generated_at} for price comparison.`);
+    return previousSnapshotCachePath;
+  }
+
+  try {
+    const response = await fetch(`${publicCatalogUrl}?v=${Date.now()}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(90000),
+    });
+    if (!response.ok) throw new Error(`catalogue returned HTTP ${response.status}`);
+    const raw = await response.text();
+    const snapshot = parseSnapshotCandidate(raw);
+    await writeFile(previousSnapshotCachePath, raw, "utf8");
+    console.log(`Downloaded public catalogue ${snapshot.generated_at} for price comparison.`);
+    return previousSnapshotCachePath;
+  } catch (error) {
+    console.error(`Could not download the previous public catalogue: ${error.message}`);
+  }
+
+  console.log(
+    publicGeneratedAt
+      ? "The local catalogue does not match production; this refresh will skip price comparison instead of showing stale changes."
+      : "No previous catalogue is available; this refresh will start price history.",
+  );
+  return "";
+}
+
+async function readSnapshotCandidate(filePath) {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    return { raw, snapshot: parseSnapshotCandidate(raw) };
+  } catch {
+    return null;
+  }
+}
+
+function parseSnapshotCandidate(raw) {
+  const snapshot = JSON.parse(raw);
+  const productCount = Array.isArray(snapshot?.products) ? snapshot.products.length : 0;
+  if (productCount < minimumProducts) {
+    throw new Error(`previous catalogue contains only ${productCount} products`);
+  }
+  return snapshot;
 }
 
 async function recordRefreshFailure(error) {

@@ -71,6 +71,12 @@ const messages = {
     noBrand: "Χωρίς brand",
     best: "καλύτερη",
     unitPrice: ({ amount, unit }) => `${amount} / ${unit}`,
+    priceDropped: ({ percent, previous }) => `${percent}% κάτω · πριν ${previous}`,
+    priceIncreased: ({ percent, previous }) => `${percent}% πάνω · πριν ${previous}`,
+    priceDroppedCompact: ({ percent }) => `-${percent}%`,
+    priceIncreasedCompact: ({ percent }) => `+${percent}%`,
+    priceChangeDetails: ({ previous, current, time }) =>
+      `Πρόσφατη μεταβολή τιμής: από ${previous} σε ${current}. Καταγράφηκε ${time}.`,
     addProduct: ({ name }) => `Προσθήκη: ${name}`,
     addAnotherProduct: ({ count, name }) =>
       `Στο καλάθι: ${count}. Προσθήκη ενός ακόμη: ${name}`,
@@ -455,6 +461,12 @@ const messages = {
     noBrand: "No brand",
     best: "best",
     unitPrice: ({ amount, unit }) => `${amount} / ${unit}`,
+    priceDropped: ({ percent, previous }) => `${percent}% down · was ${previous}`,
+    priceIncreased: ({ percent, previous }) => `${percent}% up · was ${previous}`,
+    priceDroppedCompact: ({ percent }) => `-${percent}%`,
+    priceIncreasedCompact: ({ percent }) => `+${percent}%`,
+    priceChangeDetails: ({ previous, current, time }) =>
+      `Recent price change: ${previous} to ${current}. Recorded ${time}.`,
     addProduct: ({ name }) => `Add: ${name}`,
     addAnotherProduct: ({ count, name }) =>
       `In basket: ${count}. Add one more: ${name}`,

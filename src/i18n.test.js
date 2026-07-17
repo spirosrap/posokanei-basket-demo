@@ -32,6 +32,14 @@ test("core interface text and dynamic values are translated", () => {
   );
   assert.equal(translate("el", "priorityBalanced"), "Ισορροπία");
   assert.equal(translate("en", "priorityFewerStops"), "Fewer stops");
+  assert.equal(
+    translate("el", "priceDropped", { percent: "10", previous: "2,00 €" }),
+    "10% κάτω · πριν 2,00 €",
+  );
+  assert.equal(
+    translate("en", "priceIncreased", { percent: "5", previous: "€2.00" }),
+    "5% up · was €2.00",
+  );
   assert.match(
     translate("el", "recommendationSavingsInsight", {
       amount: "14,96 €",

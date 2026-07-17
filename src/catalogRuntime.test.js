@@ -23,7 +23,18 @@ test("runtime catalogue keeps shopping fields and removes unused payload", () =>
         unit: "kg",
         unit_quantity: 0.5,
         retailer_prices: [
-          { retailer: "chain-a", price: 2.4, price_normalized: 4.8, country: "GR" },
+          {
+            retailer: "chain-a",
+            price: 2.4,
+            price_normalized: 4.8,
+            country: "GR",
+            price_change: {
+              previous_price: 3,
+              amount: -0.6,
+              percentage: -20,
+              changed_at: "2026-07-16T11:00:00.000Z",
+            },
+          },
           { retailer: "chain-b", price: 3, price_normalized: 6, country: "CY" },
         ],
       },
@@ -32,7 +43,17 @@ test("runtime catalogue keeps shopping fields and removes unused payload", () =>
 
   assert.equal(runtime.products.length, 1);
   assert.deepEqual(runtime.products[0].retailer_prices, [
-    { retailer: "chain-a", price: 2.4, price_normalized: 4.8 },
+    {
+      retailer: "chain-a",
+      price: 2.4,
+      price_normalized: 4.8,
+      price_change: {
+        previous_price: 3,
+        amount: -0.6,
+        percentage: -20,
+        changed_at: "2026-07-16T11:00:00.000Z",
+      },
+    },
   ]);
   assert.equal(runtime.products[0].min_price, 2.4);
   assert.equal(runtime.products[0].min_unit_price, 4.8);

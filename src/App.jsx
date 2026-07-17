@@ -2,6 +2,8 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowDownUp,
+  ArrowDownRight,
+  ArrowUpRight,
   Barcode,
   Bookmark,
   Check,
@@ -72,6 +74,7 @@ import {
   getBestProductPrice,
   getBestProductUnitPrice,
   getProductPrice,
+  getProductPriceChange,
   sortProducts,
 } from "./pricing";
 import {
@@ -1888,6 +1891,9 @@ function ProductRow({
       </button>
       <div className="product-price">
         <span>{best ? money(best.price) : "-"}</span>
+        {best ? (
+          <PriceChangeBadge product={product} retailerId={best.retailerId} compact />
+        ) : null}
         <small>
           {bestUnit
             ? t("unitPrice", { amount: money(bestUnit.unitPrice), unit: product.unit })
@@ -2804,6 +2810,9 @@ function BasketItem({
     : bestPrice == null
       ? t("noPriceInSelectedChains")
       : `${money(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`;
+  const displayedRetailerId = isOutsidePlan
+    ? alternativeOffer.retailer.id
+    : planItem?.retailer?.id;
   return (
     <article className="basket-item">
       <button type="button" className="basket-product" onClick={onSelect}>
@@ -2844,6 +2853,7 @@ function BasketItem({
       <div className={`line-total${isOutsidePlan ? " outside-plan" : ""}`}>
         <strong>{displayAmount}</strong>
         <small>{priceContext}</small>
+        <PriceChangeBadge product={product} retailerId={displayedRetailerId} />
       </div>
     </article>
   );
@@ -4010,6 +4020,9 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
           <div>
             <small>{t("bestPrice")}</small>
             <strong>{best ? money(best.price) : "-"}</strong>
+            {best ? (
+              <PriceChangeBadge product={product} retailerId={best.retailerId} />
+            ) : null}
           </div>
           <div>
             <small>{t("barcode")}</small>
@@ -4026,7 +4039,10 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
               <div key={retailer.id} className="price-row">
                 <RetailerLogo retailer={retailer} className="tiny" ariaHidden />
                 <span>{retailer.name}</span>
-                <strong>{price == null ? "-" : money(price)}</strong>
+                <div className="price-row-value">
+                  <strong>{price == null ? "-" : money(price)}</strong>
+                  <PriceChangeBadge product={product} retailerId={retailer.id} />
+                </div>
               </div>
             );
           })}
@@ -4037,6 +4053,37 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
         </button>
       </div>
     </aside>
+  );
+}
+
+function PriceChangeBadge({ product, retailerId, compact = false }) {
+  const { locale, money, t } = usePreferences();
+  const change = retailerId ? getProductPriceChange(product, retailerId) : null;
+  if (!change) return null;
+  const decrease = change.amount < 0;
+  const percent = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+    .format(Math.abs(change.percentage));
+  const currentPrice = getProductPrice(product, retailerId);
+  const values = {
+    percent,
+    previous: money(change.previousPrice),
+    current: money(currentPrice),
+    time: formatDataTime(change.changedAt, locale, t),
+  };
+  const directionKey = decrease ? "Dropped" : "Increased";
+  const labelKey = `price${directionKey}${compact ? "Compact" : ""}`;
+  const label = t(labelKey, values);
+  const details = t("priceChangeDetails", values);
+  const Icon = decrease ? ArrowDownRight : ArrowUpRight;
+  return (
+    <span
+      className={`price-change${compact ? " compact" : ""} ${decrease ? "decrease" : "increase"}`}
+      title={details}
+      aria-label={details}
+    >
+      <Icon size={12} strokeWidth={2.5} aria-hidden="true" />
+      {label}
+    </span>
   );
 }
 

@@ -16,6 +16,7 @@ function compactPrice(entry) {
     retailer,
     price,
     ...(unitPrice !== null ? { price_normalized: unitPrice } : {}),
+    ...(entry.price_change ? { price_change: entry.price_change } : {}),
   };
 }
 
@@ -54,6 +55,7 @@ export function createRuntimeCatalog(snapshot) {
     generated_at: snapshot.generated_at,
     source: snapshot.source,
     stats: snapshot.stats,
+    price_change_stats: snapshot.price_change_stats,
     categories: snapshot.categories,
     retailers: snapshot.retailers,
     products: Array.isArray(snapshot.products) ? snapshot.products.map(compactProduct) : [],

@@ -16,6 +16,13 @@ export function getProductPrice(product, retailerId) {
   return Number.isFinite(value) ? value : null;
 }
 
+export function getProductPriceChange(product, retailerId) {
+  const change = product?.priceChanges?.[retailerId];
+  return change && Number.isFinite(change.amount) && Number.isFinite(change.previousPrice)
+    ? change
+    : null;
+}
+
 export function getBestProductPrice(product, retailerIds = null) {
   const allowedRetailers = Array.isArray(retailerIds) ? new Set(retailerIds) : null;
   const values = Object.entries(product.prices || {})

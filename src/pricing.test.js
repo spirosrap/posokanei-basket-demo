@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   getBestProductPrice,
   getBestProductUnitPrice,
+  getProductPriceChange,
   sortProducts,
   sortProductsByBestPrice,
 } from "./pricing.js";
@@ -25,6 +26,13 @@ test("best product price can be limited to location-eligible retailers", () => {
     price: 2,
   });
   assert.equal(getBestProductPrice(product, []), null);
+});
+
+test("price changes are returned only for the matching retailer", () => {
+  const change = { previousPrice: 2, amount: -0.2, percentage: -10 };
+  const changedProduct = { priceChanges: { lidl: change } };
+  assert.equal(getProductPriceChange(changedProduct, "lidl"), change);
+  assert.equal(getProductPriceChange(changedProduct, "masoutis"), null);
 });
 
 test("search products sort by the best eligible price and put unavailable items last", () => {

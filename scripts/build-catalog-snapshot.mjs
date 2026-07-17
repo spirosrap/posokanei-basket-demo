@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
+import { annotatePriceChanges } from "./price-change-history.mjs";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
@@ -26,6 +27,9 @@ const bootstrapOutputPath = resolve(
   process.env.POSOKANEI_BOOTSTRAP_OUT ||
     outputPath.replace(/catalog\.json$/, "catalog-bootstrap.json"),
 );
+const previousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
+  ? resolve(process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
+  : "";
 
 async function fetchJson(path, options = {}) {
   let lastError;
@@ -105,7 +109,7 @@ const [stats, categoriesRaw, retailersRaw, products] = await Promise.all([
   fetchProducts(),
 ]);
 
-const snapshot = {
+const rawSnapshot = {
   generated_at: new Date().toISOString(),
   source: API_ORIGIN,
   stats,
@@ -113,6 +117,13 @@ const snapshot = {
   retailers: retailersRaw.retailers || retailersRaw,
   products,
 };
+const previousSnapshot = previousSnapshotPath
+  ? await readPreviousSnapshot(previousSnapshotPath)
+  : null;
+const { snapshot, stats: priceChangeStats } = annotatePriceChanges(
+  rawSnapshot,
+  previousSnapshot,
+);
 const metadata = {
   generated_at: snapshot.generated_at,
   source: snapshot.source,
@@ -123,6 +134,7 @@ const metadata = {
   },
   categories: snapshot.categories,
   retailers: snapshot.retailers,
+  price_change_stats: priceChangeStats,
 };
 
 await mkdir(dirname(outputPath), { recursive: true });
@@ -138,3 +150,20 @@ console.log(
 console.log(`Wrote catalogue metadata to ${metaOutputPath}`);
 console.log(`Wrote compact runtime catalogue to ${runtimeOutputPath}`);
 console.log(`Wrote static startup catalogue to ${bootstrapOutputPath}`);
+console.log(
+  `Price changes: ${priceChangeStats.new_changes} new, ${priceChangeStats.active_offers} active across ${priceChangeStats.products_with_recent_changes} products`,
+);
+
+async function readPreviousSnapshot(filePath) {
+  try {
+    const parsed = JSON.parse(await readFile(filePath, "utf8"));
+    if (!Array.isArray(parsed?.products)) throw new Error("products are missing");
+    console.log(
+      `Comparing prices with ${parsed.products.length} products from ${parsed.generated_at || "the previous snapshot"}`,
+    );
+    return parsed;
+  } catch (error) {
+    console.error(`Previous snapshot could not be read; price history starts empty: ${error.message}`);
+    return null;
+  }
+}

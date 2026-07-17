@@ -88,6 +88,7 @@ export function createCatalogBootstrap(runtimeCatalog, pageSize = PAGE_SIZE) {
     generated_at: runtimeCatalog.generated_at,
     source: runtimeCatalog.source,
     stats: compactStats(runtimeCatalog.stats, products.length),
+    price_change_stats: runtimeCatalog.price_change_stats,
     categories: compactCategories(runtimeCatalog.categories),
     retailers: compactRetailers(runtimeCatalog.retailers),
     total_products: products.length,

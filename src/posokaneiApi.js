@@ -317,10 +317,39 @@ function normalizeOffer(entry, unitAmount) {
   const unitPrice = Number.isFinite(normalized) && normalized > 0
     ? normalized
     : fallbackUnitPrice;
+  const priceChange = normalizePriceChange(entry.price_change ?? entry.priceChange, price);
   return {
     retailerId: String(retailerId).toLowerCase(),
     price,
     unitPrice: Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : null,
+    ...(priceChange ? { priceChange } : {}),
+  };
+}
+
+function normalizePriceChange(raw, currentPrice) {
+  if (!raw || typeof raw !== "object") return null;
+  const previousPrice = Number(raw.previous_price ?? raw.previousPrice);
+  const amount = Number(raw.amount ?? currentPrice - previousPrice);
+  const percentage = Number(raw.percentage ?? (amount / previousPrice) * 100);
+  const changedAt = String(raw.changed_at ?? raw.changedAt ?? "");
+  const comparedAt = String(raw.compared_at ?? raw.comparedAt ?? "");
+  if (
+    !Number.isFinite(previousPrice)
+    || previousPrice <= 0
+    || !Number.isFinite(amount)
+    || amount === 0
+    || !Number.isFinite(percentage)
+    || !changedAt
+    || Math.abs(previousPrice + amount - currentPrice) >= 0.01
+  ) {
+    return null;
+  }
+  return {
+    previousPrice,
+    amount,
+    percentage,
+    changedAt,
+    comparedAt,
   };
 }
 
@@ -365,6 +394,11 @@ export function normalizeProduct(raw, source = "live") {
       priceEntries
         .filter((entry) => entry.unitPrice != null)
         .map((entry) => [entry.retailerId, entry.unitPrice]),
+    ),
+    priceChanges: Object.fromEntries(
+      priceEntries
+        .filter((entry) => entry.priceChange)
+        .map((entry) => [entry.retailerId, entry.priceChange]),
     ),
     retailerCount: raw.price_stats?.retailer_count ?? priceEntries.length,
     updatedAt: raw.updated_at || "",
