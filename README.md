@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.25.0`
+**Τρέχουσα έκδοση:** `v0.26.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -90,6 +90,12 @@
 Η έκδοση `v0.24.0` συγκεντρώνει όλες τις ενεργές πρόσφατες μεταβολές τιμών από κάθε αλυσίδα σε ένα ενιαίο αρχείο CSV. Κάθε γραμμή περιλαμβάνει προϊόν, μάρκα, κατηγορία, αλυσίδα, προηγούμενη και τρέχουσα τιμή, διαφορά σε ευρώ και ποσοστό, κατεύθυνση και χρόνους καταγραφής. Το αρχείο είναι UTF-8 με BOM και CRLF για σωστή εμφάνιση ελληνικών σε Excel και άλλες εφαρμογές υπολογιστικών φύλλων. Δημιουργείται και δημοσιεύεται ατομικά μαζί με κάθε επιτυχή ωριαίο συγχρονισμό στο σταθερό URL [`/data/price-changes.csv`](https://kalathitimon.com/data/price-changes.csv).
 
 Η έκδοση `v0.25.0` προσθέτει τη δημόσια σελίδα [`/changes/`](https://kalathitimon.com/changes/) για φιλική εξερεύνηση των ίδιων μεταβολών. Εμφανίζει σύνοψη αλλαγών, προϊόντων, μειώσεων και αυξήσεων, με αναζήτηση χωρίς διάκριση ελληνικών τόνων, φίλτρο αλυσίδας, τμηματικό έλεγχο κατεύθυνσης και ταξινόμηση ανά χρόνο, ποσοστό, διαφορά σε ευρώ ή όνομα. Κάθε γραμμή δείχνει προϊόν και εικόνα, αλυσίδα, προηγούμενη και τρέχουσα τιμή, υπογεγραμμένη διαφορά σε ευρώ και ποσοστό, σχετικό χρόνο και ακριβή ώρα καταγραφής. Η σελίδα φορτώνει ένα μικρό, αυστηρά ελεγμένο `price-changes.json` αντί για τον πλήρη κατάλογο, ενώ το CSV παραμένει διαθέσιμο ως τεχνική εξαγωγή. Και τα δύο αρχεία δημοσιεύονται ατομικά και επαληθεύονται ως προς γενιά και αριθμό γραμμών σε κάθε συγχρονισμό.
+
+Η έκδοση `v0.26.0` προσθέτει διαδραστικό ιστορικό σε κάθε προϊόν της σελίδας «Πρόσφατες αλλαγές τιμών». Με πάτημα στο προϊόν ανοίγει προσβάσιμο αναδυόμενο παράθυρο με βηματικό γράφημα για όλες τις αλυσίδες που έχουν διαθέσιμη τιμή, ακριβείς παρατηρήσεις και τρέχουσα τιμή ανά αλυσίδα. Κάθε επιτυχής συγχρονισμός κρατά συμπαγή σημεία μόνο όταν αλλάζει η τιμή, μαζί με το τρέχον άκρο της γραμμής και ένα σημείο αναφοράς πριν από το επταήμερο παράθυρο. Έτσι δεν δημιουργούνται τεχνητές ωριαίες μεταβολές και το αρχείο παραμένει μικρό. Πρόκειται αποκλειστικά για ιστορικό που παρατηρεί η εφαρμογή: οι υπάρχουσες ενεργές μεταβολές ξεκινούν με προηγούμενη και τρέχουσα τιμή, ενώ η πιο πλούσια πορεία συγκεντρώνεται στους επόμενους επιτυχείς συγχρονισμούς. Δεν είναι επίσημο μακροχρόνιο ιστορικό του PosoKanei.
+
+![Ιστορικό τιμών προϊόντος ανά αλυσίδα στην έκδοση 0.26.0](screenshots/price-history-v0.26.0.png)
+
+![Ιστορικό τιμών σε κινητό](screenshots/price-history-mobile-v0.26.0.png)
 
 ![Εξαγωγή και εισαγωγή καλαθιού σε φορητό JSON](screenshots/basket-export-json.jpg)
 
@@ -211,7 +217,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.25.0`
+**Current version:** `v0.26.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -322,6 +328,12 @@ Version `v0.23.0` adds recent product-price movement per supermarket chain. Ever
 Version `v0.24.0` collects every active recent price movement from every supermarket chain in one CSV file. Each row includes the product, brand, category, chain, previous and current price, euro and percentage difference, direction, and observation timestamps. The file uses UTF-8 with a BOM and CRLF line endings so Greek text opens correctly in Excel and other spreadsheet tools. It is regenerated and published atomically with every successful hourly catalogue sync at the stable [`/data/price-changes.csv`](https://kalathitimon.com/data/price-changes.csv) URL.
 
 Version `v0.25.0` adds the public [`/changes/`](https://kalathitimon.com/changes/) page for a readable view of the same movements. It provides change, product, drop, and rise totals; accent-insensitive Greek search; chain and direction filters; and sorting by time, percentage, euro difference, or product name. Each row shows the product and image, chain, previous and current price, signed euro and percentage movement, relative time, and exact recorded timestamp. The page loads a small, strictly validated `price-changes.json` artifact instead of the complete catalogue, while CSV remains available as the technical export. Both files are atomically published and verified for generation and row count during every refresh.
+
+Version `v0.26.0` adds interactive history to every product on the Recent price changes page. Selecting the product opens an accessible popup with a step chart for every chain that currently has a price, exact observations, and the latest price per chain. Each successful sync retains compact points only when a price changes, plus the current line endpoint and one anchor immediately before the seven-day window. This avoids inventing hourly movement and keeps the payload small. The chart is strictly history observed by this application: existing active changes start with their previous and current prices, while richer paths accumulate over subsequent successful syncs. It is not an official long-term PosoKanei history service.
+
+![Per-chain product price history in version 0.26.0](screenshots/price-history-v0.26.0.png)
+
+![Mobile product price history](screenshots/price-history-mobile-v0.26.0.png)
 
 ![Portable JSON basket export and import](screenshots/basket-export-json.jpg)
 
@@ -886,8 +898,8 @@ The app includes a lightweight update checker:
 - `public/api/update-status.php` samples `meta/stats` plus a few representative product searches, fingerprints the result, and caches the status for 30 minutes.
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, the compact `public/data/catalog-runtime.json`, and the first-paint `public/data/catalog-bootstrap.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file, while `npm run catalog:bootstrap` rebuilds the startup payload from an existing runtime catalogue.
-- `npm run live:refresh` validates the last published catalogue, passes it to the selected refresh runner, and annotates notable per-chain price changes before generating the full, runtime, bootstrap, and metadata artifacts. Recent valid markers are retained for seven days; no user, basket, or location data is involved.
-- `npm run live:refresh` builds fresh full, metadata, runtime, and startup catalogues under `dist/data/`, uploads them to the live FTP path, and verifies the public `catalog`, `runtime`, `bootstrap`, `metadata`, and `refresh-status` timestamps.
+- `npm run live:refresh` validates the last published catalogue, passes it to the selected refresh runner, and annotates notable per-chain price changes before generating the full, runtime, bootstrap, and metadata artifacts. Recent valid markers and compact per-chain history points are retained for seven days; no user, basket, or location data is involved.
+- `npm run live:refresh` builds fresh full, metadata, runtime, startup, CSV price-change, and compact JSON history artifacts under `dist/data/`, uploads them to the live FTP path, and verifies the public catalogue, price-change, and refresh-status generations.
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
@@ -972,7 +984,7 @@ DEPLOY_INCLUDE_DATA=1 npm run live:deploy
 - The app can compare one-store baskets and multi-stop plans up to four chains.
 - Multi-stop plans optimize product price within the location-eligible chains, but the optimizer does not yet include route time, parking, delivery fees, or road distance.
 - It does not handle delivery fees, loyalty cards, substitutions, coupons, or in-store stock; geographic eligibility depends on OpenStreetMap branch coverage and naming.
-- The daily bargain compares current prices across chains; without historical price data it must not be interpreted as proof of a previous-price discount.
+- The daily bargain compares current prices across chains. The short app-observed history is not used as proof of a previous-price discount, so the suggestion must still be read as a current cross-chain comparison.
 - A larger public deployment should add centralized error telemetry, request rate limiting, and an explicit policy check for upstream API usage.
 
 ### License

@@ -4,6 +4,7 @@ import {
   filterPriceChanges,
   normalizePriceChangesPayload,
   priceChangeRetailers,
+  priceHistoryForProduct,
 } from "./priceChangesView.js";
 
 const payload = {
@@ -11,6 +12,23 @@ const payload = {
   generated_at: "2026-07-17T12:00:00.000Z",
   retention_days: 7,
   stats: { catalog_products: 9000 },
+  histories: {
+    coffee: {
+      product_id: "coffee",
+      product_name: "Ελληνικός Καφές",
+      image_url: "https://example.com/coffee.jpg",
+      retailers: [
+        {
+          retailer_id: "chain-b",
+          retailer_name: "Αλυσίδα Β",
+          points: [
+            ["2026-07-17T10:00:00.000Z", 4],
+            ["2026-07-17T11:00:00.000Z", 3.5],
+          ],
+        },
+      ],
+    },
+  },
   changes: [
     {
       product_id: "coffee",
@@ -53,12 +71,38 @@ test("price-change view payload is validated and summarized", () => {
     retailers: 2,
     decreases: 1,
     increases: 1,
+    historyProducts: 1,
   });
   assert.equal(normalized.catalogProducts, 9000);
   assert.deepEqual(priceChangeRetailers(normalized.changes), [
     { id: "chain-a", name: "Αλυσίδα Α" },
     { id: "chain-b", name: "Αλυσίδα Β" },
   ]);
+  assert.deepEqual(normalized.histories.coffee.retailers[0].points[0], {
+    observedAt: "2026-07-17T10:00:00.000Z",
+    observedAtMs: Date.parse("2026-07-17T10:00:00.000Z"),
+    price: 4,
+  });
+});
+
+test("price history uses retained series and falls back to the visible change", () => {
+  const normalized = normalizePriceChangesPayload(payload);
+  const retained = priceHistoryForProduct(
+    normalized.histories,
+    normalized.changes,
+    "coffee",
+  );
+  const fallback = priceHistoryForProduct(
+    {},
+    normalized.changes,
+    "milk",
+  );
+
+  assert.equal(retained.retailers[0].points.length, 2);
+  assert.deepEqual(
+    fallback.retailers[0].points.map((point) => point.price),
+    [2, 2.2],
+  );
 });
 
 test("price-change filters support accent-insensitive search, chain, and direction", () => {

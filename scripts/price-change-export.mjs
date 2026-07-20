@@ -22,6 +22,7 @@ export const PRICE_CHANGE_CSV_COLUMNS = [
 ];
 
 export const PRICE_CHANGES_SCHEMA_VERSION = 1;
+const MAX_HISTORY_POINTS = 200;
 
 function finiteNumber(value) {
   const number = Number(value);
@@ -40,6 +41,89 @@ function retailerName(offer, retailersById) {
       || retailersById.get(id)?.name
       || id,
   ).trim();
+}
+
+function snapshotRetailersById(snapshot) {
+  return new Map(
+    (Array.isArray(snapshot?.retailers) ? snapshot.retailers : [])
+      .map((retailer) => [String(retailer?.id || "").trim().toLowerCase(), retailer])
+      .filter(([id]) => id),
+  );
+}
+
+function normalizedHistoryPoints(offer, generatedAt) {
+  const pointsByTime = new Map();
+  const addPoint = (observedAtValue, priceValue) => {
+    const observedAt = String(observedAtValue || "");
+    const observedAtMs = Date.parse(observedAt);
+    const price = finiteNumber(priceValue);
+    if (!Number.isFinite(observedAtMs) || price === null || price <= 0) return;
+    pointsByTime.set(observedAt, { observedAt, observedAtMs, price });
+  };
+
+  for (const point of Array.isArray(offer?.price_history)
+    ? offer.price_history.slice(-MAX_HISTORY_POINTS)
+    : []) {
+    addPoint(point?.observed_at ?? point?.observedAt, point?.price);
+  }
+
+  const change = offer?.price_change;
+  if (!pointsByTime.size && change) {
+    const changedAt = String(change.changed_at || generatedAt || "");
+    const changedAtMs = Date.parse(changedAt);
+    const comparedAt = String(change.compared_at || "");
+    addPoint(
+      Number.isFinite(Date.parse(comparedAt))
+        ? comparedAt
+        : Number.isFinite(changedAtMs)
+          ? new Date(changedAtMs - 1).toISOString()
+          : generatedAt,
+      change.previous_price,
+    );
+    addPoint(changedAt, offer?.price);
+  }
+  addPoint(generatedAt, offer?.price);
+
+  return [...pointsByTime.values()]
+    .sort((left, right) => left.observedAtMs - right.observedAtMs)
+    .slice(-MAX_HISTORY_POINTS)
+    .map(({ observedAt, price }) => [observedAt, price]);
+}
+
+function collectPriceHistories(snapshot, productIds) {
+  const generatedAt = String(snapshot?.generated_at || "");
+  const retailersById = snapshotRetailersById(snapshot);
+  const histories = {};
+
+  for (const product of Array.isArray(snapshot?.products) ? snapshot.products : []) {
+    const productId = String(product?.id || "");
+    if (!productIds.has(productId)) continue;
+    const retailers = [];
+
+    for (const offer of Array.isArray(product?.retailer_prices) ? product.retailer_prices : []) {
+      const id = retailerId(offer).toLowerCase();
+      const points = normalizedHistoryPoints(offer, generatedAt);
+      if (!id || !points.length) continue;
+      const metadata = retailersById.get(id);
+      retailers.push({
+        retailer_id: id,
+        retailer_name: retailerName(offer, retailersById),
+        ...(metadata?.logo_url ? { retailer_logo_url: String(metadata.logo_url) } : {}),
+        points,
+      });
+    }
+
+    if (retailers.length) {
+      histories[productId] = {
+        product_id: productId,
+        product_name: String(product?.name || ""),
+        image_url: String(product?.image_url || ""),
+        retailers: retailers.sort((left, right) =>
+          left.retailer_name.localeCompare(right.retailer_name, "el")),
+      };
+    }
+  }
+  return histories;
 }
 
 function decimal(value, digits) {
@@ -63,11 +147,7 @@ function compareRows(left, right) {
 
 export function collectPriceChangeRows(snapshot) {
   const generatedAt = String(snapshot?.generated_at || "");
-  const retailersById = new Map(
-    (Array.isArray(snapshot?.retailers) ? snapshot.retailers : [])
-      .map((retailer) => [String(retailer?.id || "").trim().toLowerCase(), retailer])
-      .filter(([id]) => id),
-  );
+  const retailersById = snapshotRetailersById(snapshot);
   const rows = [];
 
   for (const product of Array.isArray(snapshot?.products) ? snapshot.products : []) {
@@ -121,6 +201,9 @@ export function createPriceChangesPayload(snapshot) {
   const rows = collectPriceChangeRows(snapshot);
   const productIds = new Set(rows.map((row) => row.product_id));
   const retailerIds = new Set(rows.map((row) => row.retailer_id));
+  const histories = collectPriceHistories(snapshot, productIds);
+  const historySeries = Object.values(histories)
+    .flatMap((history) => history.retailers);
   const changes = rows.map((row) => ({
     product_id: row.product_id,
     product_name: row.product_name,
@@ -151,8 +234,12 @@ export function createPriceChangesPayload(snapshot) {
       decreases: changes.filter((change) => change.direction === "decrease").length,
       increases: changes.filter((change) => change.direction === "increase").length,
       catalog_products: Array.isArray(snapshot?.products) ? snapshot.products.length : 0,
+      history_products: Object.keys(histories).length,
+      history_series: historySeries.length,
+      history_points: historySeries.reduce((total, series) => total + series.points.length, 0),
     },
     changes,
+    histories,
   };
 }
 
@@ -202,9 +289,34 @@ export function inspectPriceChangesCsv(csv) {
 
 export function inspectPriceChangesJson(value) {
   const payload = typeof value === "string" ? JSON.parse(value) : value;
+  const historiesValid = payload?.histories === undefined || (
+    payload.histories
+    && typeof payload.histories === "object"
+    && !Array.isArray(payload.histories)
+    && Object.entries(payload.histories).every(([productId, history]) => (
+      productId
+      && history?.product_id === productId
+      && Array.isArray(history?.retailers)
+      && history.retailers.length <= 30
+      && history.retailers.every((series) => (
+        typeof series?.retailer_id === "string"
+        && typeof series?.retailer_name === "string"
+        && Array.isArray(series?.points)
+        && series.points.length <= MAX_HISTORY_POINTS
+        && series.points.every((point) => (
+          Array.isArray(point)
+          && point.length === 2
+          && Number.isFinite(Date.parse(point[0]))
+          && Number.isFinite(point[1])
+          && point[1] > 0
+        ))
+      ))
+    ))
+  );
   if (
     payload?.schema_version !== PRICE_CHANGES_SCHEMA_VERSION
     || !Array.isArray(payload?.changes)
+    || !historiesValid
     || !payload.changes.every((change) => (
       change
       && typeof change.product_id === "string"

@@ -5,7 +5,12 @@ import {
   isNotablePriceChange,
 } from "../scripts/price-change-history.mjs";
 
-function snapshot(generatedAt, price, priceChange = undefined) {
+function snapshot(
+  generatedAt,
+  price,
+  priceChange = undefined,
+  priceHistory = undefined,
+) {
   return {
     generated_at: generatedAt,
     products: [
@@ -17,6 +22,7 @@ function snapshot(generatedAt, price, priceChange = undefined) {
             country: "GR",
             price,
             ...(priceChange ? { price_change: priceChange } : {}),
+            ...(priceHistory ? { price_history: priceHistory } : {}),
           },
         ],
       },
@@ -44,6 +50,10 @@ test("snapshot comparison records a notable retailer price decrease", () => {
     changed_at: "2026-07-16T10:00:00.000Z",
     compared_at: "2026-07-16T09:00:00.000Z",
   });
+  assert.deepEqual(result.snapshot.products[0].retailer_prices[0].price_history, [
+    { price: 2, observed_at: "2026-07-16T09:00:00.000Z" },
+    { price: 1.8, observed_at: "2026-07-16T10:00:00.000Z" },
+  ]);
   assert.equal(result.stats.new_changes, 1);
   assert.equal(result.stats.decreases, 1);
   assert.equal(result.stats.products_with_recent_changes, 1);
@@ -68,8 +78,59 @@ test("an unchanged price retains a recent marker but expires it after seven days
   );
 
   assert.deepEqual(retained.snapshot.products[0].retailer_prices[0].price_change, marker);
+  assert.deepEqual(retained.snapshot.products[0].retailer_prices[0].price_history, [
+    { price: 2, observed_at: "2026-07-10T09:00:00.000Z" },
+    { price: 1.8, observed_at: "2026-07-10T10:00:00.000Z" },
+  ]);
   assert.equal(retained.stats.new_changes, 0);
   assert.equal(expired.snapshot.products[0].retailer_prices[0].price_change, undefined);
+  assert.equal(expired.snapshot.products[0].retailer_prices[0].price_history, undefined);
+});
+
+test("successive notable changes accumulate compact history points", () => {
+  const first = annotatePriceChanges(
+    snapshot("2026-07-16T10:00:00.000Z", 1.8),
+    snapshot("2026-07-16T09:00:00.000Z", 2),
+  );
+  const second = annotatePriceChanges(
+    snapshot("2026-07-16T12:00:00.000Z", 1.5),
+    first.snapshot,
+  );
+
+  assert.deepEqual(second.snapshot.products[0].retailer_prices[0].price_history, [
+    { price: 2, observed_at: "2026-07-16T09:00:00.000Z" },
+    { price: 1.8, observed_at: "2026-07-16T10:00:00.000Z" },
+    { price: 1.5, observed_at: "2026-07-16T12:00:00.000Z" },
+  ]);
+});
+
+test("history keeps one pre-window anchor and drops older points", () => {
+  const marker = {
+    previous_price: 3,
+    amount: -1,
+    percentage: -33.3,
+    changed_at: "2026-07-12T10:00:00.000Z",
+    compared_at: "2026-07-10T10:00:00.000Z",
+  };
+  const previous = snapshot(
+    "2026-07-17T10:00:00.000Z",
+    2,
+    marker,
+    [
+      { price: 4, observed_at: "2026-07-01T10:00:00.000Z" },
+      { price: 3, observed_at: "2026-07-10T10:00:00.000Z" },
+      { price: 2, observed_at: "2026-07-12T10:00:00.000Z" },
+    ],
+  );
+  const result = annotatePriceChanges(
+    snapshot("2026-07-18T10:00:00.000Z", 2),
+    previous,
+  );
+
+  assert.deepEqual(result.snapshot.products[0].retailer_prices[0].price_history, [
+    { price: 3, observed_at: "2026-07-10T10:00:00.000Z" },
+    { price: 2, observed_at: "2026-07-12T10:00:00.000Z" },
+  ]);
 });
 
 test("a later small price adjustment clears a marker that no longer describes the price", () => {

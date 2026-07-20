@@ -8,6 +8,7 @@ import {
   Bookmark,
   Check,
   CheckCheck,
+  ChartLine,
   ChevronRight,
   CircleDollarSign,
   ClipboardList,
@@ -135,8 +136,10 @@ import { buildCatalogImageSources } from "./imageSources";
 import {
   filterPriceChanges,
   normalizePriceChangesPayload,
+  priceHistoryForProduct,
   priceChangeRetailers,
 } from "./priceChangesView";
+import { createPriceHistoryChart } from "./priceHistoryChart";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -1335,6 +1338,7 @@ function PriceChangesApp() {
   const [retailerId, setRetailerId] = useState("all");
   const [direction, setDirection] = useState("all");
   const [sort, setSort] = useState("recent");
+  const [selectedHistoryProductId, setSelectedHistoryProductId] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1394,6 +1398,20 @@ function PriceChangesApp() {
         activeProducts: 0,
       };
   const updatedAt = data ? formatDataTime(data.generatedAt, locale, t) : "";
+  const selectedHistory = useMemo(
+    () => selectedHistoryProductId && data
+      ? priceHistoryForProduct(
+          data.histories,
+          data.changes,
+          selectedHistoryProductId,
+        )
+      : null,
+    [data, selectedHistoryProductId],
+  );
+  const selectedHistoryProduct = useMemo(
+    () => data?.changes.find((change) => change.productId === selectedHistoryProductId)?.product || null,
+    [data?.changes, selectedHistoryProductId],
+  );
 
   return (
     <div className="app-shell changes-shell">
@@ -1560,6 +1578,7 @@ function PriceChangesApp() {
                       change={change}
                       locale={locale}
                       money={money}
+                      onOpenHistory={() => setSelectedHistoryProductId(change.productId)}
                       t={t}
                     />
                   ))}
@@ -1575,6 +1594,14 @@ function PriceChangesApp() {
           </>
         ) : null}
       </main>
+      {selectedHistory ? (
+        <PriceHistoryDialog
+          history={selectedHistory}
+          product={selectedHistoryProduct}
+          retentionDays={data?.retentionDays || 7}
+          onClose={() => setSelectedHistoryProductId("")}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1591,7 +1618,7 @@ function PriceChangeSummary({ direction = "", icon, label, value }) {
   );
 }
 
-function PriceChangeRow({ change, locale, money, t }) {
+function PriceChangeRow({ change, locale, money, onOpenHistory, t }) {
   const decreased = change.direction === "decrease";
   const exactTime = formatDateTime(new Date(change.changedAt), locale);
   const relativeTime = formatRelativeTime(change.changedAt, locale, t);
@@ -1600,13 +1627,22 @@ function PriceChangeRow({ change, locale, money, t }) {
 
   return (
     <article className={`change-row ${change.direction}`}>
-      <div className="change-product-cell">
+      <button
+        type="button"
+        className="change-product-cell change-product-button"
+        aria-label={t("openPriceHistory", { name: change.productName })}
+        onClick={onOpenHistory}
+      >
         <ProductThumb product={change.product} compact />
         <span>
           <strong>{change.productName}</strong>
           <small>{[change.brand, change.category].filter(Boolean).join(" · ") || t("noBrand")}</small>
+          <span className="change-history-hint">
+            <ChartLine size={13} aria-hidden="true" />
+            {t("viewPriceHistory")}
+          </span>
         </span>
-      </div>
+      </button>
       <div className="change-cell change-retailer-cell">
         <small className="change-cell-label">{t("chainColumn")}</small>
         <strong>{change.retailerName}</strong>
@@ -1634,6 +1670,239 @@ function PriceChangeRow({ change, locale, money, t }) {
       </time>
     </article>
   );
+}
+
+function PriceHistoryDialog({ history, product, retentionDays, onClose }) {
+  const { locale, money, number, t } = usePreferences();
+  const closeButtonRef = useRef(null);
+  const chartContainerRef = useRef(null);
+  const [chartDimensions, setChartDimensions] = useState({ width: 900, height: 330 });
+  const chart = useMemo(
+    () => createPriceHistoryChart(history, chartDimensions),
+    [chartDimensions, history],
+  );
+
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return undefined;
+    const updateDimensions = () => {
+      const width = Math.max(280, Math.round(container.clientWidth || 900));
+      const height = width < 620 ? 250 : 330;
+      setChartDimensions((current) => (
+        current.width === width && current.height === height
+          ? current
+          : { width, height }
+      ));
+    };
+    const observer = typeof ResizeObserver === "function"
+      ? new ResizeObserver(updateDimensions)
+      : null;
+    updateDimensions();
+    observer?.observe(container);
+    window.addEventListener("resize", updateDimensions);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateDimensions);
+    };
+  }, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "Tab") {
+        event.preventDefault();
+        closeButtonRef.current?.focus();
+      }
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      if (typeof previousFocus?.focus === "function") previousFocus.focus();
+    };
+  }, [onClose]);
+
+  const titleId = `price-history-${history.productId}`;
+  const chartLabel = t("priceHistoryChartLabel", { name: history.productName });
+
+  return (
+    <aside
+      className="drawer price-history-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-panel price-history-panel">
+        <header className="price-history-head">
+          <ProductThumb
+            product={product || {
+              id: history.productId,
+              name: history.productName,
+              imageUrl: history.imageUrl,
+            }}
+          />
+          <div className="price-history-heading-copy">
+            <span className="changes-eyebrow">
+              <ChartLine size={16} aria-hidden="true" />
+              {t("priceHistoryTitle")}
+            </span>
+            <h2 id={titleId}>{history.productName}</h2>
+            <p>{t("priceHistoryDescription", { days: number(retentionDays) })}</p>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="icon-button"
+            aria-label={t("close")}
+            title={t("close")}
+            onClick={onClose}
+          >
+            <X size={19} aria-hidden="true" />
+          </button>
+        </header>
+
+        {chart ? (
+          <>
+            <section
+              ref={chartContainerRef}
+              className="price-history-chart"
+              aria-label={chartLabel}
+            >
+              <svg
+                viewBox={`0 0 ${chart.width} ${chart.height}`}
+                role="img"
+                aria-label={chartLabel}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <title>{chartLabel}</title>
+                {chart.yTicks.map((tick) => (
+                  <g key={tick.y}>
+                    <line
+                      className="history-grid-line"
+                      x1={chart.plot.left}
+                      x2={chart.plot.right}
+                      y1={tick.y}
+                      y2={tick.y}
+                    />
+                    <text
+                      className="history-axis-label"
+                      x={chart.plot.left - 10}
+                      y={tick.y + 4}
+                      textAnchor="end"
+                    >
+                      {money(tick.price)}
+                    </text>
+                  </g>
+                ))}
+                {chart.xTicks.map((tick, index) => (
+                  <g key={tick.observedAtMs}>
+                    <line
+                      className="history-grid-line vertical"
+                      x1={tick.x}
+                      x2={tick.x}
+                      y1={chart.plot.top}
+                      y2={chart.plot.bottom}
+                    />
+                    <text
+                      className="history-axis-label"
+                      x={tick.x}
+                      y={chart.height - 10}
+                      textAnchor={index === 0
+                        ? "start"
+                        : index === chart.xTicks.length - 1
+                          ? "end"
+                          : "middle"}
+                    >
+                      {formatHistoryDate(tick.observedAtMs, locale)}
+                    </text>
+                  </g>
+                ))}
+                {chart.series.map((series) => (
+                  <g key={series.retailerId}>
+                    <path
+                      className="history-series-line"
+                      d={series.path}
+                      stroke={series.color}
+                    />
+                    {series.points.map((point) => (
+                      <circle
+                        key={`${point.observedAt}:${point.price}`}
+                        className="history-series-point"
+                        cx={point.x}
+                        cy={point.y}
+                        r="4"
+                        fill={series.color}
+                      >
+                        <title>
+                          {`${series.retailerName}: ${money(point.price)} · ${formatDateTime(new Date(point.observedAtMs), locale)}`}
+                        </title>
+                      </circle>
+                    ))}
+                  </g>
+                ))}
+              </svg>
+            </section>
+
+            <section className="price-history-series" aria-label={t("priceHistoryChains")}>
+              {chart.series.map((series) => (
+                <article className="price-history-series-row" key={series.retailerId}>
+                  <span
+                    className="price-history-swatch"
+                    style={{ backgroundColor: series.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="price-history-series-name">
+                    <strong>{series.retailerName}</strong>
+                    <small>
+                      {t("priceHistoryObservations", {
+                        count: number(series.summary.observations),
+                      })}
+                    </small>
+                  </span>
+                  <span className="price-history-series-values">
+                    <strong>{money(series.summary.latestPrice)}</strong>
+                    <small>
+                      {t("priceHistoryStartedAt", {
+                        price: money(series.summary.firstPrice),
+                      })}
+                    </small>
+                  </span>
+                </article>
+              ))}
+            </section>
+          </>
+        ) : (
+          <div className="changes-empty price-history-empty">
+            <ChartLine size={28} aria-hidden="true" />
+            <strong>{t("priceHistoryUnavailable")}</strong>
+          </div>
+        )}
+
+        <p className="price-history-footnote">
+          <Info size={15} aria-hidden="true" />
+          <span>{t("priceHistoryFootnote")}</span>
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function formatHistoryDate(timestamp, locale) {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(timestamp));
+  } catch {
+    return "";
+  }
 }
 
 function priceChangeProduct(change) {

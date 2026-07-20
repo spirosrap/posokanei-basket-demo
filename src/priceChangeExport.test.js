@@ -94,6 +94,9 @@ test("price-change JSON contains compact display records and summary counts", ()
     decreases: 1,
     increases: 1,
     catalog_products: 2,
+    history_products: 2,
+    history_series: 3,
+    history_points: 7,
   });
   assert.deepEqual(payload.changes[0], {
     product_id: "product-1",
@@ -111,6 +114,27 @@ test("price-change JSON contains compact display records and summary counts", ()
     changed_at: "2026-07-17T11:00:00.000Z",
     compared_at: "2026-07-17T10:00:00.000Z",
     offer_updated_at: "2026-07-17T00:00:00",
+  });
+  assert.deepEqual(payload.histories["product-1"], {
+    product_id: "product-1",
+    product_name: "Καφές \"Ελληνικός\"",
+    image_url: "https://example.com/coffee.jpg",
+    retailers: [
+      {
+        retailer_id: "chain-a",
+        retailer_name: "Αλυσίδα Α",
+        points: [
+          ["2026-07-17T10:00:00.000Z", 4],
+          ["2026-07-17T11:00:00.000Z", 3.5],
+          ["2026-07-17T12:00:00.000Z", 3.5],
+        ],
+      },
+      {
+        retailer_id: "chain-b",
+        retailer_name: "Αλυσίδα Β",
+        points: [["2026-07-17T12:00:00.000Z", 3.7]],
+      },
+    ],
   });
   assert.deepEqual(inspectPriceChangesJson(payload), {
     rowCount: 2,
