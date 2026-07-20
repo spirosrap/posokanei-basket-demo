@@ -2161,17 +2161,27 @@ function AppIntro({ health, updateStatus }) {
         <h1>{t("introTitle")}</h1>
         <p>{t("introDescription")}</p>
       </div>
-      <div className="intro-facts" aria-label={t("dataStatus")}>
-        <span>
-          {refreshFailed
-            ? t("lastAttemptFailed")
-            : health.source === "snapshot"
-            ? t("hourlyUpdates")
-            : health.state === "online"
-              ? t("liveProductPrices")
-              : t("waitingLivePrices")}
-        </span>
-        {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus, t, locale)}</span> : null}
+      <div className="intro-side">
+        <a className="price-changes-nav" href={PRICE_CHANGES_PATH}>
+          <ArrowDownUp size={17} aria-hidden="true" />
+          <span>
+            <strong>{t("priceChangesTitle")}</strong>
+            <small>{t("priceChangesPageDescription")}</small>
+          </span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </a>
+        <div className="intro-facts" aria-label={t("dataStatus")}>
+          <span>
+            {refreshFailed
+              ? t("lastAttemptFailed")
+              : health.source === "snapshot"
+              ? t("hourlyUpdates")
+              : health.state === "online"
+                ? t("liveProductPrices")
+                : t("waitingLivePrices")}
+          </span>
+          {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus, t, locale)}</span> : null}
+        </div>
       </div>
     </section>
   );
@@ -2221,16 +2231,6 @@ function DataFreshnessNotice({ health, updateStatus }) {
               })
             : ""}
         </p>
-        <a
-          className="price-change-export"
-          href={PRICE_CHANGES_PATH}
-        >
-          <ArrowDownUp size={16} aria-hidden="true" />
-          <span>
-            <strong>{t("viewPriceChanges")}</strong>
-            <small>{t("priceChangesPageDescription")}</small>
-          </span>
-        </a>
       </div>
     </details>
   );

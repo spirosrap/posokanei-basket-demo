@@ -352,6 +352,66 @@ select:focus-visible {
   color: var(--muted);
 }
 
+.intro-side {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.price-changes-nav {
+  display: inline-flex;
+  min-height: 42px;
+  max-width: 330px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--blue);
+  padding: 6px 9px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(35, 65, 51, 0.05);
+}
+
+.price-changes-nav:hover,
+.price-changes-nav:focus-visible {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: var(--blue-soft);
+}
+
+.price-changes-nav > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.price-changes-nav strong,
+.price-changes-nav small {
+  display: block;
+}
+
+.price-changes-nav strong {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.price-changes-nav small {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.price-changes-nav > svg {
+  flex: 0 0 auto;
+}
+
+.price-changes-nav > svg:last-child {
+  color: var(--muted);
+}
+
 .data-warning {
   max-width: 1520px;
   margin: 0 auto 10px;
@@ -428,47 +488,6 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 700;
   line-height: 1.45;
-}
-
-.price-change-export {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 40px;
-  margin-top: 9px;
-  border: 1px solid rgba(37, 99, 235, 0.24);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--blue);
-  padding: 6px 10px;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(35, 65, 51, 0.05);
-}
-
-.price-change-export:hover,
-.price-change-export:focus-visible {
-  border-color: rgba(37, 99, 235, 0.5);
-  background: var(--blue-soft);
-}
-
-.price-change-export > span,
-.price-change-export strong,
-.price-change-export small {
-  display: block;
-}
-
-.price-change-export strong {
-  color: var(--text);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.price-change-export small {
-  margin-top: 1px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.3;
 }
 
 .daily-bargain {
@@ -4825,6 +4844,12 @@ select:focus-visible {
     flex-direction: column;
   }
 
+  .intro-side {
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
   .intro-facts {
     align-items: flex-start;
     flex-direction: row;
@@ -5228,6 +5253,21 @@ select:focus-visible {
   }
 
   .intro-facts {
+    display: none;
+  }
+
+  .intro-side,
+  .price-changes-nav {
+    width: 100%;
+    max-width: none;
+  }
+
+  .price-changes-nav {
+    min-height: 38px;
+    padding: 6px 9px;
+  }
+
+  .price-changes-nav small {
     display: none;
   }
 

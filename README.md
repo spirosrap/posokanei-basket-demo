@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.26.0`
+**Τρέχουσα έκδοση:** `v0.26.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -92,6 +92,8 @@
 Η έκδοση `v0.25.0` προσθέτει τη δημόσια σελίδα [`/changes/`](https://kalathitimon.com/changes/) για φιλική εξερεύνηση των ίδιων μεταβολών. Εμφανίζει σύνοψη αλλαγών, προϊόντων, μειώσεων και αυξήσεων, με αναζήτηση χωρίς διάκριση ελληνικών τόνων, φίλτρο αλυσίδας, τμηματικό έλεγχο κατεύθυνσης και ταξινόμηση ανά χρόνο, ποσοστό, διαφορά σε ευρώ ή όνομα. Κάθε γραμμή δείχνει προϊόν και εικόνα, αλυσίδα, προηγούμενη και τρέχουσα τιμή, υπογεγραμμένη διαφορά σε ευρώ και ποσοστό, σχετικό χρόνο και ακριβή ώρα καταγραφής. Η σελίδα φορτώνει ένα μικρό, αυστηρά ελεγμένο `price-changes.json` αντί για τον πλήρη κατάλογο, ενώ το CSV παραμένει διαθέσιμο ως τεχνική εξαγωγή. Και τα δύο αρχεία δημοσιεύονται ατομικά και επαληθεύονται ως προς γενιά και αριθμό γραμμών σε κάθε συγχρονισμό.
 
 Η έκδοση `v0.26.0` προσθέτει διαδραστικό ιστορικό σε κάθε προϊόν της σελίδας «Πρόσφατες αλλαγές τιμών». Με πάτημα στο προϊόν ανοίγει προσβάσιμο αναδυόμενο παράθυρο με βηματικό γράφημα για όλες τις αλυσίδες που έχουν διαθέσιμη τιμή, ακριβείς παρατηρήσεις και τρέχουσα τιμή ανά αλυσίδα. Κάθε επιτυχής συγχρονισμός κρατά συμπαγή σημεία μόνο όταν αλλάζει η τιμή, μαζί με το τρέχον άκρο της γραμμής και ένα σημείο αναφοράς πριν από το επταήμερο παράθυρο. Έτσι δεν δημιουργούνται τεχνητές ωριαίες μεταβολές και το αρχείο παραμένει μικρό. Πρόκειται αποκλειστικά για ιστορικό που παρατηρεί η εφαρμογή: οι υπάρχουσες ενεργές μεταβολές ξεκινούν με προηγούμενη και τρέχουσα τιμή, ενώ η πιο πλούσια πορεία συγκεντρώνεται στους επόμενους επιτυχείς συγχρονισμούς. Δεν είναι επίσημο μακροχρόνιο ιστορικό του PosoKanei.
+
+Η έκδοση `v0.26.1` μεταφέρει τη μόνιμη είσοδο στη σελίδα «Πρόσφατες αλλαγές τιμών» δίπλα στην εισαγωγή της εφαρμογής. Ο σύνδεσμος παραμένει πλέον καθαρά ορατός σε υπολογιστή και κινητό, ανεξάρτητα από το αν η αναπτυσσόμενη ειδοποίηση ενημέρωσης καταλόγου είναι ανοιχτή ή κλειστή.
 
 ![Ιστορικό τιμών προϊόντος ανά αλυσίδα στην έκδοση 0.26.0](screenshots/price-history-v0.26.0.png)
 
@@ -217,7 +219,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.26.0`
+**Current version:** `v0.26.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -330,6 +332,8 @@ Version `v0.24.0` collects every active recent price movement from every superma
 Version `v0.25.0` adds the public [`/changes/`](https://kalathitimon.com/changes/) page for a readable view of the same movements. It provides change, product, drop, and rise totals; accent-insensitive Greek search; chain and direction filters; and sorting by time, percentage, euro difference, or product name. Each row shows the product and image, chain, previous and current price, signed euro and percentage movement, relative time, and exact recorded timestamp. The page loads a small, strictly validated `price-changes.json` artifact instead of the complete catalogue, while CSV remains available as the technical export. Both files are atomically published and verified for generation and row count during every refresh.
 
 Version `v0.26.0` adds interactive history to every product on the Recent price changes page. Selecting the product opens an accessible popup with a step chart for every chain that currently has a price, exact observations, and the latest price per chain. Each successful sync retains compact points only when a price changes, plus the current line endpoint and one anchor immediately before the seven-day window. This avoids inventing hourly movement and keeps the payload small. The chart is strictly history observed by this application: existing active changes start with their previous and current prices, while richer paths accumulate over subsequent successful syncs. It is not an official long-term PosoKanei history service.
+
+Version `v0.26.1` moves the persistent entry to the Recent price changes page beside the app introduction. The link now stays clearly visible on desktop and mobile regardless of whether the expandable catalogue-update notice is open or closed.
 
 ![Per-chain product price history in version 0.26.0](screenshots/price-history-v0.26.0.png)
 
