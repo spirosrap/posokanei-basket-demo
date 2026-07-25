@@ -1,4 +1,5 @@
 import { APP_BASE_URL, runtimeAppUrl } from "./appConfig.js";
+import { refreshDailyBargainProducts } from "./dailyBargain.js";
 import { productSortApiValue } from "./productSort.js";
 
 const API_ORIGIN = "https://api.posokanei.gov.gr";
@@ -437,6 +438,9 @@ export function normalizeProduct(raw, source = "live") {
     tile: productTile(name),
     tint: "#e0f2fe",
     prices: Object.fromEntries(priceEntries.map((entry) => [entry.retailerId, entry.price])),
+    retailerNames: Object.fromEntries(
+      priceEntries.map((entry) => [entry.retailerId, entry.retailerName]),
+    ),
     unitPrices: Object.fromEntries(
       priceEntries
         .filter((entry) => entry.unitPrice != null)
@@ -797,13 +801,21 @@ export async function fetchDailyBargain() {
   const bargains = rawBargains.map(normalizeBargain).filter(Boolean);
   if (!bargains.length) throw new Error("Daily bargain list is incomplete.");
 
-  return {
+  const pick = {
     ...bargains[0],
     date: raw.date || "",
     generatedAt: raw.generated_at || "",
     catalogGeneratedAt: raw.catalog_generated_at || "",
     bargains,
   };
+  const current = await fetchProductsByIdsWithMeta(
+    bargains.map((bargain) => bargain.productId),
+  );
+  return refreshDailyBargainProducts(
+    pick,
+    current.products,
+    current.snapshotGeneratedAt,
+  );
 }
 
 function normalizeBargain(raw) {
@@ -901,9 +913,14 @@ export async function fetchProducts({
     }));
 }
 
-export async function fetchProductsByIds(productIds = [], { includeDetails = false } = {}) {
+async function fetchProductsByIdsWithMeta(
+  productIds = [],
+  { includeDetails = false } = {},
+) {
   const wantedIds = new Set(productIds.map((id) => String(id)));
-  if (!wantedIds.size) return [];
+  if (!wantedIds.size) {
+    return { products: [], snapshotGeneratedAt: "" };
+  }
 
   try {
     const raw = await fetchJson(
@@ -916,7 +933,13 @@ export async function fetchProductsByIds(productIds = [], { includeDetails = fal
       2,
     );
     const products = firstArray(raw).map((product) => normalizeProduct(product, "snapshot"));
-    if (products.length) return products;
+    if (products.length) {
+      return {
+        products,
+        snapshotGeneratedAt:
+          raw?.snapshot_generated_at || raw?.snapshotGeneratedAt || "",
+      };
+    }
   } catch {
     // Fall back to the static snapshot when the batch endpoint is unavailable.
   }
@@ -932,9 +955,17 @@ export async function fetchProductsByIds(productIds = [], { includeDetails = fal
     }
   });
 
-  return productIds
-    .map((id) => productsById.get(String(id)))
-    .filter(Boolean);
+  return {
+    products: productIds
+      .map((id) => productsById.get(String(id)))
+      .filter(Boolean),
+    snapshotGeneratedAt: snapshot.generated_at || "",
+  };
+}
+
+export async function fetchProductsByIds(productIds = [], options = {}) {
+  const result = await fetchProductsByIdsWithMeta(productIds, options);
+  return result.products;
 }
 
 function searchByTitle(query, categoryId, page, pageSize, sortMode) {

@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.27.0`
+**Τρέχουσα έκδοση:** `v0.27.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -96,6 +96,8 @@
 Η έκδοση `v0.26.1` μεταφέρει τη μόνιμη είσοδο στη σελίδα «Πρόσφατες αλλαγές τιμών» δίπλα στην εισαγωγή της εφαρμογής. Ο σύνδεσμος παραμένει πλέον καθαρά ορατός σε υπολογιστή και κινητό, ανεξάρτητα από το αν η αναπτυσσόμενη ειδοποίηση ενημέρωσης καταλόγου είναι ανοιχτή ή κλειστή.
 
 Η έκδοση `v0.27.0` κάνει τη σελίδα «Πρόσφατες αλλαγές τιμών» αισθητά ταχύτερη χωρίς να αφαιρεί αποτελέσματα από την αναζήτηση ή τα φίλτρα. Το νέο format αποθηκεύει κοινά στοιχεία προϊόντων και αλυσίδων μία φορά και, στο στιγμιότυπο αναφοράς της 25/7 με `9.487` μεταβολές, μειώνει το `price-changes.json` από περίπου `11,0 MB` σε `2,32 MB` πριν από τη συμπίεση. Στην παραγωγή το ίδιο feed προ-συμπιέζεται σε περίπου `484 KB` και σερβίρεται από same-origin endpoint, με το στατικό JSON ως αυτόματο fallback. Η σελίδα επεξεργάζεται ολόκληρο το αρχείο αλλά εμφανίζει αρχικά μόνο `120` γραμμές και φορτώνει τις επόμενες σε παρτίδες, ενώ οι γραμμές δεν επανασχεδιάζονται όταν ανοίγει ή κλείνει το αναδυόμενο ιστορικό. Το γράφημα ανοίγει αμέσως από τη διαθέσιμη μεταβολή και στη συνέχεια φορτώνει μόνο για το επιλεγμένο προϊόν την πληρέστερη καταγεγραμμένη πορεία, τη φωτογραφία και την ίδια περιγραφή καταλόγου που εμφανίζεται στην κύρια προβολή προϊόντος. Τα αποτελέσματα πλήρους κειμένου, τα σύνολα, τα φίλτρα και το CSV εξακολουθούν να καλύπτουν όλες τις καταγεγραμμένες μεταβολές. Ο ωριαίος publisher κατεβάζει πλέον τον ίδιο τον τρέχοντα δημόσιο κατάλογο πριν συγκρίνει τιμές και σταματά πριν από τη δημοσίευση αν δεν μπορεί να τον επαληθεύσει, ώστε παλιό metadata ή build copy να μην δημιουργεί ψευδείς μεταβολές.
+
+Η έκδοση `v0.27.1` διορθώνει τις παλιές τιμές που μπορούσαν να παραμένουν στις «Ευκαιρίες της ημέρας» όταν μια επιλογή AI είχε δημιουργηθεί από παλαιότερο κατάλογο. Το AI εξακολουθεί να επιλέγει τα προϊόντα, αλλά πριν εμφανιστούν η εφαρμογή ζητά τις τρέχουσες εγγραφές τους από τον τελευταίο συγχρονισμένο κατάλογο και υπολογίζει ξανά φθηνότερη αλυσίδα, υψηλότερη τιμή, διαφορά, ποσοστό και πλήθος αλυσίδων. Οι λεπτομέρειες και η προσθήκη στο καλάθι χρησιμοποιούν το ίδιο ανανεωμένο προϊόν. Αν η τρέχουσα εγγραφή δεν μπορεί να επιβεβαιωθεί, η πρόταση κρύβεται αντί να δείξει παλιά τιμή. Η ένδειξη κάτω από την πρόταση ξεχωρίζει πλέον την επιλογή με AI από την ώρα των τρεχουσών τιμών καταλόγου.
 
 ![Γρήγορο ιστορικό με περιγραφή προϊόντος στην έκδοση 0.27.0](screenshots/price-history-description-v0.27.0.png)
 
@@ -195,7 +197,7 @@
 
 Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Η κάρτα δείχνει το συγκεκριμένο προϊόν και τη φωτογραφία του, τη φθηνότερη αλυσίδα, την τρέχουσα τιμή, πόσο χαμηλότερη είναι από την υψηλότερη τρέχουσα τιμή στις υπόλοιπες αλυσίδες, σύνδεσμο λεπτομερειών και κουμπί προσθήκης στο καλάθι. Το νέο κουμπί «Περισσότερες ευκαιρίες» ανοίγει ξεχωριστή σελίδα με εννέα συνολικά καθημερινές επιλογές: την κεντρική πρόταση και οκτώ επιπλέον προϊόντα, όλα με λεπτομέρειες και άμεση προσθήκη στο ίδιο αποθηκευμένο καλάθι. Το ποσοστό είναι σύγκριση τιμών του ίδιου προϊόντος μεταξύ αλυσίδων την ίδια χρονική περίοδο, όχι ιστορική έκπτωση ή σύγκριση με προηγούμενη τιμή.
 
-Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει εννέα διαφορετικά προϊόντα από την ήδη επαληθευμένη λίστα και γράφει μία σύντομη ελληνική αιτιολόγηση για το καθένα. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών.
+Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει εννέα διαφορετικά προϊόντα από την ήδη επαληθευμένη λίστα και γράφει σύντομο ελληνικό editorial κείμενο. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών. Πριν εμφανιστεί μια αποθηκευμένη επιλογή, ο browser ζητά ξανά τα επιλεγμένα IDs από τον τελευταίο συγχρονισμένο κατάλογο και επανυπολογίζει όλα τα αριθμητικά στοιχεία και την ορατή αιτιολόγηση τιμής, ώστε να μπορεί να διατηρηθεί η επιλογή χωρίς να διατηρούνται παλιές τιμές.
 
 Η παραγωγή γίνεται μία φορά την ημέρα στο Mac που εκτελεί ήδη τον συγχρονισμό του καταλόγου. Στον Plesk ανεβαίνει μόνο το δημόσιο `data/daily-bargain.json`, μαζί με το όνομα, την εικόνα, τις επαληθευμένες τιμές και το κείμενο της πρότασης. Το `OPENAI_API_KEY` μένει στο ιδιωτικό περιβάλλον του Mac, δεν περιλαμβάνεται στο repository ή στο build και δεν στέλνεται ποτέ στον browser ή στον web server.
 
@@ -227,7 +229,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.27.0`
+**Current version:** `v0.27.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -344,6 +346,8 @@ Version `v0.26.0` adds interactive history to every product on the Recent price 
 Version `v0.26.1` moves the persistent entry to the Recent price changes page beside the app introduction. The link now stays clearly visible on desktop and mobile regardless of whether the expandable catalogue-update notice is open or closed.
 
 Version `v0.27.0` makes the Recent price changes page substantially faster without removing results from search or filters. The new format stores repeated product and retailer metadata once and, in the 25 July reference snapshot containing `9,487` movements, reduces `price-changes.json` from roughly `11.0 MB` to `2.32 MB` before transfer compression. In production, the same feed is precompressed to roughly `484 KB` and served through a same-origin endpoint, with the static JSON retained as an automatic fallback. The browser still processes the complete dataset but initially mounts only `120` rows and reveals more in batches, while memoized rows no longer rerender when the history popup opens or closes. A chart opens immediately from the available movement, then only the selected product lazily loads its richer recorded path, catalogue image, and the same product description shown in the main product detail view. Full-text results, totals, filters, and the CSV continue to cover every recorded movement. The hourly publisher now downloads the current public catalogue itself before comparing prices and stops before publication when that baseline cannot be verified, preventing stale metadata or a build copy from creating false movements.
+
+Version `v0.27.1` fixes stale prices that could remain in Today's bargains when an AI selection came from an older catalogue. AI still selects the products, but before display the app fetches their current records from the latest synchronized catalogue and recomputes the cheapest chain, highest price, saving, percentage, and chain count. Product details and add-to-basket use that same refreshed product. If the current record cannot be confirmed, the suggestion is hidden instead of presenting an old price. The suggestion timestamp now clearly distinguishes the AI-assisted selection from the current catalogue-price time.
 
 ![Fast product history with catalogue description in version 0.27.0](screenshots/price-history-description-v0.27.0.png)
 
@@ -530,11 +534,14 @@ a small editorial AI step:
   and sends only 30 compact public candidates to the model.
 - `gpt-5.6-sol` with `high` reasoning and the default/standard service tier selects
   nine unique, category-diverse candidates in one daily request and writes a short
-  Greek headline and explanation for each using Structured Outputs. The request
-  uses `store: false`.
+  Greek headline and editorial note for each using Structured Outputs. The visible
+  current-price explanation remains deterministic. The request uses `store: false`.
 - The script validates every returned product ID against the candidate list, rejects
   duplicate or missing IDs, and joins the model text with code-computed price
   evidence. The model cannot supply or modify the displayed prices or savings.
+- On every page load, the selected IDs are hydrated from the latest synchronized
+  catalogue and all displayed price evidence is recomputed. A selection is hidden
+  when its current product record cannot be confirmed.
 - The existing hourly LaunchAgent calls the generator after a successful catalogue
   refresh. Date and private attempt guards in the `Europe/Athens` time zone allow at
   most one automatic AI request per day. If the AI call fails, later hourly catalogue

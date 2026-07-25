@@ -1252,15 +1252,13 @@ function AppContent() {
 function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
   const { language, locale, money, t } = usePreferences();
   const retailer = retailers.find((item) => item.id === pick.evidence.bestRetailerId);
-  const updated = formatDataTime(pick.generatedAt, locale, t);
+  const retailerName = retailer?.name || pick.evidence.bestRetailerName;
+  const updated = formatDataTime(pick.catalogGeneratedAt || pick.generatedAt, locale, t);
   const headline = language === "el" ? pick.headline : t("bargainHeadline");
-  const reason =
-    language === "el"
-      ? pick.reason
-      : t("bargainReason", {
-          retailer: pick.evidence.bestRetailerName,
-          amount: money(pick.evidence.savingsVsHighest),
-        });
+  const reason = t("bargainReason", {
+    retailer: retailerName,
+    amount: money(pick.evidence.savingsVsHighest),
+  });
   return (
     <section className="daily-bargain" aria-labelledby="daily-bargain-title">
       <button type="button" className="daily-bargain-product" onClick={onSelect}>
@@ -1284,7 +1282,7 @@ function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
         {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
         <span>
           <strong>{money(pick.evidence.bestPrice)}</strong>
-          <small>{pick.evidence.bestRetailerName}</small>
+          <small>{retailerName}</small>
         </span>
         <span className="daily-saving">
           <b>{t("percentCheaper", { percent: Math.round(pick.evidence.savingsPercentVsHighest) })}</b>
@@ -2058,7 +2056,11 @@ function formatRelativeTime(value, locale, t) {
 function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
   const { language, locale, money, number, t } = usePreferences();
   const bargains = pick?.bargains || [];
-  const updated = formatDataTime(pick?.generatedAt, locale, t);
+  const updated = formatDataTime(
+    pick?.catalogGeneratedAt || pick?.generatedAt,
+    locale,
+    t,
+  );
 
   return (
     <main className="bargains-page">
@@ -2103,6 +2105,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
             const retailer = retailers.find(
               (item) => item.id === bargain.evidence.bestRetailerId,
             );
+            const retailerName = retailer?.name || bargain.evidence.bestRetailerName;
             return (
               <article className="bargain-card" key={bargain.productId}>
                 <button
@@ -2123,7 +2126,7 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                     {retailer ? <RetailerLogo retailer={retailer} ariaHidden /> : null}
                     <span>
                       <strong>{money(bargain.evidence.bestPrice)}</strong>
-                      <small>{bargain.evidence.bestRetailerName}</small>
+                      <small>{retailerName}</small>
                     </span>
                   </span>
                   <span className="bargain-card-saving">
@@ -2133,12 +2136,10 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
                 </div>
 
                 <p className="bargain-card-reason">
-                  {language === "el"
-                    ? bargain.reason
-                    : t("bargainReason", {
-                        retailer: bargain.evidence.bestRetailerName,
-                        amount: money(bargain.evidence.savingsVsHighest),
-                      })}
+                  {t("bargainReason", {
+                    retailer: retailerName,
+                    amount: money(bargain.evidence.savingsVsHighest),
+                  })}
                 </p>
 
                 <div className="bargain-card-meta">
