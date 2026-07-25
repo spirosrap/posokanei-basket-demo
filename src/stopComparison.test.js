@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   calculateStopComparison,
+  getStopOptionDetailKind,
   normalizeExtraStopCost,
 } from "./stopComparison.js";
 
@@ -52,6 +53,32 @@ test("recommends the first complete multi-stop plan when one stop cannot cover t
   assert.equal(comparison.options[0].isComplete, false);
   assert.equal(comparison.options[1].isComplete, true);
   assert.equal(comparison.recommended.limit, 2);
+});
+
+test("never compares a complete multi-stop option with an unavailable one-stop plan", () => {
+  const splitProducts = [
+    { id: "one", name: "One", prices: { a: 3 } },
+    { id: "two", name: "Two", prices: { b: 4 } },
+    { id: "three", name: "Three", prices: { c: 5 } },
+  ];
+  const splitBasket = [
+    ...basket,
+    { productId: "three", quantity: 1 },
+  ];
+  const comparison = calculateStopComparison(splitBasket, splitProducts, retailers, 0);
+
+  assert.equal(comparison.oneStopTotal, null);
+  assert.equal(getStopOptionDetailKind(comparison, comparison.options[0]), "not-covered");
+  assert.equal(getStopOptionDetailKind(comparison, comparison.options[1]), "not-covered");
+  assert.equal(getStopOptionDetailKind(comparison, comparison.options[2]), "first-complete");
+  assert.equal(
+    getStopOptionDetailKind(comparison, comparison.options[3]),
+    "covered-with-stops",
+  );
+  assert.notEqual(
+    getStopOptionDetailKind(comparison, comparison.options[3]),
+    "same-as-one-stop",
+  );
 });
 
 test("only supported saved estimates are accepted", () => {

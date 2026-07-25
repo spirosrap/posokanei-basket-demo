@@ -118,6 +118,7 @@ import {
 import {
   calculateStopComparison,
   getInitialExtraStopCost,
+  getStopOptionDetailKind,
   saveExtraStopCost,
 } from "./stopComparison";
 import {
@@ -3941,13 +3942,23 @@ function StopComparisonControl({
             isRecommended ? "recommended" : "",
             option.isComplete ? "" : "incomplete",
           ].filter(Boolean).join(" ");
-          const detail = !option.isComplete
-            ? t("notCovered")
-            : option.limit === 1
-              ? t("oneStopBaseline")
-              : option.savingsVsOneStop > 0
-                ? t("saveAgainstOneStop", { amount: money(option.savingsVsOneStop) })
-                : t("sameAsOneStop");
+          const detailKind = getStopOptionDetailKind(comparison, option);
+          let detail = t("notCovered");
+          if (detailKind === "one-stop-baseline") {
+            detail = t("oneStopBaseline");
+          } else if (detailKind === "first-complete") {
+            detail = t("firstCompletePlan");
+          } else if (detailKind === "covered-with-stops") {
+            detail = t("coveredWithStops", {
+              stops: option.actualStops === 1
+                ? t("oneStopLabel")
+                : t("stopsLabel", { count: number(option.actualStops) }),
+            });
+          } else if (detailKind === "saves-vs-one-stop") {
+            detail = t("saveAgainstOneStop", { amount: money(option.savingsVsOneStop) });
+          } else if (detailKind === "same-as-one-stop") {
+            detail = t("sameAsOneStop");
+          }
 
           return (
           <button

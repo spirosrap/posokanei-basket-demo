@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.27.1`
+**Τρέχουσα έκδοση:** `v0.27.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -98,6 +98,8 @@
 Η έκδοση `v0.27.0` κάνει τη σελίδα «Πρόσφατες αλλαγές τιμών» αισθητά ταχύτερη χωρίς να αφαιρεί αποτελέσματα από την αναζήτηση ή τα φίλτρα. Το νέο format αποθηκεύει κοινά στοιχεία προϊόντων και αλυσίδων μία φορά και, στο στιγμιότυπο αναφοράς της 25/7 με `9.487` μεταβολές, μειώνει το `price-changes.json` από περίπου `11,0 MB` σε `2,32 MB` πριν από τη συμπίεση. Στην παραγωγή το ίδιο feed προ-συμπιέζεται σε περίπου `484 KB` και σερβίρεται από same-origin endpoint, με το στατικό JSON ως αυτόματο fallback. Η σελίδα επεξεργάζεται ολόκληρο το αρχείο αλλά εμφανίζει αρχικά μόνο `120` γραμμές και φορτώνει τις επόμενες σε παρτίδες, ενώ οι γραμμές δεν επανασχεδιάζονται όταν ανοίγει ή κλείνει το αναδυόμενο ιστορικό. Το γράφημα ανοίγει αμέσως από τη διαθέσιμη μεταβολή και στη συνέχεια φορτώνει μόνο για το επιλεγμένο προϊόν την πληρέστερη καταγεγραμμένη πορεία, τη φωτογραφία και την ίδια περιγραφή καταλόγου που εμφανίζεται στην κύρια προβολή προϊόντος. Τα αποτελέσματα πλήρους κειμένου, τα σύνολα, τα φίλτρα και το CSV εξακολουθούν να καλύπτουν όλες τις καταγεγραμμένες μεταβολές. Ο ωριαίος publisher κατεβάζει πλέον τον ίδιο τον τρέχοντα δημόσιο κατάλογο πριν συγκρίνει τιμές και σταματά πριν από τη δημοσίευση αν δεν μπορεί να τον επαληθεύσει, ώστε παλιό metadata ή build copy να μην δημιουργεί ψευδείς μεταβολές.
 
 Η έκδοση `v0.27.1` διορθώνει τις παλιές τιμές που μπορούσαν να παραμένουν στις «Ευκαιρίες της ημέρας» όταν μια επιλογή AI είχε δημιουργηθεί από παλαιότερο κατάλογο. Το AI εξακολουθεί να επιλέγει τα προϊόντα, αλλά πριν εμφανιστούν η εφαρμογή ζητά τις τρέχουσες εγγραφές τους από τον τελευταίο συγχρονισμένο κατάλογο και υπολογίζει ξανά φθηνότερη αλυσίδα, υψηλότερη τιμή, διαφορά, ποσοστό και πλήθος αλυσίδων. Οι λεπτομέρειες και η προσθήκη στο καλάθι χρησιμοποιούν το ίδιο ανανεωμένο προϊόν. Αν η τρέχουσα εγγραφή δεν μπορεί να επιβεβαιωθεί, η πρόταση κρύβεται αντί να δείξει παλιά τιμή. Η ένδειξη κάτω από την πρόταση ξεχωρίζει πλέον την επιλογή με AI από την ώρα των τρεχουσών τιμών καταλόγου.
+
+Η έκδοση `v0.27.2` διορθώνει τις ετικέτες στη σύγκριση στάσεων όταν καμία αλυσίδα δεν καλύπτει ολόκληρο το καλάθι με μία στάση. Η πρώτη διαθέσιμη πλήρης λύση επισημαίνεται πλέον ως «Πρώτη πλήρης επιλογή», ενώ ένα μεγαλύτερο όριο που χρησιμοποιεί το ίδιο πλάνο αναφέρει τον πραγματικό αριθμό στάσεων. Δεν εμφανίζεται πια το παραπλανητικό «Ίδιο με 1 στάση» όταν η λύση μίας στάσης δεν υπάρχει.
 
 ![Γρήγορο ιστορικό με περιγραφή προϊόντος στην έκδοση 0.27.0](screenshots/price-history-description-v0.27.0.png)
 
@@ -229,7 +231,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.27.1`
+**Current version:** `v0.27.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -348,6 +350,8 @@ Version `v0.26.1` moves the persistent entry to the Recent price changes page be
 Version `v0.27.0` makes the Recent price changes page substantially faster without removing results from search or filters. The new format stores repeated product and retailer metadata once and, in the 25 July reference snapshot containing `9,487` movements, reduces `price-changes.json` from roughly `11.0 MB` to `2.32 MB` before transfer compression. In production, the same feed is precompressed to roughly `484 KB` and served through a same-origin endpoint, with the static JSON retained as an automatic fallback. The browser still processes the complete dataset but initially mounts only `120` rows and reveals more in batches, while memoized rows no longer rerender when the history popup opens or closes. A chart opens immediately from the available movement, then only the selected product lazily loads its richer recorded path, catalogue image, and the same product description shown in the main product detail view. Full-text results, totals, filters, and the CSV continue to cover every recorded movement. The hourly publisher now downloads the current public catalogue itself before comparing prices and stops before publication when that baseline cannot be verified, preventing stale metadata or a build copy from creating false movements.
 
 Version `v0.27.1` fixes stale prices that could remain in Today's bargains when an AI selection came from an older catalogue. AI still selects the products, but before display the app fetches their current records from the latest synchronized catalogue and recomputes the cheapest chain, highest price, saving, percentage, and chain count. Product details and add-to-basket use that same refreshed product. If the current record cannot be confirmed, the suggestion is hidden instead of presenting an old price. The suggestion timestamp now clearly distinguishes the AI-assisted selection from the current catalogue-price time.
+
+Version `v0.27.2` corrects stop-comparison labels when no single chain covers the complete basket. The first available complete plan is now identified as the “First complete option”, while a higher limit that reuses that plan reports its actual number of stops. “Same as one stop” is no longer shown when no one-stop plan exists.
 
 ![Fast product history with catalogue description in version 0.27.0](screenshots/price-history-description-v0.27.0.png)
 

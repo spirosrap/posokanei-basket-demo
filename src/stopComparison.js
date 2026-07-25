@@ -27,6 +27,22 @@ export function saveExtraStopCost(value) {
   }
 }
 
+export function getStopOptionDetailKind(comparison, option) {
+  if (!option?.isComplete) return "not-covered";
+  if (option.limit === 1) return "one-stop-baseline";
+
+  if (comparison?.oneStopTotal == null) {
+    const firstComplete = comparison?.options?.find((candidate) => candidate.isComplete);
+    return firstComplete?.limit === option.limit
+      ? "first-complete"
+      : "covered-with-stops";
+  }
+
+  return option.savingsVsOneStop > 0
+    ? "saves-vs-one-stop"
+    : "same-as-one-stop";
+}
+
 export function calculateStopComparison(
   basket,
   products,
