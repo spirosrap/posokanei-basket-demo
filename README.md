@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.26.1`
+**Τρέχουσα έκδοση:** `v0.27.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -94,6 +94,12 @@
 Η έκδοση `v0.26.0` προσθέτει διαδραστικό ιστορικό σε κάθε προϊόν της σελίδας «Πρόσφατες αλλαγές τιμών». Με πάτημα στο προϊόν ανοίγει προσβάσιμο αναδυόμενο παράθυρο με βηματικό γράφημα για όλες τις αλυσίδες που έχουν διαθέσιμη τιμή, ακριβείς παρατηρήσεις και τρέχουσα τιμή ανά αλυσίδα. Κάθε επιτυχής συγχρονισμός κρατά συμπαγή σημεία μόνο όταν αλλάζει η τιμή, μαζί με το τρέχον άκρο της γραμμής και ένα σημείο αναφοράς πριν από το επταήμερο παράθυρο. Έτσι δεν δημιουργούνται τεχνητές ωριαίες μεταβολές και το αρχείο παραμένει μικρό. Πρόκειται αποκλειστικά για ιστορικό που παρατηρεί η εφαρμογή: οι υπάρχουσες ενεργές μεταβολές ξεκινούν με προηγούμενη και τρέχουσα τιμή, ενώ η πιο πλούσια πορεία συγκεντρώνεται στους επόμενους επιτυχείς συγχρονισμούς. Δεν είναι επίσημο μακροχρόνιο ιστορικό του PosoKanei.
 
 Η έκδοση `v0.26.1` μεταφέρει τη μόνιμη είσοδο στη σελίδα «Πρόσφατες αλλαγές τιμών» δίπλα στην εισαγωγή της εφαρμογής. Ο σύνδεσμος παραμένει πλέον καθαρά ορατός σε υπολογιστή και κινητό, ανεξάρτητα από το αν η αναπτυσσόμενη ειδοποίηση ενημέρωσης καταλόγου είναι ανοιχτή ή κλειστή.
+
+Η έκδοση `v0.27.0` κάνει τη σελίδα «Πρόσφατες αλλαγές τιμών» αισθητά ταχύτερη χωρίς να αφαιρεί αποτελέσματα από την αναζήτηση ή τα φίλτρα. Το νέο format αποθηκεύει κοινά στοιχεία προϊόντων και αλυσίδων μία φορά και, στο στιγμιότυπο αναφοράς της 25/7 με `9.487` μεταβολές, μειώνει το `price-changes.json` από περίπου `11,0 MB` σε `2,32 MB` πριν από τη συμπίεση. Στην παραγωγή το ίδιο feed προ-συμπιέζεται σε περίπου `484 KB` και σερβίρεται από same-origin endpoint, με το στατικό JSON ως αυτόματο fallback. Η σελίδα επεξεργάζεται ολόκληρο το αρχείο αλλά εμφανίζει αρχικά μόνο `120` γραμμές και φορτώνει τις επόμενες σε παρτίδες, ενώ οι γραμμές δεν επανασχεδιάζονται όταν ανοίγει ή κλείνει το αναδυόμενο ιστορικό. Το γράφημα ανοίγει αμέσως από τη διαθέσιμη μεταβολή και στη συνέχεια φορτώνει μόνο για το επιλεγμένο προϊόν την πληρέστερη καταγεγραμμένη πορεία, τη φωτογραφία και την ίδια περιγραφή καταλόγου που εμφανίζεται στην κύρια προβολή προϊόντος. Τα αποτελέσματα πλήρους κειμένου, τα σύνολα, τα φίλτρα και το CSV εξακολουθούν να καλύπτουν όλες τις καταγεγραμμένες μεταβολές. Ο ωριαίος publisher κατεβάζει πλέον τον ίδιο τον τρέχοντα δημόσιο κατάλογο πριν συγκρίνει τιμές και σταματά πριν από τη δημοσίευση αν δεν μπορεί να τον επαληθεύσει, ώστε παλιό metadata ή build copy να μην δημιουργεί ψευδείς μεταβολές.
+
+![Γρήγορο ιστορικό με περιγραφή προϊόντος στην έκδοση 0.27.0](screenshots/price-history-description-v0.27.0.png)
+
+![Ιστορικό και περιγραφή προϊόντος σε κινητό](screenshots/price-history-description-mobile-v0.27.0.png)
 
 ![Ιστορικό τιμών προϊόντος ανά αλυσίδα στην έκδοση 0.26.0](screenshots/price-history-v0.26.0.png)
 
@@ -211,6 +217,8 @@
 
 Από την έκδοση `v0.9.0`, ένα συνηθισμένο `npm run live:deploy` ενημερώνει μόνο την εφαρμογή και τα PHP endpoints, διατηρώντας τα τρέχοντα αρχεία καταλόγου της παραγωγής. Οι τιμές ενημερώνονται ξεχωριστά με `npm run live:refresh`, ώστε μια έκδοση UI να μην αντικαταστήσει κατά λάθος νεότερο κατάλογο με παλιότερο build artifact. Μόνο το ρητό `DEPLOY_INCLUDE_DATA=1 npm run live:deploy` περιλαμβάνει το `dist/data/`, για αρχική εγκατάσταση ή ελεγχόμενη πλήρη επαναφορά.
 
+Στην `v0.27.0`, κάθε refresh δημιουργεί και το `price-changes.json.gz`, το δημοσιεύει ατομικά μαζί με το κανονικό JSON και ελέγχει το [`api/price-changes.php`](https://kalathitimon.com/api/price-changes.php) ως μέρος της ίδιας γενιάς. Ο endpoint στέλνει την προ-συμπιεσμένη έκδοση όταν ο browser υποστηρίζει gzip και επιστρέφει στο απλό JSON όταν δεν υπάρχει συμπιεσμένο αρχείο. Δημιουργείται επίσης ένα `catalog-details.jsonl` με μία εγγραφή ανά προϊόν. Όταν ανοίγει το ιστορικό, το PHP διαβάζει γραμμή-γραμμή μόνο μέχρι να βρει το ζητούμενο προϊόν, επιστρέφοντας περιγραφή και πλήρη καταγεγραμμένη πορεία χωρίς να φορτώνει ολόκληρο τον πλήρη κατάλογο στη μνήμη. Το sidecar δημοσιεύεται και ελέγχεται και στα δύο domains σε κάθε επιτυχή refresh.
+
 ## English
 
 **Live app:** [kalathitimon.com](https://kalathitimon.com/)
@@ -219,7 +227,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.26.1`
+**Current version:** `v0.27.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -334,6 +342,12 @@ Version `v0.25.0` adds the public [`/changes/`](https://kalathitimon.com/changes
 Version `v0.26.0` adds interactive history to every product on the Recent price changes page. Selecting the product opens an accessible popup with a step chart for every chain that currently has a price, exact observations, and the latest price per chain. Each successful sync retains compact points only when a price changes, plus the current line endpoint and one anchor immediately before the seven-day window. This avoids inventing hourly movement and keeps the payload small. The chart is strictly history observed by this application: existing active changes start with their previous and current prices, while richer paths accumulate over subsequent successful syncs. It is not an official long-term PosoKanei history service.
 
 Version `v0.26.1` moves the persistent entry to the Recent price changes page beside the app introduction. The link now stays clearly visible on desktop and mobile regardless of whether the expandable catalogue-update notice is open or closed.
+
+Version `v0.27.0` makes the Recent price changes page substantially faster without removing results from search or filters. The new format stores repeated product and retailer metadata once and, in the 25 July reference snapshot containing `9,487` movements, reduces `price-changes.json` from roughly `11.0 MB` to `2.32 MB` before transfer compression. In production, the same feed is precompressed to roughly `484 KB` and served through a same-origin endpoint, with the static JSON retained as an automatic fallback. The browser still processes the complete dataset but initially mounts only `120` rows and reveals more in batches, while memoized rows no longer rerender when the history popup opens or closes. A chart opens immediately from the available movement, then only the selected product lazily loads its richer recorded path, catalogue image, and the same product description shown in the main product detail view. Full-text results, totals, filters, and the CSV continue to cover every recorded movement. The hourly publisher now downloads the current public catalogue itself before comparing prices and stops before publication when that baseline cannot be verified, preventing stale metadata or a build copy from creating false movements.
+
+![Fast product history with catalogue description in version 0.27.0](screenshots/price-history-description-v0.27.0.png)
+
+![Product history and description on mobile](screenshots/price-history-description-mobile-v0.27.0.png)
 
 ![Per-chain product price history in version 0.26.0](screenshots/price-history-v0.26.0.png)
 
@@ -579,6 +593,12 @@ https://kalathitimon.com/
 `npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The first screen and warmed catalogue search use synchronized static JSON files. Product hydration, image fallback, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must still execute PHP for those same-origin fallbacks and features.
 
 ### Screenshots
+
+Version 0.27.0 faster recent changes and lazy catalogue details:
+
+![Fast product history with description in Kalathi Timon 0.27.0](screenshots/price-history-description-v0.27.0.png)
+
+![Responsive product history with description](screenshots/price-history-description-mobile-v0.27.0.png)
 
 Version 0.22.0 smaller runtime, immediate loading shell, compact bootstrap, and edge-served images:
 
@@ -865,6 +885,18 @@ All three initial product sorts and every available example-basket product remai
 the file. The hourly refresh therefore regenerates the smaller bootstrap from the
 same verified runtime catalogue rather than introducing a separate source of prices.
 
+Version 0.27.0 also publishes `price-changes.json.gz` atomically and verifies the
+same-generation [`api/price-changes.php`](https://kalathitimon.com/api/price-changes.php)
+response on the primary domain and compatibility mirror. Browsers that accept gzip
+receive the precompressed file, while the endpoint and app both retain an identity
+JSON fallback. The refresh also publishes a line-delimited `catalog-details.jsonl`
+sidecar. PHP scans only until it finds the requested product, returning its catalogue
+description and richer observed history without decoding the complete catalogue into
+memory. Both domains verify a real detail lookup after upload. Previous-catalogue
+selection now fails closed: the publisher downloads and validates the production
+catalogue itself before comparing prices, while a validated explicit previous
+snapshot remains available for controlled history recovery.
+
 After first paint, a module Web Worker loads `catalog-runtime.json` without blocking
 the interface and builds three pre-sorted in-memory views. Once ready, product search,
 barcode lookup, category filtering, sorting, and pagination run inside that worker;
@@ -903,7 +935,7 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, the compact `public/data/catalog-runtime.json`, and the first-paint `public/data/catalog-bootstrap.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file, while `npm run catalog:bootstrap` rebuilds the startup payload from an existing runtime catalogue.
 - `npm run live:refresh` validates the last published catalogue, passes it to the selected refresh runner, and annotates notable per-chain price changes before generating the full, runtime, bootstrap, and metadata artifacts. Recent valid markers and compact per-chain history points are retained for seven days; no user, basket, or location data is involved.
-- `npm run live:refresh` builds fresh full, metadata, runtime, startup, CSV price-change, and compact JSON history artifacts under `dist/data/`, uploads them to the live FTP path, and verifies the public catalogue, price-change, and refresh-status generations.
+- `npm run live:refresh` builds fresh full, metadata, runtime, startup, CSV price-change, compact JSON history, precompressed history, and line-delimited product-detail artifacts under `dist/data/`, uploads them to the live FTP path, and verifies the public catalogue, price-change, rich-detail, and refresh-status generations.
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.

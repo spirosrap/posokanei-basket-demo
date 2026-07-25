@@ -21,7 +21,7 @@ export const PRICE_CHANGE_CSV_COLUMNS = [
   "offer_last_updated",
 ];
 
-export const PRICE_CHANGES_SCHEMA_VERSION = 1;
+export const PRICE_CHANGES_SCHEMA_VERSION = 2;
 const MAX_HISTORY_POINTS = 200;
 
 function finiteNumber(value) {
@@ -49,81 +49,6 @@ function snapshotRetailersById(snapshot) {
       .map((retailer) => [String(retailer?.id || "").trim().toLowerCase(), retailer])
       .filter(([id]) => id),
   );
-}
-
-function normalizedHistoryPoints(offer, generatedAt) {
-  const pointsByTime = new Map();
-  const addPoint = (observedAtValue, priceValue) => {
-    const observedAt = String(observedAtValue || "");
-    const observedAtMs = Date.parse(observedAt);
-    const price = finiteNumber(priceValue);
-    if (!Number.isFinite(observedAtMs) || price === null || price <= 0) return;
-    pointsByTime.set(observedAt, { observedAt, observedAtMs, price });
-  };
-
-  for (const point of Array.isArray(offer?.price_history)
-    ? offer.price_history.slice(-MAX_HISTORY_POINTS)
-    : []) {
-    addPoint(point?.observed_at ?? point?.observedAt, point?.price);
-  }
-
-  const change = offer?.price_change;
-  if (!pointsByTime.size && change) {
-    const changedAt = String(change.changed_at || generatedAt || "");
-    const changedAtMs = Date.parse(changedAt);
-    const comparedAt = String(change.compared_at || "");
-    addPoint(
-      Number.isFinite(Date.parse(comparedAt))
-        ? comparedAt
-        : Number.isFinite(changedAtMs)
-          ? new Date(changedAtMs - 1).toISOString()
-          : generatedAt,
-      change.previous_price,
-    );
-    addPoint(changedAt, offer?.price);
-  }
-  addPoint(generatedAt, offer?.price);
-
-  return [...pointsByTime.values()]
-    .sort((left, right) => left.observedAtMs - right.observedAtMs)
-    .slice(-MAX_HISTORY_POINTS)
-    .map(({ observedAt, price }) => [observedAt, price]);
-}
-
-function collectPriceHistories(snapshot, productIds) {
-  const generatedAt = String(snapshot?.generated_at || "");
-  const retailersById = snapshotRetailersById(snapshot);
-  const histories = {};
-
-  for (const product of Array.isArray(snapshot?.products) ? snapshot.products : []) {
-    const productId = String(product?.id || "");
-    if (!productIds.has(productId)) continue;
-    const retailers = [];
-
-    for (const offer of Array.isArray(product?.retailer_prices) ? product.retailer_prices : []) {
-      const id = retailerId(offer).toLowerCase();
-      const points = normalizedHistoryPoints(offer, generatedAt);
-      if (!id || !points.length) continue;
-      const metadata = retailersById.get(id);
-      retailers.push({
-        retailer_id: id,
-        retailer_name: retailerName(offer, retailersById),
-        ...(metadata?.logo_url ? { retailer_logo_url: String(metadata.logo_url) } : {}),
-        points,
-      });
-    }
-
-    if (retailers.length) {
-      histories[productId] = {
-        product_id: productId,
-        product_name: String(product?.name || ""),
-        image_url: String(product?.image_url || ""),
-        retailers: retailers.sort((left, right) =>
-          left.retailer_name.localeCompare(right.retailer_name, "el")),
-      };
-    }
-  }
-  return histories;
 }
 
 function decimal(value, digits) {
@@ -201,26 +126,29 @@ export function createPriceChangesPayload(snapshot) {
   const rows = collectPriceChangeRows(snapshot);
   const productIds = new Set(rows.map((row) => row.product_id));
   const retailerIds = new Set(rows.map((row) => row.retailer_id));
-  const histories = collectPriceHistories(snapshot, productIds);
-  const historySeries = Object.values(histories)
-    .flatMap((history) => history.retailers);
-  const changes = rows.map((row) => ({
-    product_id: row.product_id,
-    product_name: row.product_name,
-    brand: row.brand,
-    category: row.category,
-    image_url: row.product_image_url,
-    retailer_id: row.retailer_id,
-    retailer_name: row.retailer_name,
-    previous_price: Number(row.previous_price_eur),
-    current_price: Number(row.current_price_eur),
-    amount: Number(row.change_eur),
-    percentage: Number(row.change_percent),
-    direction: row.direction,
-    changed_at: row.change_recorded_at,
-    compared_at: row.comparison_snapshot_at,
-    offer_updated_at: row.offer_last_updated,
-  }));
+  const products = {};
+  const retailers = {};
+  const changes = rows.map((row) => {
+    products[row.product_id] ||= [
+      row.product_name,
+      row.brand,
+      row.category,
+      row.product_image_url,
+    ];
+    retailers[row.retailer_id] ||= row.retailer_name;
+    return [
+      row.product_id,
+      row.retailer_id,
+      Number(row.previous_price_eur),
+      Number(row.current_price_eur),
+      Number(row.change_eur),
+      Number(row.change_percent),
+      row.direction === "decrease" ? -1 : 1,
+      row.change_recorded_at,
+      row.comparison_snapshot_at,
+      row.offer_last_updated,
+    ];
+  });
 
   return {
     schema_version: PRICE_CHANGES_SCHEMA_VERSION,
@@ -231,15 +159,13 @@ export function createPriceChangesPayload(snapshot) {
       changes: changes.length,
       products: productIds.size,
       retailers: retailerIds.size,
-      decreases: changes.filter((change) => change.direction === "decrease").length,
-      increases: changes.filter((change) => change.direction === "increase").length,
+      decreases: rows.filter((row) => row.direction === "decrease").length,
+      increases: rows.filter((row) => row.direction === "increase").length,
       catalog_products: Array.isArray(snapshot?.products) ? snapshot.products.length : 0,
-      history_products: Object.keys(histories).length,
-      history_series: historySeries.length,
-      history_points: historySeries.reduce((total, series) => total + series.points.length, 0),
     },
+    products,
+    retailers,
     changes,
-    histories,
   };
 }
 
@@ -289,6 +215,45 @@ export function inspectPriceChangesCsv(csv) {
 
 export function inspectPriceChangesJson(value) {
   const payload = typeof value === "string" ? JSON.parse(value) : value;
+  const compactProductsValid = (
+    payload?.products
+    && typeof payload.products === "object"
+    && !Array.isArray(payload.products)
+    && Object.entries(payload.products).every(([productId, product]) => (
+      productId
+      && Array.isArray(product)
+      && product.length === 4
+      && product.every((field) => typeof field === "string")
+    ))
+  );
+  const compactRetailersValid = (
+    payload?.retailers
+    && typeof payload.retailers === "object"
+    && !Array.isArray(payload.retailers)
+    && Object.entries(payload.retailers).every(([retailerIdValue, name]) => (
+      retailerIdValue
+      && typeof name === "string"
+      && name
+    ))
+  );
+  const compactChangesValid = (
+    payload?.schema_version === 2
+    && compactProductsValid
+    && compactRetailersValid
+    && Array.isArray(payload?.changes)
+    && payload.changes.every((change) => (
+      Array.isArray(change)
+      && change.length === 10
+      && Object.hasOwn(payload.products, change[0])
+      && Object.hasOwn(payload.retailers, change[1])
+      && Number.isFinite(change[2])
+      && Number.isFinite(change[3])
+      && Number.isFinite(change[4])
+      && Number.isFinite(change[5])
+      && [-1, 1].includes(change[6])
+      && Number.isFinite(Date.parse(change[7]))
+    ))
+  );
   const historiesValid = payload?.histories === undefined || (
     payload.histories
     && typeof payload.histories === "object"
@@ -313,11 +278,11 @@ export function inspectPriceChangesJson(value) {
       ))
     ))
   );
-  if (
-    payload?.schema_version !== PRICE_CHANGES_SCHEMA_VERSION
-    || !Array.isArray(payload?.changes)
-    || !historiesValid
-    || !payload.changes.every((change) => (
+  const legacyChangesValid = (
+    payload?.schema_version === 1
+    && Array.isArray(payload?.changes)
+    && historiesValid
+    && payload.changes.every((change) => (
       change
       && typeof change.product_id === "string"
       && typeof change.retailer_id === "string"
@@ -327,7 +292,8 @@ export function inspectPriceChangesJson(value) {
       && Number.isFinite(change.percentage)
       && ["decrease", "increase"].includes(change.direction)
     ))
-  ) {
+  );
+  if (!compactChangesValid && !legacyChangesValid) {
     throw new Error("price-change JSON is invalid");
   }
 

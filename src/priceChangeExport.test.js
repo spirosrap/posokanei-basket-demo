@@ -94,48 +94,31 @@ test("price-change JSON contains compact display records and summary counts", ()
     decreases: 1,
     increases: 1,
     catalog_products: 2,
-    history_products: 2,
-    history_series: 3,
-    history_points: 7,
   });
-  assert.deepEqual(payload.changes[0], {
-    product_id: "product-1",
-    product_name: "Καφές \"Ελληνικός\"",
-    brand: "Μάρκα",
-    category: "Καφές",
-    image_url: "https://example.com/coffee.jpg",
-    retailer_id: "chain-a",
-    retailer_name: "Αλυσίδα Α",
-    previous_price: 4,
-    current_price: 3.5,
-    amount: -0.5,
-    percentage: -12.5,
-    direction: "decrease",
-    changed_at: "2026-07-17T11:00:00.000Z",
-    compared_at: "2026-07-17T10:00:00.000Z",
-    offer_updated_at: "2026-07-17T00:00:00",
+  assert.equal(payload.schema_version, 2);
+  assert.deepEqual(payload.products["product-1"], [
+    "Καφές \"Ελληνικός\"",
+    "Μάρκα",
+    "Καφές",
+    "https://example.com/coffee.jpg",
+  ]);
+  assert.deepEqual(payload.retailers, {
+    "chain-a": "Αλυσίδα Α",
+    "chain-b": "Κατάστημα Β",
   });
-  assert.deepEqual(payload.histories["product-1"], {
-    product_id: "product-1",
-    product_name: "Καφές \"Ελληνικός\"",
-    image_url: "https://example.com/coffee.jpg",
-    retailers: [
-      {
-        retailer_id: "chain-a",
-        retailer_name: "Αλυσίδα Α",
-        points: [
-          ["2026-07-17T10:00:00.000Z", 4],
-          ["2026-07-17T11:00:00.000Z", 3.5],
-          ["2026-07-17T12:00:00.000Z", 3.5],
-        ],
-      },
-      {
-        retailer_id: "chain-b",
-        retailer_name: "Αλυσίδα Β",
-        points: [["2026-07-17T12:00:00.000Z", 3.7]],
-      },
-    ],
-  });
+  assert.deepEqual(payload.changes[0], [
+    "product-1",
+    "chain-a",
+    4,
+    3.5,
+    -0.5,
+    -12.5,
+    -1,
+    "2026-07-17T11:00:00.000Z",
+    "2026-07-17T10:00:00.000Z",
+    "2026-07-17T00:00:00",
+  ]);
+  assert.equal(Object.hasOwn(payload, "histories"), false);
   assert.deepEqual(inspectPriceChangesJson(payload), {
     rowCount: 2,
     generatedAt: "2026-07-17T12:00:00.000Z",

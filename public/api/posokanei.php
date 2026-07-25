@@ -326,6 +326,10 @@ function snapshot_payload(string $resource, array $request): ?array
         ];
     }
 
+    if ($resource === 'products-by-ids' && ($_GET['details'] ?? '') === '1') {
+        return snapshot_product_details_payload($request);
+    }
+
     if (in_array($resource, ['products', 'products-by-ids', 'search', 'barcode', 'product'], true)) {
         $snapshot = read_snapshot();
         if (!is_array($snapshot)) {
@@ -468,6 +472,49 @@ function read_snapshot(): ?array
         if (is_array($runtime)) return $runtime;
     }
     return read_json_file(__DIR__ . '/../data/catalog.json');
+}
+
+function snapshot_product_details_payload(array $request): ?array
+{
+    $detailsPath = __DIR__ . '/../data/catalog-details.jsonl';
+    if (!is_file($detailsPath)) return null;
+
+    $rawIds = clean_string($request['ids'] ?? '', 8192);
+    $ids = array_values(array_unique(array_filter(
+        explode(',', $rawIds),
+        static fn($id): bool => preg_match('/^[a-zA-Z0-9_-]{1,120}$/', $id) === 1
+    )));
+    $ids = array_slice($ids, 0, 60);
+    $wanted = array_fill_keys($ids, true);
+    $productsById = [];
+    $handle = fopen($detailsPath, 'rb');
+    if ($handle === false) return null;
+
+    while ($wanted !== [] && ($line = fgets($handle)) !== false) {
+        $product = json_decode($line, true);
+        if (!is_array($product)) continue;
+        $id = (string) ($product['id'] ?? '');
+        if ($id !== '' && isset($wanted[$id])) {
+            $product['source'] = 'snapshot';
+            $productsById[$id] = $product;
+            unset($wanted[$id]);
+        }
+    }
+    fclose($handle);
+
+    $matches = [];
+    foreach ($ids as $id) {
+        if (isset($productsById[$id])) $matches[] = $productsById[$id];
+    }
+    $meta = read_snapshot_meta();
+
+    return [
+        'products' => $matches,
+        'total' => count($matches),
+        'requested' => count($ids),
+        'source' => 'snapshot',
+        'snapshot_generated_at' => (string) ($meta['generated_at'] ?? ''),
+    ];
 }
 
 function read_json_file(string $path): ?array

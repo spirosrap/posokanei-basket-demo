@@ -5,11 +5,13 @@ import { mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 import {
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
 } from "./price-change-export.mjs";
+import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -37,6 +39,14 @@ const priceChangesPath = resolve(
 const priceChangesJsonPath = resolve(
   projectRoot,
   process.env.POSOKANEI_PRICE_CHANGES_JSON_OUT || "dist/data/price-changes.json",
+);
+const priceChangesGzipPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_PRICE_CHANGES_GZIP_OUT || "dist/data/price-changes.json.gz",
+);
+const productDetailsPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_PRODUCT_DETAILS_OUT || "dist/data/catalog-details.jsonl",
 );
 const refreshStatusPath = resolve(
   projectRoot,
@@ -67,6 +77,10 @@ const previousSnapshotCachePath = resolve(
   projectRoot,
   process.env.POSOKANEI_PREVIOUS_SNAPSHOT_CACHE || ".cache/catalog-previous.json",
 );
+const configuredPreviousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
+  ? resolve(projectRoot, process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
+  : "";
+let detailVerificationProductId = "";
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
@@ -96,12 +110,28 @@ async function acquireRefreshLock(lockPath, retried = false) {
     if (!retried) {
       const details = await stat(lockPath).catch(() => null);
       const staleAfterMs = 50 * 60 * 1000;
-      if (details && Date.now() - details.mtimeMs > staleAfterMs) {
+      const ownerRunning = await refreshLockOwnerIsRunning(lockPath);
+      if (
+        !ownerRunning
+        || (details && Date.now() - details.mtimeMs > staleAfterMs)
+      ) {
         await unlink(lockPath).catch(() => {});
         return acquireRefreshLock(lockPath, true);
       }
     }
     return null;
+  }
+}
+
+async function refreshLockOwnerIsRunning(lockPath) {
+  try {
+    const details = JSON.parse(await readFile(lockPath, "utf8"));
+    const pid = Number(details?.pid);
+    if (!Number.isInteger(pid) || pid <= 0) return false;
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === "EPERM";
   }
 }
 
@@ -134,6 +164,13 @@ async function refreshCatalog() {
   console.log(
     `Snapshot ready: ${productCount.toLocaleString("en-US")} products generated_at=${snapshot.generated_at}`,
   );
+  const productDetails = await writeProductDetailsJsonl(snapshot, productDetailsPath);
+  detailVerificationProductId = productDetails.verificationProductId;
+  console.log(
+    `Wrote ${productDetails.count.toLocaleString("en-US")} product-detail records `
+    + `(${productDetails.bytes.toLocaleString("en-US")} bytes).`,
+  );
+  await writePriceChangesGzip();
 
   try {
     await runNodeScript("scripts/generate-daily-bargain.mjs", {
@@ -290,26 +327,17 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
 
 async function preparePreviousSnapshot() {
   await mkdir(dirname(previousSnapshotCachePath), { recursive: true });
-  const localCandidate = await readSnapshotCandidate(snapshotPath);
-  let publicGeneratedAt = "";
-
-  try {
-    const response = await fetch(`${publicMetaUrl}?v=${Date.now()}`, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!response.ok) throw new Error(`metadata returned HTTP ${response.status}`);
-    publicGeneratedAt = String((await response.json())?.generated_at || "");
-  } catch (error) {
-    console.error(`Could not verify the previous public catalogue metadata: ${error.message}`);
-  }
-
-  if (
-    localCandidate
-    && (!publicGeneratedAt || localCandidate.snapshot.generated_at === publicGeneratedAt)
-  ) {
-    await writeFile(previousSnapshotCachePath, localCandidate.raw, "utf8");
-    console.log(`Using local catalogue ${localCandidate.snapshot.generated_at} for price comparison.`);
+  if (configuredPreviousSnapshotPath) {
+    const configuredCandidate = await readSnapshotCandidate(configuredPreviousSnapshotPath);
+    if (!configuredCandidate) {
+      throw new Error(
+        `Configured previous catalogue is invalid: ${configuredPreviousSnapshotPath}`,
+      );
+    }
+    await writeFile(previousSnapshotCachePath, configuredCandidate.raw, "utf8");
+    console.log(
+      `Using configured catalogue ${configuredCandidate.snapshot.generated_at} for price comparison.`,
+    );
     return previousSnapshotCachePath;
   }
 
@@ -325,15 +353,10 @@ async function preparePreviousSnapshot() {
     console.log(`Downloaded public catalogue ${snapshot.generated_at} for price comparison.`);
     return previousSnapshotCachePath;
   } catch (error) {
-    console.error(`Could not download the previous public catalogue: ${error.message}`);
+    throw new Error(
+      `Could not verify the previous public catalogue; refresh stopped before publication: ${error.message}`,
+    );
   }
-
-  console.log(
-    publicGeneratedAt
-      ? "The local catalogue does not match production; this refresh will skip price comparison instead of showing stale changes."
-      : "No previous catalogue is available; this refresh will start price history.",
-  );
-  return "";
 }
 
 async function readSnapshotCandidate(filePath) {
@@ -416,6 +439,16 @@ function snapshotSummaryFromMeta(meta) {
 async function writeRefreshStatus(status) {
   await mkdir(dirname(refreshStatusPath), { recursive: true });
   await writeFile(refreshStatusPath, `${JSON.stringify(status, null, 2)}\n`, "utf8");
+}
+
+async function writePriceChangesGzip() {
+  const json = await readFile(priceChangesJsonPath);
+  const gzip = gzipSync(json, { level: 9 });
+  await mkdir(dirname(priceChangesGzipPath), { recursive: true });
+  await writeFile(priceChangesGzipPath, gzip);
+  console.log(
+    `Wrote precompressed price-change display data (${gzip.length.toLocaleString("en-US")} bytes).`,
+  );
 }
 
 function describeRefreshError(error) {
@@ -507,6 +540,8 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(bootstrapPath, "catalog-bootstrap.json", target, password);
   await publishDataFile(priceChangesPath, "price-changes.csv", target, password);
   await publishDataFile(priceChangesJsonPath, "price-changes.json", target, password);
+  await publishDataFile(priceChangesGzipPath, "price-changes.json.gz", target, password);
+  await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
@@ -527,7 +562,7 @@ async function publishDataFile(filePath, remoteName, target, password) {
 }
 
 async function fetchPublicJson(url) {
-  const response = await fetch(`${url}?v=${Date.now()}`, {
+  const response = await fetch(cacheBustUrl(url), {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(60000),
   });
@@ -538,7 +573,7 @@ async function fetchPublicJson(url) {
 }
 
 async function fetchPublicText(url) {
-  const response = await fetch(`${url}?v=${Date.now()}`, {
+  const response = await fetch(cacheBustUrl(url), {
     headers: { Accept: "text/csv" },
     signal: AbortSignal.timeout(60000),
   });
@@ -548,6 +583,12 @@ async function fetchPublicText(url) {
   return response.text();
 }
 
+function cacheBustUrl(value) {
+  const url = new URL(value);
+  url.searchParams.set("v", String(Date.now()));
+  return url.toString();
+}
+
 async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
@@ -555,8 +596,16 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-bootstrap.json");
   const targetPriceChangesUrl = targetCatalogUrl.replace(/catalog\.json$/, "price-changes.csv");
   const targetPriceChangesJsonUrl = targetCatalogUrl.replace(/catalog\.json$/, "price-changes.json");
+  const targetPriceChangesApiUrl = targetCatalogUrl.replace(
+    /\/data\/catalog\.json$/,
+    "/api/price-changes.php",
+  );
   const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
   const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
+  const targetProductDetailsUrl = targetCatalogUrl.replace(
+    /\/data\/catalog\.json$/,
+    `/api/posokanei.php?resource=products-by-ids&details=1&ids=${encodeURIComponent(detailVerificationProductId)}`,
+  );
   let observed = null;
   for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
@@ -567,6 +616,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         publicBootstrap,
         publicPriceChanges,
         publicPriceChangesJson,
+        publicPriceChangesApi,
+        publicProductDetails,
         publicRefreshStatus,
       ] = await Promise.all([
         fetchPublicJson(targetCatalogUrl),
@@ -575,10 +626,16 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         fetchPublicJson(targetBootstrapUrl),
         fetchPublicText(targetPriceChangesUrl),
         fetchPublicJson(targetPriceChangesJsonUrl),
+        fetchPublicJson(targetPriceChangesApiUrl),
+        fetchPublicJson(targetProductDetailsUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
       const priceChanges = inspectPriceChangesCsv(publicPriceChanges);
       const priceChangesJson = inspectPriceChangesJson(publicPriceChangesJson);
+      const priceChangesApi = inspectPriceChangesJson(publicPriceChangesApi);
+      const detailProduct = Array.isArray(publicProductDetails?.products)
+        ? publicProductDetails.products[0]
+        : null;
       const activePriceChanges = Number(
         publicMeta?.price_change_stats?.active_offers
           ?? publicSnapshot?.price_change_stats?.active_offers
@@ -593,6 +650,10 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChangeRows: priceChanges.rowCount,
         priceChangesJson: priceChangesJson.generatedAt || "",
         priceChangeJsonRows: priceChangesJson.rowCount,
+        priceChangesApi: priceChangesApi.generatedAt || "",
+        priceChangeApiRows: priceChangesApi.rowCount,
+        detailProductId: String(detailProduct?.id || ""),
+        detailGeneratedAt: String(publicProductDetails?.snapshot_generated_at || ""),
         activePriceChanges,
         status: publicRefreshStatus.generated_at || "",
         statusValue: publicRefreshStatus.status || "",
@@ -614,7 +675,11 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChanges.rowCount === activePriceChanges &&
         priceChangesJson.rowCount === activePriceChanges &&
         (priceChanges.rowCount === 0 || priceChanges.generatedAt === observed.snapshot) &&
-        priceChangesJson.generatedAt === observed.snapshot
+        priceChangesJson.generatedAt === observed.snapshot &&
+        priceChangesApi.rowCount === activePriceChanges &&
+        priceChangesApi.generatedAt === observed.snapshot &&
+        observed.detailProductId === detailVerificationProductId &&
+        observed.detailGeneratedAt === observed.snapshot
       ) {
         if (observed.snapshot !== expectedGeneratedAt) {
           console.log(`Accepted newer concurrent catalogue ${observed.snapshot}.`);
@@ -639,6 +704,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified static startup catalogue at ${targetBootstrapUrl}`);
   console.log(`Verified price-change CSV at ${targetPriceChangesUrl}`);
   console.log(`Verified price-change display data at ${targetPriceChangesJsonUrl}`);
+  console.log(`Verified compressed price-change API at ${targetPriceChangesApiUrl}`);
+  console.log(`Verified product-detail sidecar through ${targetProductDetailsUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));

@@ -27,6 +27,7 @@ const RETAILER_COLORS = [
 ];
 
 let catalogSnapshotPromise = null;
+let fullCatalogSnapshotPromise = null;
 const responseCache = new Map();
 let catalogSearchWorker = null;
 let catalogSearchWorkerState = "idle";
@@ -144,6 +145,17 @@ async function fetchCatalogSnapshot() {
       });
   }
   return catalogSnapshotPromise;
+}
+
+async function fetchFullCatalogSnapshot() {
+  if (!fullCatalogSnapshotPromise) {
+    fullCatalogSnapshotPromise = fetchDirectJson(CATALOG_SNAPSHOT_URL, 45000, 1)
+      .catch((error) => {
+        fullCatalogSnapshotPromise = null;
+        throw error;
+      });
+  }
+  return fullCatalogSnapshotPromise;
 }
 
 function resetCatalogSearchWorker() {
@@ -318,12 +330,38 @@ function normalizeOffer(entry, unitAmount) {
     ? normalized
     : fallbackUnitPrice;
   const priceChange = normalizePriceChange(entry.price_change ?? entry.priceChange, price);
+  const priceHistory = normalizeOfferPriceHistory(entry.price_history ?? entry.priceHistory);
   return {
     retailerId: String(retailerId).toLowerCase(),
+    retailerName: String(
+      entry.retailer_display_name
+      || entry.retailer_name
+      || entry.name
+      || retailerId,
+    ).trim(),
     price,
     unitPrice: Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : null,
     ...(priceChange ? { priceChange } : {}),
+    ...(priceHistory.length ? { priceHistory } : {}),
   };
+}
+
+function normalizeOfferPriceHistory(raw) {
+  if (!Array.isArray(raw)) return [];
+  const pointsByTime = new Map();
+  raw.slice(-200).forEach((point) => {
+    const observedAt = String(
+      Array.isArray(point)
+        ? point[0]
+        : point?.observed_at ?? point?.observedAt ?? "",
+    );
+    const observedAtMs = Date.parse(observedAt);
+    const price = Number(Array.isArray(point) ? point[1] : point?.price);
+    if (!Number.isFinite(observedAtMs) || !Number.isFinite(price) || price <= 0) return;
+    pointsByTime.set(observedAt, { observedAt, observedAtMs, price });
+  });
+  return [...pointsByTime.values()]
+    .sort((left, right) => left.observedAtMs - right.observedAtMs);
 }
 
 function normalizePriceChange(raw, currentPrice) {
@@ -374,6 +412,15 @@ export function normalizeProduct(raw, source = "live") {
   })
     .map((entry) => normalizeOffer(entry, unitAmount))
     .filter(Boolean);
+  const imageUrl = absoluteApiUrl(raw.image_url || raw.imageUrl || generatedImageUrl);
+  const historyRetailers = priceEntries
+    .filter((entry) => entry.priceHistory?.length)
+    .map((entry) => ({
+      retailerId: entry.retailerId,
+      retailerName: entry.retailerName,
+      retailerLogoUrl: "",
+      points: entry.priceHistory,
+    }));
 
   return {
     id,
@@ -385,7 +432,7 @@ export function normalizeProduct(raw, source = "live") {
     unit: raw.unit || "τεμ.",
     unitAmount,
     unitQuantity: unitLabel(raw),
-    imageUrl: absoluteApiUrl(raw.image_url || raw.imageUrl || generatedImageUrl),
+    imageUrl,
     description: raw.description || "",
     tile: productTile(name),
     tint: "#e0f2fe",
@@ -400,6 +447,14 @@ export function normalizeProduct(raw, source = "live") {
         .filter((entry) => entry.priceChange)
         .map((entry) => [entry.retailerId, entry.priceChange]),
     ),
+    priceHistory: historyRetailers.length
+      ? {
+          productId: id,
+          productName: name.trim(),
+          imageUrl,
+          retailers: historyRetailers,
+        }
+      : null,
     retailerCount: raw.price_stats?.retailer_count ?? priceEntries.length,
     updatedAt: raw.updated_at || "",
     source,
@@ -846,14 +901,17 @@ export async function fetchProducts({
     }));
 }
 
-export async function fetchProductsByIds(productIds = []) {
+export async function fetchProductsByIds(productIds = [], { includeDetails = false } = {}) {
   const wantedIds = new Set(productIds.map((id) => String(id)));
   if (!wantedIds.size) return [];
 
   try {
     const raw = await fetchJson(
       "products-by-ids",
-      { ids: [...wantedIds].join(",") },
+      {
+        ids: [...wantedIds].join(","),
+        ...(includeDetails ? { details: 1 } : {}),
+      },
       18000,
       2,
     );
@@ -863,7 +921,9 @@ export async function fetchProductsByIds(productIds = []) {
     // Fall back to the static snapshot when the batch endpoint is unavailable.
   }
 
-  const snapshot = await fetchCatalogSnapshot();
+  const snapshot = includeDetails
+    ? await fetchFullCatalogSnapshot()
+    : await fetchCatalogSnapshot();
   const productsById = new Map();
   (snapshot.products || []).forEach((rawProduct) => {
     const id = String(rawProduct.id ?? rawProduct.gtin ?? rawProduct.barcode ?? rawProduct.product_id);

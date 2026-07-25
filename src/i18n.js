@@ -78,6 +78,7 @@ const messages = {
     sortLargestAmount: "Μεγαλύτερη διαφορά €",
     sortChangeName: "Όνομα προϊόντος",
     visiblePriceChanges: ({ visible, total }) => `${visible} από ${total} αλλαγές`,
+    loadMorePriceChanges: ({ count }) => `Εμφάνιση ${count} ακόμη αλλαγών`,
     priceChangesRetention: ({ days }) => `Παραμονή στη λίστα έως ${days} ημέρες`,
     productColumn: "Προϊόν",
     chainColumn: "Αλυσίδα",
@@ -91,6 +92,8 @@ const messages = {
     priceHistoryTitle: "Ιστορικό τιμών",
     priceHistoryDescription: ({ days }) =>
       `Καταγεγραμμένες τιμές ανά αλυσίδα για έως ${days} ημέρες παρακολούθησης.`,
+    productDescription: "Περιγραφή προϊόντος",
+    loadingProductDescription: "Φόρτωση περιγραφής προϊόντος...",
     priceHistoryChartLabel: ({ name }) => `Γράφημα ιστορικού τιμών για ${name}`,
     priceHistoryChains: "Τιμές ανά αλυσίδα",
     priceHistoryObservations: ({ count }) => `${count} παρατηρήσεις`,
@@ -524,6 +527,7 @@ const messages = {
     sortLargestAmount: "Largest € difference",
     sortChangeName: "Product name",
     visiblePriceChanges: ({ visible, total }) => `${visible} of ${total} changes`,
+    loadMorePriceChanges: ({ count }) => `Show ${count} more changes`,
     priceChangesRetention: ({ days }) => `Retained for up to ${days} days`,
     productColumn: "Product",
     chainColumn: "Chain",
@@ -537,6 +541,8 @@ const messages = {
     priceHistoryTitle: "Price history",
     priceHistoryDescription: ({ days }) =>
       `Recorded prices by chain for up to ${days} days of tracking.`,
+    productDescription: "Product description",
+    loadingProductDescription: "Loading product description...",
     priceHistoryChartLabel: ({ name }) => `Price-history chart for ${name}`,
     priceHistoryChains: "Prices by chain",
     priceHistoryObservations: ({ count }) => `${count} observations`,

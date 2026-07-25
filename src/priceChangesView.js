@@ -1,5 +1,8 @@
 export const PRICE_CHANGE_DIRECTIONS = ["all", "decrease", "increase"];
 export const PRICE_CHANGE_SORTS = ["recent", "percentage", "amount", "name"];
+const MAX_PRICE_CHANGES = 50000;
+const MAX_COMPACT_PRODUCTS = 25000;
+const MAX_COMPACT_RETAILERS = 200;
 const MAX_HISTORY_POINTS = 200;
 const MAX_HISTORY_SERIES = 30;
 
@@ -139,19 +142,96 @@ function normalizeHistories(rawHistories) {
   }));
 }
 
+function normalizeCompactChanges(raw) {
+  const productEntries = Object.entries(raw?.products || {});
+  const retailerEntries = Object.entries(raw?.retailers || {});
+  if (
+    !raw?.products
+    || typeof raw.products !== "object"
+    || Array.isArray(raw.products)
+    || productEntries.length > MAX_COMPACT_PRODUCTS
+    || !raw?.retailers
+    || typeof raw.retailers !== "object"
+    || Array.isArray(raw.retailers)
+    || retailerEntries.length > MAX_COMPACT_RETAILERS
+  ) {
+    throw new Error("invalid_compact_price_changes");
+  }
+
+  const products = new Map(productEntries.map(([productIdValue, product]) => {
+    const productId = cleanText(productIdValue, 160);
+    if (
+      !productId
+      || !Array.isArray(product)
+      || product.length !== 4
+      || product.some((field) => typeof field !== "string")
+    ) {
+      throw new Error("invalid_compact_price_change_product");
+    }
+    return [productId, {
+      productName: product[0],
+      brand: product[1],
+      category: product[2],
+      imageUrl: product[3],
+    }];
+  }));
+  const retailers = new Map(retailerEntries.map(([retailerIdValue, retailerName]) => {
+    const retailerId = cleanText(retailerIdValue, 160);
+    const name = cleanText(retailerName, 240);
+    if (!retailerId || !name) {
+      throw new Error("invalid_compact_price_change_retailer");
+    }
+    return [retailerId, name];
+  }));
+
+  return raw.changes.map((change) => {
+    if (!Array.isArray(change) || change.length !== 10) {
+      throw new Error("invalid_compact_price_change");
+    }
+    const productId = cleanText(change[0], 160);
+    const retailerId = cleanText(change[1], 160);
+    const product = products.get(productId);
+    const retailerName = retailers.get(retailerId);
+    if (!product || !retailerName || ![-1, 1].includes(change[6])) {
+      throw new Error("invalid_compact_price_change");
+    }
+    return normalizeChange({
+      product_id: productId,
+      product_name: product.productName,
+      brand: product.brand,
+      category: product.category,
+      image_url: product.imageUrl,
+      retailer_id: retailerId,
+      retailer_name: retailerName,
+      previous_price: change[2],
+      current_price: change[3],
+      amount: change[4],
+      percentage: change[5],
+      direction: change[6] === -1 ? "decrease" : "increase",
+      changed_at: change[7],
+      compared_at: change[8],
+      offer_updated_at: change[9],
+    });
+  });
+}
+
 export function normalizePriceChangesPayload(raw) {
   if (
-    raw?.schema_version !== 1
+    ![1, 2].includes(raw?.schema_version)
     || !Array.isArray(raw?.changes)
-    || raw.changes.length > 10000
+    || raw.changes.length > MAX_PRICE_CHANGES
   ) {
     throw new Error("invalid_price_changes_payload");
   }
 
-  const changes = raw.changes.map(normalizeChange);
+  const changes = raw.schema_version === 2
+    ? normalizeCompactChanges(raw)
+    : raw.changes.map(normalizeChange);
   const productIds = new Set(changes.map((change) => change.productId));
   const retailerIds = new Set(changes.map((change) => change.retailerId));
-  const histories = normalizeHistories(raw.histories);
+  const histories = raw.schema_version === 1
+    ? normalizeHistories(raw.histories)
+    : {};
 
   return {
     generatedAt: cleanText(raw.generated_at, 80),

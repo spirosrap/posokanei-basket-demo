@@ -49,7 +49,9 @@ import {
 } from "lucide-react";
 import {
   createContext,
+  memo,
   startTransition,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -150,6 +152,8 @@ const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
 const PRICE_CHANGES_PATH = `${APP_BASE_PATH}changes/`;
+const INITIAL_PRICE_CHANGE_ROWS = 120;
+const PRICE_CHANGE_ROW_BATCH = 120;
 const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
 const IS_PRICE_CHANGES_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/changes");
 const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE || IS_PRICE_CHANGES_PAGE
@@ -1339,19 +1343,56 @@ function PriceChangesApp() {
   const [direction, setDirection] = useState("all");
   const [sort, setSort] = useState("recent");
   const [selectedHistoryProductId, setSelectedHistoryProductId] = useState("");
+  const [visibleChangeLimit, setVisibleChangeLimit] = useState(INITIAL_PRICE_CHANGE_ROWS);
+  const [productDetailsById, setProductDetailsById] = useState({});
+  const productDetailsCacheRef = useRef(new Map());
+
+  const loadProductDetails = useCallback((productId) => {
+    const cached = productDetailsCacheRef.current.get(productId);
+    if (cached && cached.status !== "error") return;
+
+    const loadingEntry = { status: "loading", product: null };
+    productDetailsCacheRef.current.set(productId, loadingEntry);
+    setProductDetailsById((current) => ({
+      ...current,
+      [productId]: loadingEntry,
+    }));
+
+    fetchProductsByIds([productId], { includeDetails: true })
+      .then(([product]) => {
+        const nextEntry = {
+          status: product ? "ready" : "error",
+          product: product || null,
+        };
+        productDetailsCacheRef.current.set(productId, nextEntry);
+        setProductDetailsById((current) => ({
+          ...current,
+          [productId]: nextEntry,
+        }));
+      })
+      .catch(() => {
+        const errorEntry = { status: "error", product: null };
+        productDetailsCacheRef.current.set(productId, errorEntry);
+        setProductDetailsById((current) => ({
+          ...current,
+          [productId]: errorEntry,
+        }));
+      });
+  }, []);
+
+  const openPriceHistory = useCallback((productId) => {
+    setSelectedHistoryProductId(productId);
+    loadProductDetails(productId);
+  }, [loadProductDetails]);
+
+  const closePriceHistory = useCallback(() => {
+    setSelectedHistoryProductId("");
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     setState((current) => ({ ...current, status: "loading" }));
-    fetch(runtimeAppUrl("data/price-changes.json"), {
-      headers: { Accept: "application/json" },
-      cache: "no-cache",
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
+    fetchPriceChangesFeed(controller.signal)
       .then((raw) => {
         const normalized = normalizePriceChangesPayload(raw);
         setState({
@@ -1387,6 +1428,16 @@ function PriceChangesApp() {
     }),
     [data?.changes, direction, query, retailerId, sort],
   );
+  const renderedChanges = useMemo(
+    () => visibleChanges.slice(0, visibleChangeLimit),
+    [visibleChangeLimit, visibleChanges],
+  );
+  const remainingChangeCount = Math.max(0, visibleChanges.length - renderedChanges.length);
+
+  useEffect(() => {
+    setVisibleChangeLimit(INITIAL_PRICE_CHANGE_ROWS);
+  }, [data?.generatedAt, direction, query, retailerId, sort]);
+
   const health = data
     ? {
         state: "cached",
@@ -1398,20 +1449,26 @@ function PriceChangesApp() {
         activeProducts: 0,
       };
   const updatedAt = data ? formatDataTime(data.generatedAt, locale, t) : "";
-  const selectedHistory = useMemo(
-    () => selectedHistoryProductId && data
-      ? priceHistoryForProduct(
-          data.histories,
-          data.changes,
-          selectedHistoryProductId,
-        )
-      : null,
-    [data, selectedHistoryProductId],
-  );
-  const selectedHistoryProduct = useMemo(
+  const selectedHistoryFallbackProduct = useMemo(
     () => data?.changes.find((change) => change.productId === selectedHistoryProductId)?.product || null,
     [data?.changes, selectedHistoryProductId],
   );
+  const selectedProductDetail = selectedHistoryProductId
+    ? productDetailsById[selectedHistoryProductId]
+    : null;
+  const selectedHistoryProduct = selectedProductDetail?.product || selectedHistoryFallbackProduct;
+  const selectedProductHistory = selectedProductDetail?.product?.priceHistory;
+  const selectedHistory = useMemo(() => {
+    if (!selectedHistoryProductId || !data) return null;
+    if (selectedProductHistory?.retailers?.length) {
+      return selectedProductHistory;
+    }
+    return priceHistoryForProduct(
+      data.histories,
+      data.changes,
+      selectedHistoryProductId,
+    );
+  }, [data, selectedHistoryProductId, selectedProductHistory]);
 
   return (
     <div className="app-shell changes-shell">
@@ -1572,17 +1629,31 @@ function PriceChangesApp() {
                   <span>{t("changedColumn")}</span>
                 </div>
                 <div className="changes-list">
-                  {visibleChanges.map((change) => (
+                  {renderedChanges.map((change) => (
                     <PriceChangeRow
                       key={`${change.productId}:${change.retailerId}:${change.changedAt}`}
                       change={change}
                       locale={locale}
                       money={money}
-                      onOpenHistory={() => setSelectedHistoryProductId(change.productId)}
+                      onOpenHistory={openPriceHistory}
                       t={t}
                     />
                   ))}
                 </div>
+                {remainingChangeCount ? (
+                  <button
+                    type="button"
+                    className="text-button changes-load-more"
+                    onClick={() => setVisibleChangeLimit((current) => (
+                      current + PRICE_CHANGE_ROW_BATCH
+                    ))}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {t("loadMorePriceChanges", {
+                      count: number(Math.min(PRICE_CHANGE_ROW_BATCH, remainingChangeCount)),
+                    })}
+                  </button>
+                ) : null}
               </section>
             ) : (
               <div className="changes-empty">
@@ -1598,12 +1669,36 @@ function PriceChangesApp() {
         <PriceHistoryDialog
           history={selectedHistory}
           product={selectedHistoryProduct}
+          productLoading={selectedProductDetail?.status === "loading"}
           retentionDays={data?.retentionDays || 7}
-          onClose={() => setSelectedHistoryProductId("")}
+          onClose={closePriceHistory}
         />
       ) : null}
     </div>
   );
+}
+
+async function fetchPriceChangesFeed(signal) {
+  let lastError;
+  const urls = [
+    runtimeAppUrl("api/price-changes.php"),
+    runtimeAppUrl("data/price-changes.json"),
+  ];
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        cache: "no-cache",
+        signal,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("price_changes_unavailable");
 }
 
 function PriceChangeSummary({ direction = "", icon, label, value }) {
@@ -1618,7 +1713,13 @@ function PriceChangeSummary({ direction = "", icon, label, value }) {
   );
 }
 
-function PriceChangeRow({ change, locale, money, onOpenHistory, t }) {
+const PriceChangeRow = memo(function PriceChangeRow({
+  change,
+  locale,
+  money,
+  onOpenHistory,
+  t,
+}) {
   const decreased = change.direction === "decrease";
   const exactTime = formatDateTime(new Date(change.changedAt), locale);
   const relativeTime = formatRelativeTime(change.changedAt, locale, t);
@@ -1631,7 +1732,7 @@ function PriceChangeRow({ change, locale, money, onOpenHistory, t }) {
         type="button"
         className="change-product-cell change-product-button"
         aria-label={t("openPriceHistory", { name: change.productName })}
-        onClick={onOpenHistory}
+        onClick={() => onOpenHistory(change.productId)}
       >
         <ProductThumb product={change.product} compact />
         <span>
@@ -1670,9 +1771,15 @@ function PriceChangeRow({ change, locale, money, onOpenHistory, t }) {
       </time>
     </article>
   );
-}
+});
 
-function PriceHistoryDialog({ history, product, retentionDays, onClose }) {
+function PriceHistoryDialog({
+  history,
+  product,
+  productLoading,
+  retentionDays,
+  onClose,
+}) {
   const { locale, money, number, t } = usePreferences();
   const closeButtonRef = useRef(null);
   const chartContainerRef = useRef(null);
@@ -1765,6 +1872,18 @@ function PriceHistoryDialog({ history, product, retentionDays, onClose }) {
             <X size={19} aria-hidden="true" />
           </button>
         </header>
+
+        <section
+          className={`price-history-product-description${productLoading ? " loading" : ""}`}
+          aria-label={t("productDescription")}
+        >
+          <strong>{t("productDescription")}</strong>
+          <p aria-live="polite">
+            {productLoading
+              ? t("loadingProductDescription")
+              : product?.description || t("catalogProduct")}
+          </p>
+        </section>
 
         {chart ? (
           <>

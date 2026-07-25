@@ -1256,6 +1256,12 @@ select:focus-visible {
   margin-top: 7px;
 }
 
+.changes-load-more {
+  min-width: 230px;
+  justify-content: center;
+  margin: 16px auto 0;
+}
+
 .change-row {
   min-height: 74px;
   border: 1px solid var(--line);
@@ -3808,9 +3814,37 @@ select:focus-visible {
   line-height: 1.45;
 }
 
-.price-history-chart {
-  margin-top: 17px;
+.price-history-product-description {
+  display: grid;
+  min-height: 74px;
+  gap: 5px;
+  margin: 14px -16px 0;
   border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-strong);
+  padding: 11px 16px 12px;
+}
+
+.price-history-product-description strong {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.price-history-product-description p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.price-history-product-description.loading p {
+  opacity: 0.7;
+}
+
+.price-history-chart {
+  margin-top: 0;
   border-bottom: 1px solid var(--line);
   padding: 14px 0 10px;
 }
