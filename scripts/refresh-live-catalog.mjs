@@ -589,6 +589,10 @@ function cacheBustUrl(value) {
   return url.toString();
 }
 
+function sleep(milliseconds) {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
+}
+
 async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
