@@ -154,6 +154,7 @@ import {
   useAppNavigation,
   usePreferences,
 } from "./appContexts";
+import { resolveCatalogUpdatedAt } from "./updateStatus";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -1916,7 +1917,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
   const { locale, t } = usePreferences();
   if (health.source !== "snapshot") return null;
   const snapshotTime = formatDataTime(
-    updateStatus?.snapshotGeneratedAt || health.snapshotGeneratedAt || updateStatus?.lastSuccessfulRefreshAt,
+    resolveCatalogUpdatedAt(health, updateStatus),
     locale,
     t,
   );

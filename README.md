@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.0`
+**Τρέχουσα έκδοση:** `v0.32.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -113,6 +113,8 @@
 Η έκδοση `v0.31.0` κάνει τις εσωτερικές μεταβάσεις πραγματικά άμεσες: αρχική, «Ευκαιρίες» και «Πρόσφατες αλλαγές τιμών» αλλάζουν πλέον μέσα στην ήδη ανοιχτή εφαρμογή, χωρίς νέο HTML request, επανεκκίνηση του JavaScript ή απώλεια του καλαθιού. Τα κουμπιά πίσω και εμπρός του browser εξακολουθούν να λειτουργούν κανονικά. Η σελίδα αλλαγών τιμών ξεκινά από ξεχωριστό preview των `120` πιο πρόσφατων εγγραφών, το οποίο στο στιγμιότυπο αναφοράς των `9.469` αλλαγών είναι μόλις `47 KB` raw ή `7,7 KB` με Brotli, αντί για `2,31 MB` raw ή περίπου `232 KB` με Brotli. Το preview διατηρεί τα ακριβή συνολικά στατιστικά και όλες τις αλυσίδες. Ο πλήρης κατάλογος αλλαγών ζητείται μόνο όταν ο χρήστης κάνει αναζήτηση, επιλέξει φίλτρο ή άλλη ταξινόμηση, ή ζητήσει περισσότερες γραμμές. Σε γρήγορες συνδέσεις το μικρό preview προθερμαίνεται όταν ο browser μείνει ελεύθερος ή όταν ο δείκτης πλησιάσει τον σύνδεσμο, ενώ το Data Saver και οι αργές συνδέσεις εξαιρούνται. Ο ωριαίος συγχρονισμός δημιουργεί, συμπιέζει, δημοσιεύει και επαληθεύει ατομικά το preview μαζί με τα υπόλοιπα αρχεία δεδομένων.
 
 Η έκδοση `v0.32.0` μειώνει ξανά το πραγματικό κόστος ανοίγματος. Ολόκληρη η προβολή «Πρόσφατες αλλαγές τιμών», μαζί με το γράφημα ιστορικού και τα δικά της icons, μεταφέρεται σε ξεχωριστό on-demand bundle `7,0 KB` με Brotli. Έτσι το αρχικό JavaScript της κύριας εφαρμογής πέφτει από περίπου `66,6 KB` σε `61,3 KB` με Brotli και η σελίδα αλλαγών δεν φορτώνεται καθόλου αν ο χρήστης δεν τη χρειαστεί. Όταν ο δείκτης πλησιάσει τον σύνδεσμο, το route bundle και τα δεδομένα ξεκινούν παράλληλα· σε απευθείας άνοιγμα του `/changes/`, το preview αρχίζει ήδη από το `<head>`. Το preview περιορίζεται πλέον στις `80` πιο πρόσφατες εγγραφές (`33 KB` raw ή `5,6 KB` Brotli στο ίδιο σύνολο `9.469` αλλαγών), ενώ αναζήτηση, φίλτρα και «περισσότερα» εξακολουθούν να φορτώνουν το πλήρες αρχείο. Ο βαρύτερος searchable κατάλογος δεν ανταγωνίζεται πια την πρώτη εμφάνιση και τις φωτογραφίες: ξεκινά αμέσως όταν ο χρήστης εστιάσει στην αναζήτηση ή πολύ αργότερα σε idle χρόνο. Αφαιρέθηκε επίσης διπλή αποθήκευση τιμής μονάδας από το runtime catalogue, μειώνοντας το σημερινό Brotli payload από περίπου `622 KB` σε `566 KB` χωρίς αλλαγή σε τιμές ή ταξινόμηση. Το build αποτυγχάνει αυτόματα αν το κύριο ή το route bundle ξεπεράσει το συμφωνημένο performance budget.
+
+Η έκδοση `v0.32.1` διορθώνει την ημερομηνία στην προειδοποίηση συγχρονισμού. Η εφαρμογή ξεχωρίζει πλέον την τελευταία αποτυχημένη προσπάθεια από την τελευταία επιτυχή λήψη καταλόγου και δεν εμφανίζει ως ημερομηνία του τρέχοντος καταλόγου ένα παλιότερο timestamp του μπλοκαρισμένου request-time proxy.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -252,7 +254,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.0`
+**Current version:** `v0.32.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -386,6 +388,8 @@ Version `v0.30.0` is a performance release. Builds now create ready-to-serve Bro
 Version `v0.31.0` makes internal transitions genuinely immediate: Home, Bargains, and Recent price changes now switch inside the already-running application, without another HTML request, a JavaScript restart, or loss of basket state. Browser back and forward navigation continues to work normally. The price-change page starts from a dedicated preview containing the `120` newest records; in the reference snapshot of `9,469` changes it is only `47 KB` raw or `7.7 KB` with Brotli, instead of `2.31 MB` raw or roughly `232 KB` with Brotli. The preview retains accurate global statistics and every supermarket chain. The complete change archive is requested only when the user searches, selects a filter or alternative sort, or asks for more rows. On capable connections the small preview is warmed while the browser is idle or when the pointer approaches the link, while Data Saver and slow connections opt out. The hourly synchronization now generates, compresses, publishes, and atomically verifies this preview alongside the other data files.
 
 Version `v0.32.0` lowers the real opening cost again. The complete Recent price changes view, including its history chart and route-only icons, now lives in a separate `7.0 KB` Brotli on-demand bundle. This reduces the main application JavaScript from roughly `66.6 KB` to `61.3 KB` with Brotli, and the changes page is not downloaded at all unless it is needed. Pointer intent starts the route bundle and data in parallel; a direct `/changes/` visit starts its preview from the document `<head>`. The preview now contains the `80` newest records (`33 KB` raw or `5.6 KB` Brotli for the same `9,469`-change reference set), while search, filters, and Load more still obtain the complete archive. The heavier searchable catalogue no longer competes with first paint and product images: it starts immediately when search receives focus or much later during idle time. Duplicate per-store unit prices were also removed from the runtime catalogue, reducing the current Brotli payload from roughly `622 KB` to `566 KB` without changing displayed prices or sorting. The production build now fails automatically if either the main or route bundle exceeds its performance budget.
+
+Version `v0.32.1` corrects the synchronization warning timestamp. The interface now distinguishes the latest failed attempt from the latest successful catalogue download and no longer presents an older timestamp from the blocked request-time proxy as the current catalogue date.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 

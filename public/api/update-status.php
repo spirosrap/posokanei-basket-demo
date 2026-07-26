@@ -41,8 +41,10 @@ try {
     @file_put_contents($cacheFile, json_encode($status, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n", LOCK_EX);
     echo json_encode($status, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (Throwable $error) {
-    $snapshot = read_snapshot(__DIR__ . '/../data/catalog-meta.json')
-        ?? read_snapshot(__DIR__ . '/../data/catalog-bootstrap.json');
+    $snapshot = newest_snapshot(
+        read_snapshot(__DIR__ . '/../data/catalog-meta.json'),
+        read_snapshot(__DIR__ . '/../data/catalog-bootstrap.json')
+    );
     if (is_array($snapshot)) {
         http_response_code(200);
         echo json_encode(snapshot_status($snapshot, $error->getMessage()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -78,6 +80,16 @@ function read_snapshot(string $snapshotFile): ?array
     if ($raw === false) return null;
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : null;
+}
+
+function newest_snapshot(?array $first, ?array $second): ?array
+{
+    if (!is_array($first)) return $second;
+    if (!is_array($second)) return $first;
+
+    $firstTime = strtotime((string) ($first['generated_at'] ?? '')) ?: 0;
+    $secondTime = strtotime((string) ($second['generated_at'] ?? '')) ?: 0;
+    return $secondTime > $firstTime ? $second : $first;
 }
 
 function snapshot_status(array $snapshot, string $detail): array
