@@ -33,6 +33,8 @@
     "live:install-refresh": "node scripts/install-live-refresh-launchd.mjs",
     "live:deploy": "node scripts/deploy-live.mjs",
     "live:deploy:mirror": "npm run build:legacy && node scripts/deploy-live.mjs --mirror",
+    "live:deploy:config": "node scripts/deploy-live.mjs --config-only",
+    "live:deploy:config:mirror": "node scripts/deploy-live.mjs --mirror --config-only",
     "live:deploy:bootstrap": "node scripts/deploy-live.mjs --bootstrap-only",
     "live:deploy:bootstrap:mirror": "node scripts/deploy-live.mjs --mirror --bootstrap-only",
     "live:deploy:compression": "node scripts/refresh-live-catalog.mjs --compression-only",

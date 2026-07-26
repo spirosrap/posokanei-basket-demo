@@ -21,8 +21,12 @@ const password =
   (await readKeychainPassword(`${envPrefix}_KEYCHAIN_SERVICE`, ftpUser));
 const includeData = process.env.DEPLOY_INCLUDE_DATA === "1";
 const bootstrapOnly = process.argv.includes("--bootstrap-only");
+const configOnly = process.argv.includes("--config-only");
 const buildFiles = await listFiles(distRoot);
-const files = bootstrapOnly ? buildFiles.filter((filePath) => {
+const files = configOnly ? buildFiles.filter((filePath) => {
+  const buildPath = relative(distRoot, filePath).split("\\").join("/");
+  return buildPath === ".htaccess";
+}) : bootstrapOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return /^data\/catalog-bootstrap\.json(?:\.(?:br|gz))?$/u.test(buildPath);
 }) : buildFiles.filter((filePath) => {
@@ -34,6 +38,10 @@ if (bootstrapOnly && files.length !== 3) {
   throw new Error(
     "dist/data/catalog-bootstrap.json plus its .br and .gz variants are required for --bootstrap-only.",
   );
+}
+
+if (configOnly && files.length !== 1) {
+  throw new Error("dist/.htaccess is required for --config-only.");
 }
 
 if (!bootstrapOnly && !includeData && files.length !== buildFiles.length) {
@@ -54,7 +62,9 @@ for (const filePath of files) {
 }
 
 console.log(
-  `Deployed ${files.length} ${bootstrapOnly ? "startup catalogue file" : "files"} to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
+  `Deployed ${files.length} ${
+    configOnly ? "server configuration file" : bootstrapOnly ? "startup catalogue files" : "files"
+  } to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
 );
 
 async function listFiles(directory) {

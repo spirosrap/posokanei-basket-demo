@@ -187,6 +187,14 @@ The normal UI deployment also includes precompressed hashed JavaScript/CSS and a
 versioned `sw.js`. The worker caches only the HTML app shell after first load; data,
 API, and `/s/<code>` requests are deliberately excluded.
 
+After a headers-only Apache configuration adjustment, publish just `.htaccess`
+without re-uploading application or catalogue files:
+
+```bash
+npm run live:deploy:config
+npm run live:deploy:config:mirror
+```
+
 Keep `OPENAI_API_KEY` only in the private environment of the Mac running the
 LaunchAgent. The key is not required on Plesk and must never be copied into
 `public/`, `dist/`, FTP, or the repository. Only public product data is sent in

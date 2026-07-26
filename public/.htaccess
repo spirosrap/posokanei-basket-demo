@@ -15,6 +15,22 @@ DirectoryIndex index.html
   AddEncoding gzip .gz
 </IfModule>
 
+<FilesMatch "\.js\.(br|gz)$">
+  ForceType application/javascript
+</FilesMatch>
+<FilesMatch "\.css\.(br|gz)$">
+  ForceType text/css
+</FilesMatch>
+<FilesMatch "\.json\.(br|gz)$">
+  ForceType application/json
+</FilesMatch>
+<FilesMatch "\.csv\.(br|gz)$">
+  ForceType text/csv
+</FilesMatch>
+<FilesMatch "\.svg\.(br|gz)$">
+  ForceType image/svg+xml
+</FilesMatch>
+
 <IfModule mod_headers.c>
   <Files "index.html">
     Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
