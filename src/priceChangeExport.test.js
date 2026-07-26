@@ -6,6 +6,7 @@ import {
   createPriceChangesPreviewPayload,
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
+  PRICE_CHANGES_PREVIEW_LIMIT,
 } from "../scripts/price-change-export.mjs";
 
 function snapshot() {
@@ -138,6 +139,21 @@ test("price-change preview keeps full totals but only referenced product metadat
     rowCount: 1,
     generatedAt: "2026-07-17T12:00:00.000Z",
   });
+});
+
+test("default price-change preview keeps a small first-render window", () => {
+  const payload = createPriceChangesPayload(snapshot());
+  const changes = Array.from({ length: 100 }, () => [...payload.changes[0]]);
+  const preview = createPriceChangesPreviewPayload({
+    ...payload,
+    stats: { ...payload.stats, changes: changes.length },
+    changes,
+  });
+
+  assert.equal(PRICE_CHANGES_PREVIEW_LIMIT, 80);
+  assert.equal(preview.changes.length, 80);
+  assert.equal(preview.stats.changes, 100);
+  assert.equal(preview.partial, true);
 });
 
 test("price-change JSON inspection rejects malformed display data", () => {

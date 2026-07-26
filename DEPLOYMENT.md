@@ -188,7 +188,7 @@ versioned `sw.js`. The worker caches only the HTML app shell after first load; d
 API, and `/s/<code>` requests are deliberately excluded.
 
 The recent-changes UI first reads `data/price-changes-preview.json`, containing the
-newest 120 rows plus full summary counts and the retailer directory. Search,
+newest 80 rows plus full summary counts and the retailer directory. Search,
 filtering, non-default sorting, and pagination then load the complete
 `data/price-changes.json`. The normal hourly refresh publishes and verifies both.
 To regenerate and publish only the preview from an already verified local full feed:
@@ -198,6 +198,19 @@ npm run price-changes:preview
 npm run live:deploy:preview
 npm run live:deploy:preview:mirror
 ```
+
+To publish only a regenerated compact runtime search catalogue and its compressed
+variants without changing prices or any other catalogue artifact, use:
+
+```bash
+npm run catalog:runtime
+npm run live:deploy:runtime
+npm run live:deploy:runtime:mirror
+```
+
+Every production build also runs `npm run check:performance`. It requires the
+recent-changes UI to remain a lazy route chunk and enforces raw and Brotli budgets
+for both that chunk and the main application bundle.
 
 After a headers-only Apache configuration adjustment, publish just `.htaccess`
 without re-uploading application or catalogue files:

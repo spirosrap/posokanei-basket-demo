@@ -14,15 +14,21 @@
     <script>
       (() => {
         const path = window.location.pathname.replace(/\/+$/, "");
-        if (path.endsWith("/bargains") || path.endsWith("/changes")) return;
-        const url = new URL("%BASE_URL%data/catalog-bootstrap.json", window.location.origin);
-        window.__catalogBootstrapPromise = fetch(url, {
+        const changesRoute = path.endsWith("/changes");
+        const resource = changesRoute
+          ? "data/price-changes-preview.json"
+          : "data/catalog-bootstrap.json";
+        const promiseKey = changesRoute
+          ? "__priceChangesPreviewPromise"
+          : "__catalogBootstrapPromise";
+        const url = new URL(`%BASE_URL%${resource}`, window.location.origin);
+        window[promiseKey] = fetch(url, {
           cache: "default",
           headers: { Accept: "application/json" },
           priority: "high",
         })
           .then((response) => {
-            if (!response.ok) throw new Error(`catalog_bootstrap_${response.status}`);
+            if (!response.ok) throw new Error(`early_data_${response.status}`);
             return response.json();
           })
           .catch(() => null);

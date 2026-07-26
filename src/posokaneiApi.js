@@ -244,7 +244,14 @@ function requestCatalogWorker(type, params, timeoutMs = 1200) {
   });
 }
 
-function queryLocalCatalog(params) {
+async function queryLocalCatalog(params) {
+  if (catalogSearchWorkerState !== "ready") {
+    const ready = await Promise.race([
+      warmCatalogSearch(),
+      sleep(1400).then(() => false),
+    ]);
+    if (!ready) return null;
+  }
   return requestCatalogWorker("query", params);
 }
 

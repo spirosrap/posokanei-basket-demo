@@ -22,7 +22,7 @@ export const PRICE_CHANGE_CSV_COLUMNS = [
 ];
 
 export const PRICE_CHANGES_SCHEMA_VERSION = 2;
-export const PRICE_CHANGES_PREVIEW_LIMIT = 120;
+export const PRICE_CHANGES_PREVIEW_LIMIT = 80;
 const MAX_HISTORY_POINTS = 200;
 
 function finiteNumber(value) {

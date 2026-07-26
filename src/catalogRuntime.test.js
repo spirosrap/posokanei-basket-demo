@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRuntimeCatalog } from "../scripts/catalog-runtime.mjs";
+import { normalizeProduct } from "./posokaneiApi.js";
 
 test("runtime catalogue keeps shopping fields and removes unused payload", () => {
   const runtime = createRuntimeCatalog({
@@ -46,7 +47,6 @@ test("runtime catalogue keeps shopping fields and removes unused payload", () =>
     {
       retailer: "chain-a",
       price: 2.4,
-      price_normalized: 4.8,
       price_change: {
         previous_price: 3,
         amount: -0.6,
@@ -57,6 +57,8 @@ test("runtime catalogue keeps shopping fields and removes unused payload", () =>
   ]);
   assert.equal(runtime.products[0].min_price, 2.4);
   assert.equal(runtime.products[0].min_unit_price, 4.8);
+  assert.equal("price_normalized" in runtime.products[0].retailer_prices[0], false);
   assert.equal(runtime.products[0].image_version, "image-v1");
   assert.equal("description" in runtime.products[0], false);
+  assert.equal(normalizeProduct(runtime.products[0], "snapshot").unitPrices["chain-a"], 4.8);
 });

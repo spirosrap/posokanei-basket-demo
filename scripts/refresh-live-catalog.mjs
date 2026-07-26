@@ -10,6 +10,7 @@ import { writeCompressedVariants } from "./precompress-assets.mjs";
 import {
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
+  PRICE_CHANGES_PREVIEW_LIMIT,
 } from "./price-change-export.mjs";
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 
@@ -809,7 +810,10 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         (priceChanges.rowCount === 0 || priceChanges.generatedAt === observed.snapshot) &&
         priceChangesJson.generatedAt === observed.snapshot &&
         observed.priceChangesPreview === observed.snapshot &&
-        observed.priceChangePreviewRows === Math.min(120, activePriceChanges) &&
+        observed.priceChangePreviewRows === Math.min(
+          PRICE_CHANGES_PREVIEW_LIMIT,
+          activePriceChanges,
+        ) &&
         priceChangesApi.rowCount === activePriceChanges &&
         priceChangesApi.generatedAt === observed.snapshot &&
         observed.detailProductId === detailVerificationProductId &&

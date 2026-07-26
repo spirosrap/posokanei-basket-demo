@@ -21,12 +21,16 @@ function compactPrice(entry) {
 }
 
 function compactProduct(product) {
-  const retailerPrices = (product.retailer_prices || product.prices || [])
+  const retailerPricesWithUnits = (product.retailer_prices || product.prices || [])
     .filter((entry) => String(entry?.country || "GR").toUpperCase() === "GR")
     .map(compactPrice)
     .filter(Boolean);
+  const retailerPrices = retailerPricesWithUnits.map((entry) => {
+    const { price_normalized: _derivedUnitPrice, ...compactEntry } = entry;
+    return compactEntry;
+  });
   const prices = retailerPrices.map((entry) => entry.price);
-  const unitPrices = retailerPrices
+  const unitPrices = retailerPricesWithUnits
     .map((entry) => entry.price_normalized)
     .filter((value) => Number.isFinite(value));
 

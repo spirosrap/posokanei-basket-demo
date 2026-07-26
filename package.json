@@ -1,6 +1,6 @@
 {
   "name": "posokanei-basket-demo",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "Fast web app for comparing a Greek supermarket basket across chains using live PosoKanei catalog data.",
   "license": "MIT",
   "private": true,
@@ -21,11 +21,12 @@
   ],
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build && node scripts/prepare-build-assets.mjs",
-    "build:legacy": "VITE_APP_BASE=/demo/posokanei-basket/ vite build && node scripts/prepare-build-assets.mjs",
+    "build": "vite build && node scripts/prepare-build-assets.mjs && node scripts/check-performance-budget.mjs",
+    "build:legacy": "VITE_APP_BASE=/demo/posokanei-basket/ vite build && node scripts/prepare-build-assets.mjs && node scripts/check-performance-budget.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",
     "test": "node --test src/*.test.js",
+    "check:performance": "node scripts/check-performance-budget.mjs",
     "bargain:daily": "node scripts/generate-daily-bargain.mjs",
     "catalog:snapshot": "node scripts/build-catalog-snapshot.mjs",
     "catalog:runtime": "node scripts/build-catalog-runtime.mjs",
@@ -40,6 +41,8 @@
     "live:deploy:bootstrap:mirror": "node scripts/deploy-live.mjs --mirror --bootstrap-only",
     "live:deploy:preview": "node scripts/deploy-live.mjs --preview-only",
     "live:deploy:preview:mirror": "node scripts/deploy-live.mjs --mirror --preview-only",
+    "live:deploy:runtime": "node scripts/deploy-live.mjs --runtime-only",
+    "live:deploy:runtime:mirror": "node scripts/deploy-live.mjs --mirror --runtime-only",
     "live:deploy:compression": "node scripts/refresh-live-catalog.mjs --compression-only",
     "live:refresh": "node scripts/refresh-live-catalog.mjs",
     "check:updates": "node scripts/check-posokanei-updates.mjs"
