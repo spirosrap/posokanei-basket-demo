@@ -59,6 +59,7 @@ const messages = {
     priceChangesUpdated: ({ time, retailers }) =>
       `Ενημέρωση ${time} · ${retailers} αλυσίδες`,
     priceChangesLoading: "Φόρτωση πρόσφατων αλλαγών τιμών",
+    priceChangesLoadingAll: "Φόρτωση ολόκληρου του ιστορικού για τα φίλτρα...",
     priceChangesUnavailable: "Οι πρόσφατες αλλαγές τιμών δεν είναι διαθέσιμες αυτή τη στιγμή.",
     retryPriceChanges: "Νέα προσπάθεια",
     priceChangesSummary: "Σύνοψη αλλαγών τιμών",
@@ -580,6 +581,7 @@ const messages = {
     priceChangesUpdated: ({ time, retailers }) =>
       `Updated ${time} · ${retailers} chains`,
     priceChangesLoading: "Loading recent price changes",
+    priceChangesLoadingAll: "Loading the complete history for these filters...",
     priceChangesUnavailable: "Recent price changes are not available right now.",
     retryPriceChanges: "Try again",
     priceChangesSummary: "Price-change summary",

@@ -40,6 +40,10 @@ const priceChangesJsonPath = resolve(
   projectRoot,
   process.env.POSOKANEI_PRICE_CHANGES_JSON_OUT || "dist/data/price-changes.json",
 );
+const priceChangesPreviewPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_PRICE_CHANGES_PREVIEW_OUT || "dist/data/price-changes-preview.json",
+);
 const priceChangesGzipPath = resolve(
   projectRoot,
   process.env.POSOKANEI_PRICE_CHANGES_GZIP_OUT || "dist/data/price-changes.json.gz",
@@ -107,7 +111,13 @@ async function deployCurrentCatalogueCompression() {
     throw new Error("Local catalogue data is not valid for compression-only publication.");
   }
 
-  const timestampedFiles = [metaPath, runtimePath, bootstrapPath, priceChangesJsonPath];
+  const timestampedFiles = [
+    metaPath,
+    runtimePath,
+    bootstrapPath,
+    priceChangesJsonPath,
+    priceChangesPreviewPath,
+  ];
   for (const filePath of timestampedFiles) {
     const data = JSON.parse(await readFile(filePath, "utf8"));
     if (data.generated_at !== expectedGeneratedAt) {
@@ -202,6 +212,7 @@ async function refreshCatalog() {
       POSOKANEI_BOOTSTRAP_OUT: bootstrapPath,
       POSOKANEI_PRICE_CHANGES_OUT: priceChangesPath,
       POSOKANEI_PRICE_CHANGES_JSON_OUT: priceChangesJsonPath,
+      POSOKANEI_PRICE_CHANGES_PREVIEW_OUT: priceChangesPreviewPath,
       ...(previousSnapshotPath
         ? { POSOKANEI_PREVIOUS_SNAPSHOT: previousSnapshotPath }
         : {}),
@@ -292,6 +303,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteBootstrap = `${remoteDir}/catalog-bootstrap.json`;
   const remotePriceChanges = `${remoteDir}/price-changes.csv`;
   const remotePriceChangesJson = `${remoteDir}/price-changes.json`;
+  const remotePriceChangesPreview = `${remoteDir}/price-changes-preview.json`;
   const remotePreviousSnapshot = `${remoteDir}/catalog-previous.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
@@ -301,6 +313,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   await mkdir(dirname(bootstrapPath), { recursive: true });
   await mkdir(dirname(priceChangesPath), { recursive: true });
   await mkdir(dirname(priceChangesJsonPath), { recursive: true });
+  await mkdir(dirname(priceChangesPreviewPath), { recursive: true });
 
   try {
     await run("ssh", [
@@ -360,6 +373,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
         `POSOKANEI_BOOTSTRAP_OUT=${shellQuote(remoteBootstrap)}`,
         `POSOKANEI_PRICE_CHANGES_OUT=${shellQuote(remotePriceChanges)}`,
         `POSOKANEI_PRICE_CHANGES_JSON_OUT=${shellQuote(remotePriceChangesJson)}`,
+        `POSOKANEI_PRICE_CHANGES_PREVIEW_OUT=${shellQuote(remotePriceChangesPreview)}`,
         ...(previousSnapshotPath
           ? [`POSOKANEI_PREVIOUS_SNAPSHOT=${shellQuote(remotePreviousSnapshot)}`]
           : []),
@@ -372,6 +386,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
     await run("scp", [...sshOptions, `${host}:${remoteBootstrap}`, bootstrapPath]);
     await run("scp", [...sshOptions, `${host}:${remotePriceChanges}`, priceChangesPath]);
     await run("scp", [...sshOptions, `${host}:${remotePriceChangesJson}`, priceChangesJsonPath]);
+    await run("scp", [
+      ...sshOptions,
+      `${host}:${remotePriceChangesPreview}`,
+      priceChangesPreviewPath,
+    ]);
   } finally {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)}`], {
       allowFailure: true,
@@ -504,6 +523,7 @@ async function writeCatalogueCompressionVariants() {
     { filePath: bootstrapPath, remoteName: "catalog-bootstrap.json" },
     { filePath: priceChangesPath, remoteName: "price-changes.csv" },
     { filePath: priceChangesJsonPath, remoteName: "price-changes.json" },
+    { filePath: priceChangesPreviewPath, remoteName: "price-changes-preview.json" },
     ...(existsSync(dailyBargainPath)
       ? [{ filePath: dailyBargainPath, remoteName: "daily-bargain.json" }]
       : []),
@@ -635,6 +655,7 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(bootstrapPath, "catalog-bootstrap.json", target, password);
   await publishDataFile(priceChangesPath, "price-changes.csv", target, password);
   await publishDataFile(priceChangesJsonPath, "price-changes.json", target, password);
+  await publishDataFile(priceChangesPreviewPath, "price-changes-preview.json", target, password);
   await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
@@ -698,6 +719,10 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-bootstrap.json");
   const targetPriceChangesUrl = targetCatalogUrl.replace(/catalog\.json$/, "price-changes.csv");
   const targetPriceChangesJsonUrl = targetCatalogUrl.replace(/catalog\.json$/, "price-changes.json");
+  const targetPriceChangesPreviewUrl = targetCatalogUrl.replace(
+    /catalog\.json$/,
+    "price-changes-preview.json",
+  );
   const targetPriceChangesApiUrl = targetCatalogUrl.replace(
     /\/data\/catalog\.json$/,
     "/api/price-changes.php",
@@ -718,6 +743,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         publicBootstrap,
         publicPriceChanges,
         publicPriceChangesJson,
+        publicPriceChangesPreview,
         publicPriceChangesApi,
         publicProductDetails,
         publicRefreshStatus,
@@ -728,12 +754,14 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         fetchPublicJson(targetBootstrapUrl),
         fetchPublicText(targetPriceChangesUrl),
         fetchPublicJson(targetPriceChangesJsonUrl),
+        fetchPublicJson(targetPriceChangesPreviewUrl),
         fetchPublicJson(targetPriceChangesApiUrl),
         fetchPublicJson(targetProductDetailsUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
       const priceChanges = inspectPriceChangesCsv(publicPriceChanges);
       const priceChangesJson = inspectPriceChangesJson(publicPriceChangesJson);
+      const priceChangesPreview = inspectPriceChangesJson(publicPriceChangesPreview);
       const priceChangesApi = inspectPriceChangesJson(publicPriceChangesApi);
       const detailProduct = Array.isArray(publicProductDetails?.products)
         ? publicProductDetails.products[0]
@@ -752,6 +780,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChangeRows: priceChanges.rowCount,
         priceChangesJson: priceChangesJson.generatedAt || "",
         priceChangeJsonRows: priceChangesJson.rowCount,
+        priceChangesPreview: priceChangesPreview.generatedAt || "",
+        priceChangePreviewRows: priceChangesPreview.rowCount,
         priceChangesApi: priceChangesApi.generatedAt || "",
         priceChangeApiRows: priceChangesApi.rowCount,
         detailProductId: String(detailProduct?.id || ""),
@@ -778,6 +808,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChangesJson.rowCount === activePriceChanges &&
         (priceChanges.rowCount === 0 || priceChanges.generatedAt === observed.snapshot) &&
         priceChangesJson.generatedAt === observed.snapshot &&
+        observed.priceChangesPreview === observed.snapshot &&
+        observed.priceChangePreviewRows === Math.min(120, activePriceChanges) &&
         priceChangesApi.rowCount === activePriceChanges &&
         priceChangesApi.generatedAt === observed.snapshot &&
         observed.detailProductId === detailVerificationProductId &&
@@ -806,6 +838,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified static startup catalogue at ${targetBootstrapUrl}`);
   console.log(`Verified price-change CSV at ${targetPriceChangesUrl}`);
   console.log(`Verified price-change display data at ${targetPriceChangesJsonUrl}`);
+  console.log(`Verified initial price-change preview at ${targetPriceChangesPreviewUrl}`);
   console.log(`Verified compressed price-change API at ${targetPriceChangesApiUrl}`);
   console.log(`Verified product-detail sidecar through ${targetProductDetailsUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
@@ -823,9 +856,13 @@ async function verifyCompressedDataDelivery(target, expectedGeneratedAt) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/u, "catalog-runtime.json");
   const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/u, "catalog-bootstrap.json");
+  const targetPriceChangesPreviewUrl = targetCatalogUrl.replace(
+    /catalog\.json$/u,
+    "price-changes-preview.json",
+  );
 
   for (const encoding of ["br", "gzip"]) {
-    for (const url of [targetRuntimeUrl, targetBootstrapUrl]) {
+    for (const url of [targetRuntimeUrl, targetBootstrapUrl, targetPriceChangesPreviewUrl]) {
       const response = await fetch(cacheBustUrl(url), {
         method: "HEAD",
         headers: { "Accept-Encoding": encoding },

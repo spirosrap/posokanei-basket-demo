@@ -21,11 +21,15 @@ const password =
   (await readKeychainPassword(`${envPrefix}_KEYCHAIN_SERVICE`, ftpUser));
 const includeData = process.env.DEPLOY_INCLUDE_DATA === "1";
 const bootstrapOnly = process.argv.includes("--bootstrap-only");
+const previewOnly = process.argv.includes("--preview-only");
 const configOnly = process.argv.includes("--config-only");
 const buildFiles = await listFiles(distRoot);
 const files = configOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return buildPath === ".htaccess";
+}) : previewOnly ? buildFiles.filter((filePath) => {
+  const buildPath = relative(distRoot, filePath).split("\\").join("/");
+  return /^data\/price-changes-preview\.json(?:\.(?:br|gz))?$/u.test(buildPath);
 }) : bootstrapOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return /^data\/catalog-bootstrap\.json(?:\.(?:br|gz))?$/u.test(buildPath);
@@ -37,6 +41,12 @@ const files = configOnly ? buildFiles.filter((filePath) => {
 if (bootstrapOnly && files.length !== 3) {
   throw new Error(
     "dist/data/catalog-bootstrap.json plus its .br and .gz variants are required for --bootstrap-only.",
+  );
+}
+
+if (previewOnly && files.length !== 3) {
+  throw new Error(
+    "dist/data/price-changes-preview.json plus its .br and .gz variants are required for --preview-only.",
   );
 }
 
@@ -63,7 +73,13 @@ for (const filePath of files) {
 
 console.log(
   `Deployed ${files.length} ${
-    configOnly ? "server configuration file" : bootstrapOnly ? "startup catalogue files" : "files"
+    configOnly
+      ? "server configuration file"
+      : bootstrapOnly
+        ? "startup catalogue files"
+        : previewOnly
+          ? "price-change preview files"
+          : "files"
   } to the ${deployTarget} target at https://${ftpHost}/${ftpRemoteDir}/`,
 );
 

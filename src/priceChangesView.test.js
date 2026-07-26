@@ -125,6 +125,50 @@ test("price-change view decodes the compact v2 feed", () => {
   assert.deepEqual(normalized.histories, {});
 });
 
+test("price-change preview retains authoritative full-feed totals", () => {
+  const normalized = normalizePriceChangesPayload({
+    schema_version: 2,
+    generated_at: "2026-07-17T12:00:00.000Z",
+    retention_days: 7,
+    partial: true,
+    stats: {
+      catalog_products: 9000,
+      changes: 100,
+      products: 80,
+      retailers: 8,
+      decreases: 45,
+      increases: 55,
+    },
+    products: {
+      coffee: ["Ελληνικός Καφές", "Μάρκα", "Καφές", ""],
+    },
+    retailers: { "chain-b": "Αλυσίδα Β" },
+    changes: [[
+      "coffee",
+      "chain-b",
+      4,
+      3.5,
+      -0.5,
+      -12.5,
+      -1,
+      "2026-07-17T11:00:00.000Z",
+      "2026-07-17T10:00:00.000Z",
+      "2026-07-17T11:00:00.000Z",
+    ]],
+  });
+
+  assert.equal(normalized.partial, true);
+  assert.deepEqual(normalized.retailers, [{ id: "chain-b", name: "Αλυσίδα Β" }]);
+  assert.deepEqual(normalized.stats, {
+    changes: 100,
+    products: 80,
+    retailers: 8,
+    decreases: 45,
+    increases: 55,
+    historyProducts: 0,
+  });
+});
+
 test("price history uses retained series and falls back to the visible change", () => {
   const normalized = normalizePriceChangesPayload(payload);
   const retained = priceHistoryForProduct(

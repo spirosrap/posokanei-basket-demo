@@ -7,6 +7,7 @@ import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
 import {
   writePriceChangesCsv,
   writePriceChangesJson,
+  writePriceChangesPreviewJson,
 } from "./price-change-export.mjs";
 import { annotatePriceChanges } from "./price-change-history.mjs";
 
@@ -38,6 +39,10 @@ const priceChangesOutputPath = resolve(
 const priceChangesJsonOutputPath = resolve(
   process.env.POSOKANEI_PRICE_CHANGES_JSON_OUT ||
     outputPath.replace(/catalog\.json$/, "price-changes.json"),
+);
+const priceChangesPreviewOutputPath = resolve(
+  process.env.POSOKANEI_PRICE_CHANGES_PREVIEW_OUT ||
+    outputPath.replace(/catalog\.json$/, "price-changes-preview.json"),
 );
 const previousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
@@ -157,6 +162,7 @@ const runtimeCatalog = await writeRuntimeCatalog(snapshot, runtimeOutputPath);
 await writeCatalogBootstrap(runtimeCatalog, bootstrapOutputPath);
 const exportedPriceChanges = await writePriceChangesCsv(snapshot, priceChangesOutputPath);
 await writePriceChangesJson(snapshot, priceChangesJsonOutputPath);
+await writePriceChangesPreviewJson(snapshot, priceChangesPreviewOutputPath);
 
 console.log(
   `Wrote ${products.length} products, ${snapshot.categories.length} categories, ${snapshot.retailers.length} retailers to ${outputPath}`,
@@ -166,6 +172,7 @@ console.log(`Wrote compact runtime catalogue to ${runtimeOutputPath}`);
 console.log(`Wrote static startup catalogue to ${bootstrapOutputPath}`);
 console.log(`Wrote ${exportedPriceChanges} price changes to ${priceChangesOutputPath}`);
 console.log(`Wrote price-change display data to ${priceChangesJsonOutputPath}`);
+console.log(`Wrote initial price-change preview to ${priceChangesPreviewOutputPath}`);
 console.log(
   `Price changes: ${priceChangeStats.new_changes} new, ${priceChangeStats.active_offers} active across ${priceChangeStats.products_with_recent_changes} products`,
 );

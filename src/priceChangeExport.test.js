@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createPriceChangesCsv,
   createPriceChangesPayload,
+  createPriceChangesPreviewPayload,
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
 } from "../scripts/price-change-export.mjs";
@@ -121,6 +122,20 @@ test("price-change JSON contains compact display records and summary counts", ()
   assert.equal(Object.hasOwn(payload, "histories"), false);
   assert.deepEqual(inspectPriceChangesJson(payload), {
     rowCount: 2,
+    generatedAt: "2026-07-17T12:00:00.000Z",
+  });
+});
+
+test("price-change preview keeps full totals but only referenced product metadata", () => {
+  const payload = createPriceChangesPayload(snapshot());
+  const preview = createPriceChangesPreviewPayload(payload, 1);
+
+  assert.equal(preview.partial, true);
+  assert.equal(preview.stats.changes, 2);
+  assert.equal(preview.changes.length, 1);
+  assert.deepEqual(Object.keys(preview.products), ["product-1"]);
+  assert.deepEqual(inspectPriceChangesJson(preview), {
+    rowCount: 1,
     generatedAt: "2026-07-17T12:00:00.000Z",
   });
 });

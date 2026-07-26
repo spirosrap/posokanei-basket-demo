@@ -172,7 +172,7 @@ targets with environment variables or the ignored `.env.local`, based on
 authentication; the mirror has matching legacy variables.
 
 Every successful refresh also creates `.br` and `.gz` companions for the full,
-metadata, runtime, bootstrap, price-change JSON/CSV, and daily-bargain files. Raw
+metadata, runtime, bootstrap, full and preview price-change JSON/CSV, and daily-bargain files. Raw
 files remain the source of truth and the status file is still published last. To
 backfill compression without contacting PosoKanei or changing any catalogue value,
 use:
@@ -186,6 +186,18 @@ to match, uploads only compressed companions, and verifies Brotli and Gzip deliv
 The normal UI deployment also includes precompressed hashed JavaScript/CSS and a
 versioned `sw.js`. The worker caches only the HTML app shell after first load; data,
 API, and `/s/<code>` requests are deliberately excluded.
+
+The recent-changes UI first reads `data/price-changes-preview.json`, containing the
+newest 120 rows plus full summary counts and the retailer directory. Search,
+filtering, non-default sorting, and pagination then load the complete
+`data/price-changes.json`. The normal hourly refresh publishes and verifies both.
+To regenerate and publish only the preview from an already verified local full feed:
+
+```bash
+npm run price-changes:preview
+npm run live:deploy:preview
+npm run live:deploy:preview:mirror
+```
 
 After a headers-only Apache configuration adjustment, publish just `.htaccess`
 without re-uploading application or catalogue files:
@@ -268,6 +280,7 @@ curl -L https://kalathitimon.com/
 curl -L https://kalathitimon.com/assets/<asset-file>
 curl -L https://kalathitimon.com/data/catalog.json
 curl -L https://kalathitimon.com/data/catalog-meta.json
+curl -L https://kalathitimon.com/data/price-changes-preview.json
 curl -L https://kalathitimon.com/data/refresh-status.json
 curl -L 'https://kalathitimon.com/api/posokanei.php?resource=stats'
 curl -L 'https://kalathitimon.com/api/update-status.php?refresh=1'

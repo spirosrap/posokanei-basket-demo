@@ -23,7 +23,8 @@ const variants = await precompressDirectory(distRoot, {
   include(filePath) {
     const buildPath = relative(distRoot, filePath).split(sep).join("/");
     return buildPath.startsWith("assets/")
-      || buildPath === "data/catalog-bootstrap.json";
+      || buildPath === "data/catalog-bootstrap.json"
+      || buildPath === "data/price-changes-preview.json";
   },
 });
 

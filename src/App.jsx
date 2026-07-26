@@ -152,9 +152,9 @@ import {
   filterPriceChanges,
   normalizePriceChangesPayload,
   priceHistoryForProduct,
-  priceChangeRetailers,
 } from "./priceChangesView";
 import { createPriceHistoryChart } from "./priceHistoryChart";
+import { APP_ROUTES, appRouteFromPathname, isUnmodifiedPrimaryClick } from "./appRoute";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -165,14 +165,20 @@ const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
 const PRICE_CHANGES_PATH = `${APP_BASE_PATH}changes/`;
+const PRICE_CHANGES_PREVIEW_URL = runtimeAppUrl("data/price-changes-preview.json");
+const PRICE_CHANGES_FULL_URL = runtimeAppUrl("data/price-changes.json");
 const INITIAL_PRICE_CHANGE_ROWS = 120;
 const PRICE_CHANGE_ROW_BATCH = 120;
-const IS_BARGAINS_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/bargains");
-const IS_PRICE_CHANGES_PAGE = window.location.pathname.replace(/\/+$/, "").endsWith("/changes");
-const INITIAL_SHARED_BASKET = IS_BARGAINS_PAGE || IS_PRICE_CHANGES_PAGE
+const PRICE_CHANGES_CACHE_TTL_MS = 5 * 60 * 1000;
+const INITIAL_APP_ROUTE = appRouteFromPathname(window.location.pathname, APP_BASE_PATH);
+const INITIAL_SHARED_BASKET = INITIAL_APP_ROUTE !== APP_ROUTES.home
   ? null
   : readSharedBasketUrl(window.location.href);
 const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
+let priceChangesPreviewPromise = null;
+let priceChangesFullPromise = null;
+let priceChangesPreviewRequestedAt = 0;
+let priceChangesFullRequestedAt = 0;
 const SHOPPING_PRIORITY_OPTIONS = [
   { value: 0, labelKey: "priorityLowestPrice" },
   { value: 2, labelKey: "prioritySmallDetour" },
@@ -189,11 +195,50 @@ const RETAILER_LOGO_FALLBACKS = {
 };
 
 const PreferencesContext = createContext(null);
+const NavigationContext = createContext(null);
 
 function usePreferences() {
   const preferences = useContext(PreferencesContext);
   if (!preferences) throw new Error("PreferencesContext is unavailable");
   return preferences;
+}
+
+function useAppNavigation() {
+  const navigation = useContext(NavigationContext);
+  if (!navigation) throw new Error("NavigationContext is unavailable");
+  return navigation;
+}
+
+function AppLink({ children, href, onClick, preload, ...props }) {
+  const { navigate } = useAppNavigation();
+  const handleClick = (event) => {
+    onClick?.(event);
+    if (
+      !isUnmodifiedPrimaryClick(event)
+      || event.currentTarget.target
+      || event.currentTarget.hasAttribute("download")
+    ) {
+      return;
+    }
+    const destination = new URL(href, window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    event.preventDefault();
+    navigate(destination);
+  };
+  const warm = () => preload?.();
+
+  return (
+    <a
+      {...props}
+      href={href}
+      onClick={handleClick}
+      onFocus={warm}
+      onPointerEnter={warm}
+      onTouchStart={warm}
+    >
+      {children}
+    </a>
+  );
 }
 
 const basketsMatch = (basket, referenceBasket) => {
@@ -351,6 +396,11 @@ const scheduleIdleWork = (work, { delay = 0, timeout = 2500 } = {}) => {
   };
 };
 
+const allowsBackgroundPrefetch = () => {
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  return !connection?.saveData && !["slow-2g", "2g"].includes(connection?.effectiveType);
+};
+
 function useShortBasketLink(longUrl) {
   const [state, setState] = useState(() => ({
     status: longUrl ? "loading" : "idle",
@@ -382,6 +432,7 @@ function useShortBasketLink(longUrl) {
 function App() {
   const [language, setLanguage] = useState(getInitialLanguage);
   const [theme, setTheme] = useState(getInitialTheme);
+  const [route, setRoute] = useState(INITIAL_APP_ROUTE);
   const locale = localeForLanguage(language);
 
   const preferences = useMemo(() => {
@@ -398,21 +449,46 @@ function App() {
     };
   }, [language, locale, theme]);
 
+  const navigate = useCallback((destination) => {
+    const url = destination instanceof URL
+      ? destination
+      : new URL(destination, window.location.href);
+    const nextRoute = appRouteFromPathname(url.pathname, APP_BASE_PATH);
+    if (url.href !== window.location.href) {
+      window.history.pushState({}, "", url);
+    }
+    setRoute(nextRoute);
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  }, []);
+
+  const navigation = useMemo(() => ({ navigate, route }), [navigate, route]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoute(appRouteFromPathname(window.location.pathname, APP_BASE_PATH));
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   useEffect(() => {
     saveLanguage(language);
     document.documentElement.lang = language;
     document.title = preferences.t(
-      IS_PRICE_CHANGES_PAGE ? "priceChangesDocumentTitle" : "documentTitle",
+      route === APP_ROUTES.changes ? "priceChangesDocumentTitle" : "documentTitle",
     );
     document
       .querySelector('meta[name="description"]')
       ?.setAttribute(
         "content",
         preferences.t(
-          IS_PRICE_CHANGES_PAGE ? "priceChangesDocumentDescription" : "documentDescription",
+          route === APP_ROUTES.changes
+            ? "priceChangesDocumentDescription"
+            : "documentDescription",
         ),
       );
-  }, [language, preferences]);
+  }, [language, preferences, route]);
 
   useEffect(() => {
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -431,14 +507,17 @@ function App() {
   }, [theme]);
 
   return (
-    <PreferencesContext.Provider value={preferences}>
-      {IS_PRICE_CHANGES_PAGE ? <PriceChangesApp /> : <AppContent />}
-    </PreferencesContext.Provider>
+    <NavigationContext.Provider value={navigation}>
+      <PreferencesContext.Provider value={preferences}>
+        {route === APP_ROUTES.changes ? <PriceChangesApp /> : <AppContent route={route} />}
+      </PreferencesContext.Provider>
+    </NavigationContext.Provider>
   );
 }
 
-function AppContent() {
+function AppContent({ route }) {
   const { t } = usePreferences();
+  const isBargainsPage = route === APP_ROUTES.bargains;
   const [basket, setBasket] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.basket
@@ -643,14 +722,21 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (IS_BARGAINS_PAGE || !catalogBootstrapped) return undefined;
+    if (isBargainsPage || !catalogBootstrapped) return undefined;
     return scheduleIdleWork(() => {
       void warmCatalogSearch(health.snapshotGeneratedAt);
     }, { delay: 900, timeout: 2800 });
-  }, [catalogBootstrapped, health.snapshotGeneratedAt]);
+  }, [catalogBootstrapped, health.snapshotGeneratedAt, isBargainsPage]);
 
   useEffect(() => {
-    if (IS_BARGAINS_PAGE || !catalogBootstrapped) return undefined;
+    if (isBargainsPage || !catalogBootstrapped || !allowsBackgroundPrefetch()) return undefined;
+    return scheduleIdleWork(() => {
+      void prefetchPriceChangesPreview();
+    }, { delay: 2600, timeout: 6000 });
+  }, [catalogBootstrapped, isBargainsPage]);
+
+  useEffect(() => {
+    if (isBargainsPage || !catalogBootstrapped) return undefined;
     let cancelled = false;
     const cancelScheduledWork = scheduleIdleWork(() => {
       fetchUpdateStatus()
@@ -663,10 +749,10 @@ function AppContent() {
       cancelled = true;
       cancelScheduledWork();
     };
-  }, [catalogBootstrapped]);
+  }, [catalogBootstrapped, isBargainsPage]);
 
   useEffect(() => {
-    if (!IS_BARGAINS_PAGE && !catalogBootstrapped) return undefined;
+    if (!isBargainsPage && !catalogBootstrapped) return undefined;
     let cancelled = false;
     const loadDailyBargain = () => {
       fetchDailyBargain()
@@ -685,15 +771,15 @@ function AppContent() {
           if (!cancelled) setDailyBargainState("error");
         });
     };
-    const cancelScheduledWork = IS_BARGAINS_PAGE
+    const cancelScheduledWork = isBargainsPage
       ? () => {}
       : scheduleIdleWork(loadDailyBargain, { delay: 180, timeout: 1800 });
-    if (IS_BARGAINS_PAGE) loadDailyBargain();
+    if (isBargainsPage) loadDailyBargain();
     return () => {
       cancelled = true;
       cancelScheduledWork();
     };
-  }, [catalogBootstrapped]);
+  }, [catalogBootstrapped, isBargainsPage]);
 
   useEffect(() => {
     if (!catalogBootstrapped) return undefined;
@@ -1196,7 +1282,7 @@ function AppContent() {
     });
   };
 
-  if (IS_BARGAINS_PAGE) {
+  if (isBargainsPage) {
     return (
       <div className="app-shell bargains-shell">
         <Header
@@ -1479,11 +1565,11 @@ function DailyBargain({ pick, retailers, onSelect, onAdd, moreHref }) {
           <Info size={16} />
           {t("details")}
         </button>
-        <a className="text-button bargains-button" href={moreHref}>
+        <AppLink className="text-button bargains-button" href={moreHref}>
           <Sparkles size={16} />
           {t("moreBargains")}
           <ChevronRight size={15} />
-        </a>
+        </AppLink>
         <button type="button" className="text-button primary-button" onClick={onAdd}>
           <Plus size={17} />
           {t("toBasket")}
@@ -1528,6 +1614,7 @@ function PriceChangesApp() {
   const [visibleChangeLimit, setVisibleChangeLimit] = useState(INITIAL_PRICE_CHANGE_ROWS);
   const [productDetailsById, setProductDetailsById] = useState({});
   const productDetailsCacheRef = useRef(new Map());
+  const completeFeedRequestedRef = useRef(false);
 
   const loadProductDetails = useCallback((productId) => {
     const cached = productDetailsCacheRef.current.get(productId);
@@ -1571,36 +1658,48 @@ function PriceChangesApp() {
     setSelectedHistoryProductId("");
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setState((current) => ({ ...current, status: "loading" }));
-    fetchPriceChangesFeed(controller.signal)
+  const loadCompleteFeed = useCallback(() => {
+    if (completeFeedRequestedRef.current) return;
+    completeFeedRequestedRef.current = true;
+    setState((current) => current.data?.partial
+      ? { ...current, status: "loading-more" }
+      : current);
+    fetchPriceChangesFeed("full")
       .then((raw) => {
-        const normalized = normalizePriceChangesPayload(raw);
-        setState({
-          status: "ready",
-          data: {
-            ...normalized,
-            changes: normalized.changes.map((change) => ({
-              ...change,
-              product: priceChangeProduct(change),
-            })),
-          },
-        });
+        setState({ status: "ready", data: preparePriceChangesData(raw) });
       })
-      .catch((error) => {
-        if (error?.name !== "AbortError") {
-          setState((current) => ({ ...current, status: "error" }));
-        }
+      .catch(() => {
+        setState((current) => current.data
+          ? { ...current, status: "ready" }
+          : { ...current, status: "error" });
+      })
+      .finally(() => {
+        completeFeedRequestedRef.current = false;
       });
-    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (requestVersion) resetPriceChangesFeedCache();
+    setState((current) => ({ ...current, status: "loading" }));
+    fetchPriceChangesFeed("preview")
+      .then((raw) => {
+        if (active) setState({ status: "ready", data: preparePriceChangesData(raw) });
+      })
+      .catch(() => {
+        if (active) setState((current) => ({ ...current, status: "error" }));
+      });
+    return () => {
+      active = false;
+    };
   }, [requestVersion]);
 
   const data = state.data;
-  const retailers = useMemo(
-    () => priceChangeRetailers(data?.changes || []),
-    [data?.changes],
-  );
+  const retailers = data?.retailers || [];
+  const usingDefaultFilters = !query.trim()
+    && retailerId === "all"
+    && direction === "all"
+    && sort === "recent";
   const visibleChanges = useMemo(
     () => filterPriceChanges(data?.changes || [], {
       query,
@@ -1614,7 +1713,14 @@ function PriceChangesApp() {
     () => visibleChanges.slice(0, visibleChangeLimit),
     [visibleChangeLimit, visibleChanges],
   );
-  const remainingChangeCount = Math.max(0, visibleChanges.length - renderedChanges.length);
+  const matchingChangeCount = data?.partial && usingDefaultFilters
+    ? data.stats.changes
+    : visibleChanges.length;
+  const remainingChangeCount = Math.max(0, matchingChangeCount - renderedChanges.length);
+
+  useEffect(() => {
+    if (data?.partial && !usingDefaultFilters) loadCompleteFeed();
+  }, [data?.partial, loadCompleteFeed, usingDefaultFilters]);
 
   useEffect(() => {
     setVisibleChangeLimit(INITIAL_PRICE_CHANGE_ROWS);
@@ -1656,10 +1762,10 @@ function PriceChangesApp() {
     <div className="app-shell changes-shell">
       <Header health={health} basketCount={0} showBasket={false} />
       <main className="price-changes-page">
-        <a className="bargains-back" href={APP_BASE_PATH}>
+        <AppLink className="bargains-back" href={APP_BASE_PATH}>
           <ArrowLeft size={17} aria-hidden="true" />
           {t("backToBasket")}
-        </a>
+        </AppLink>
 
         <header className="changes-heading">
           <div>
@@ -1801,6 +1907,13 @@ function PriceChangesApp() {
               <span>{t("priceChangesRetention", { days: number(data.retentionDays || 7) })}</span>
             </div>
 
+            {state.status === "loading-more" ? (
+              <div className="changes-progress" role="status">
+                <RefreshCw size={15} className="spin" aria-hidden="true" />
+                {t("priceChangesLoadingAll")}
+              </div>
+            ) : null}
+
             {visibleChanges.length ? (
               <section className="changes-table" aria-label={t("priceChangesTitle")}>
                 <div className="changes-table-head" aria-hidden="true">
@@ -1826,9 +1939,10 @@ function PriceChangesApp() {
                   <button
                     type="button"
                     className="text-button changes-load-more"
-                    onClick={() => setVisibleChangeLimit((current) => (
-                      current + PRICE_CHANGE_ROW_BATCH
-                    ))}
+                    onClick={() => {
+                      setVisibleChangeLimit((current) => current + PRICE_CHANGE_ROW_BATCH);
+                      if (data.partial) loadCompleteFeed();
+                    }}
                   >
                     <Plus size={16} aria-hidden="true" />
                     {t("loadMorePriceChanges", {
@@ -1860,23 +1974,78 @@ function PriceChangesApp() {
   );
 }
 
-async function fetchPriceChangesFeed(signal) {
+function preparePriceChangesData(raw) {
+  const normalized = normalizePriceChangesPayload(raw);
+  return {
+    ...normalized,
+    changes: normalized.changes.map((change) => ({
+      ...change,
+      product: priceChangeProduct(change),
+    })),
+  };
+}
+
+function resetPriceChangesFeedCache() {
+  priceChangesPreviewPromise = null;
+  priceChangesFullPromise = null;
+  priceChangesPreviewRequestedAt = 0;
+  priceChangesFullRequestedAt = 0;
+}
+
+function prefetchPriceChangesPreview() {
+  return fetchPriceChangesFeed("preview").catch(() => null);
+}
+
+function fetchPriceChangesFeed(kind = "preview") {
+  const isFull = kind === "full";
+  const requestedAt = isFull ? priceChangesFullRequestedAt : priceChangesPreviewRequestedAt;
+  const cached = isFull ? priceChangesFullPromise : priceChangesPreviewPromise;
+  if (cached && Date.now() - requestedAt < PRICE_CHANGES_CACHE_TTL_MS) return cached;
+  if (isFull) priceChangesFullPromise = null;
+  else priceChangesPreviewPromise = null;
+
+  const urls = isFull
+    ? [PRICE_CHANGES_FULL_URL, runtimeAppUrl("api/price-changes.php")]
+    : [PRICE_CHANGES_PREVIEW_URL, PRICE_CHANGES_FULL_URL, runtimeAppUrl("api/price-changes.php")];
+  const promise = fetchFirstPriceChangesFeed(urls)
+    .then((raw) => {
+      if (!isFull && raw?.partial !== true) {
+        priceChangesFullPromise = Promise.resolve(raw);
+        priceChangesFullRequestedAt = Date.now();
+      }
+      return raw;
+    })
+    .catch((error) => {
+      if (isFull) {
+        priceChangesFullPromise = null;
+        priceChangesFullRequestedAt = 0;
+      } else {
+        priceChangesPreviewPromise = null;
+        priceChangesPreviewRequestedAt = 0;
+      }
+      throw error;
+    });
+  if (isFull) {
+    priceChangesFullPromise = promise;
+    priceChangesFullRequestedAt = Date.now();
+  } else {
+    priceChangesPreviewPromise = promise;
+    priceChangesPreviewRequestedAt = Date.now();
+  }
+  return promise;
+}
+
+async function fetchFirstPriceChangesFeed(urls) {
   let lastError;
-  const urls = [
-    runtimeAppUrl("data/price-changes.json"),
-    runtimeAppUrl("api/price-changes.php"),
-  ];
   for (const url of urls) {
     try {
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
         cache: "default",
-        signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
-      if (error?.name === "AbortError") throw error;
       lastError = error;
     }
   }
@@ -2248,10 +2417,10 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
 
   return (
     <main className="bargains-page">
-      <a className="bargains-back" href={APP_BASE_PATH}>
+      <AppLink className="bargains-back" href={APP_BASE_PATH}>
         <ArrowLeft size={17} />
         {t("backToBasket")}
-      </a>
+      </AppLink>
 
       <header className="bargains-heading">
         <div>
@@ -2387,7 +2556,7 @@ function Header({
   };
   return (
     <header className="topbar">
-      <a className="brand" href={APP_BASE_PATH} aria-label={t("agenticSpirosHome")}>
+      <AppLink className="brand" href={APP_BASE_PATH} aria-label={t("agenticSpirosHome")}>
         <span className="brand-mark">
           <ShoppingBasket size={21} aria-hidden="true" />
         </span>
@@ -2395,7 +2564,7 @@ function Header({
           <strong>{t("brandName")}</strong>
           <small>{t("brandTagline")}</small>
         </span>
-      </a>
+      </AppLink>
 
       <div className="topbar-actions">
         <div className="preference-switch language-switch" role="group" aria-label={t("languageSelector")}>
@@ -2484,14 +2653,18 @@ function AppIntro({ health, updateStatus }) {
         <p>{t("introDescription")}</p>
       </div>
       <div className="intro-side">
-        <a className="price-changes-nav" href={PRICE_CHANGES_PATH}>
+        <AppLink
+          className="price-changes-nav"
+          href={PRICE_CHANGES_PATH}
+          preload={prefetchPriceChangesPreview}
+        >
           <ArrowDownUp size={17} aria-hidden="true" />
           <span>
             <strong>{t("priceChangesTitle")}</strong>
             <small>{t("priceChangesPageDescription")}</small>
           </span>
           <ChevronRight size={16} aria-hidden="true" />
-        </a>
+        </AppLink>
         <div className="intro-facts" aria-label={t("dataStatus")}>
           <span>
             {refreshFailed

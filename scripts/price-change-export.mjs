@@ -22,6 +22,7 @@ export const PRICE_CHANGE_CSV_COLUMNS = [
 ];
 
 export const PRICE_CHANGES_SCHEMA_VERSION = 2;
+export const PRICE_CHANGES_PREVIEW_LIMIT = 120;
 const MAX_HISTORY_POINTS = 200;
 
 function finiteNumber(value) {
@@ -169,6 +170,35 @@ export function createPriceChangesPayload(snapshot) {
   };
 }
 
+export function createPriceChangesPreviewPayload(
+  payload,
+  limit = PRICE_CHANGES_PREVIEW_LIMIT,
+) {
+  if (payload?.schema_version !== PRICE_CHANGES_SCHEMA_VERSION || !Array.isArray(payload?.changes)) {
+    throw new Error("price-change preview source is invalid");
+  }
+  const previewLimit = Math.max(1, Math.min(1000, Math.floor(Number(limit) || 0)));
+  const changes = payload.changes.slice(0, previewLimit);
+  const productIds = new Set(changes.map((change) => String(change?.[0] || "")));
+  const products = Object.fromEntries(
+    [...productIds]
+      .filter((productId) => Object.hasOwn(payload.products || {}, productId))
+      .map((productId) => [productId, payload.products[productId]]),
+  );
+
+  return {
+    schema_version: payload.schema_version,
+    generated_at: String(payload.generated_at || ""),
+    source: String(payload.source || ""),
+    retention_days: Number(payload.retention_days || 0),
+    stats: { ...(payload.stats || {}) },
+    partial: changes.length < payload.changes.length,
+    products,
+    retailers: { ...(payload.retailers || {}) },
+    changes,
+  };
+}
+
 function renderPriceChangesCsv(rows) {
   const lines = [
     PRICE_CHANGE_CSV_COLUMNS.join(","),
@@ -187,6 +217,13 @@ export async function writePriceChangesCsv(snapshot, outputPath) {
 
 export async function writePriceChangesJson(snapshot, outputPath) {
   const payload = createPriceChangesPayload(snapshot);
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, `${JSON.stringify(payload)}\n`, "utf8");
+  return payload.changes.length;
+}
+
+export async function writePriceChangesPreviewJson(snapshot, outputPath) {
+  const payload = createPriceChangesPreviewPayload(createPriceChangesPayload(snapshot));
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(payload)}\n`, "utf8");
   return payload.changes.length;

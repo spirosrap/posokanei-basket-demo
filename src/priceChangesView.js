@@ -229,24 +229,51 @@ export function normalizePriceChangesPayload(raw) {
     : raw.changes.map(normalizeChange);
   const productIds = new Set(changes.map((change) => change.productId));
   const retailerIds = new Set(changes.map((change) => change.retailerId));
+  const partial = raw.partial === true;
   const histories = raw.schema_version === 1
     ? normalizeHistories(raw.histories)
     : {};
+  const retailers = raw.schema_version === 2
+    ? Object.entries(raw.retailers).map(([id, name]) => ({
+        id: cleanText(id, 160),
+        name: cleanText(name, 240),
+      }))
+    : [...new Map(changes.map((change) => [change.retailerId, {
+        id: change.retailerId,
+        name: change.retailerName,
+      }])).values()];
+  retailers.sort((left, right) => left.name.localeCompare(right.name, "el"));
+  const observedStats = {
+    changes: changes.length,
+    products: productIds.size,
+    retailers: retailerIds.size,
+    decreases: changes.filter((change) => change.direction === "decrease").length,
+    increases: changes.filter((change) => change.direction === "increase").length,
+  };
+  const reportedStat = (key) => {
+    if (!partial) return observedStats[key];
+    const reported = Math.floor(Number(raw?.stats?.[key]));
+    return Number.isFinite(reported) && reported >= observedStats[key]
+      ? reported
+      : observedStats[key];
+  };
 
   return {
     generatedAt: cleanText(raw.generated_at, 80),
     retentionDays: Math.max(0, Number(raw.retention_days) || 0),
     catalogProducts: Math.max(0, Number(raw?.stats?.catalog_products) || 0),
     stats: {
-      changes: changes.length,
-      products: productIds.size,
-      retailers: retailerIds.size,
-      decreases: changes.filter((change) => change.direction === "decrease").length,
-      increases: changes.filter((change) => change.direction === "increase").length,
+      changes: reportedStat("changes"),
+      products: reportedStat("products"),
+      retailers: reportedStat("retailers"),
+      decreases: reportedStat("decreases"),
+      increases: reportedStat("increases"),
       historyProducts: Object.keys(histories).length,
     },
     changes,
     histories,
+    partial,
+    retailers,
   };
 }
 

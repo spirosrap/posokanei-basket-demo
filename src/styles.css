@@ -1249,6 +1249,16 @@ select:focus-visible {
   font-size: 12px;
 }
 
+.changes-progress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .changes-table-head,
 .change-row {
   display: grid;
@@ -3483,6 +3493,8 @@ select:focus-visible {
 }
 
 .route-card {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -3498,6 +3510,10 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.route-store-top > div {
+  min-width: 0;
 }
 
 .route-store-top strong,
@@ -6184,8 +6200,29 @@ select:focus-visible {
     flex-direction: column;
   }
 
+  .route-group-heading,
   .route-group-actions {
+    min-width: 0;
     width: 100%;
+    max-width: 100%;
+  }
+
+  .route-group-heading > *,
+  .route-group-actions > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .route-list,
+  .shopping-metrics,
+  .shopping-toolbar,
+  .shopping-toolbar-actions {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .route-group-actions {
     justify-content: flex-start;
   }
 
