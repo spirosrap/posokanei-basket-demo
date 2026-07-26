@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.27.2`
+**Τρέχουσα έκδοση:** `v0.28.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -24,6 +24,7 @@
 - Η εφαρμογή βρίσκει το φθηνότερο πλήρες πλάνο για τη λίστα σου.
 - Αν επιλέξεις περισσότερες από μία στάσεις, σου δείχνει τι αγοράζεις από κάθε αλυσίδα.
 - Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
+- Μπορείς να παρακολουθείς προϊόντα και να ορίζεις προαιρετική τιμή-στόχο, ώστε να βλέπεις ποια έφτασαν το ποσό που σε ενδιαφέρει.
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
@@ -100,6 +101,12 @@
 Η έκδοση `v0.27.1` διορθώνει τις παλιές τιμές που μπορούσαν να παραμένουν στις «Ευκαιρίες της ημέρας» όταν μια επιλογή AI είχε δημιουργηθεί από παλαιότερο κατάλογο. Το AI εξακολουθεί να επιλέγει τα προϊόντα, αλλά πριν εμφανιστούν η εφαρμογή ζητά τις τρέχουσες εγγραφές τους από τον τελευταίο συγχρονισμένο κατάλογο και υπολογίζει ξανά φθηνότερη αλυσίδα, υψηλότερη τιμή, διαφορά, ποσοστό και πλήθος αλυσίδων. Οι λεπτομέρειες και η προσθήκη στο καλάθι χρησιμοποιούν το ίδιο ανανεωμένο προϊόν. Αν η τρέχουσα εγγραφή δεν μπορεί να επιβεβαιωθεί, η πρόταση κρύβεται αντί να δείξει παλιά τιμή. Η ένδειξη κάτω από την πρόταση ξεχωρίζει πλέον την επιλογή με AI από την ώρα των τρεχουσών τιμών καταλόγου.
 
 Η έκδοση `v0.27.2` διορθώνει τις ετικέτες στη σύγκριση στάσεων όταν καμία αλυσίδα δεν καλύπτει ολόκληρο το καλάθι με μία στάση. Η πρώτη διαθέσιμη πλήρης λύση επισημαίνεται πλέον ως «Πρώτη πλήρης επιλογή», ενώ ένα μεγαλύτερο όριο που χρησιμοποιεί το ίδιο πλάνο αναφέρει τον πραγματικό αριθμό στάσεων. Δεν εμφανίζεται πια το παραπλανητικό «Ίδιο με 1 στάση» όταν η λύση μίας στάσης δεν υπάρχει.
+
+Η έκδοση `v0.28.0` προσθέτει προσωπική «Παρακολούθηση τιμών» για έως 40 προϊόντα. Από τη λεπτομερή προβολή μπορείς να παρακολουθήσεις ένα προϊόν και, προαιρετικά, να ορίσεις τιμή-στόχο. Όταν ανοίγεις τη λίστα, η εφαρμογή ζητά τις τρέχουσες εγγραφές από τον τελευταίο συγχρονισμένο κατάλογο, βρίσκει την καλύτερη τιμή στις ενεργές αλυσίδες και δείχνει αν ο στόχος επιτεύχθηκε ή πόσο απέχει ακόμη. Προϊόντα που έφτασαν τον στόχο εμφανίζονται πρώτα, μαζί με την αλυσίδα, την πρόσφατη ουσιαστική μεταβολή και άμεσες ενέργειες για λεπτομέρειες ή προσθήκη στο καλάθι. Η λίστα αποθηκεύει μόνο κωδικούς προϊόντων, προαιρετικούς στόχους και timestamps στον συγκεκριμένο browser· δεν αποθηκεύει τιμές, ονόματα, τοποθεσία ή δεδομένα σε server. Δεν στέλνει push notifications: ο έλεγχος γίνεται μέσα στην εφαρμογή όταν ανοίγει η λίστα. Το fallback ελέγχου ενημέρωσης διαβάζει πλέον το μικρό συγχρονισμένο metadata αντί να αποκωδικοποιεί ολόκληρο τον κατάλογο στο PHP, αποφεύγοντας σφάλματα μνήμης στο hosting όταν το upstream API μπλοκάρει το request.
+
+![Παρακολούθηση τιμών και στόχων στην έκδοση 0.28.0](screenshots/price-watch-v0.28.0.png)
+
+![Παρακολούθηση τιμών σε κινητό](screenshots/price-watch-mobile-v0.28.0.png)
 
 ![Γρήγορο ιστορικό με περιγραφή προϊόντος στην έκδοση 0.27.0](screenshots/price-history-description-v0.27.0.png)
 
@@ -231,7 +238,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.27.2`
+**Current version:** `v0.28.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -245,6 +252,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Sort the full catalogue by lowest package price, best comparable price per `kg`, `L`, or item, or product name before pagination.
 - See the best available unit price on each product row and the current basket quantity directly on its quick-add button.
 - See notable recent price drops or increases for the exact supermarket behind a displayed price, including the percentage and previous value.
+- Watch products with an optional target price and see which targets have been reached using current catalogue prices.
 - Switch the complete interface between Greek and English, including dates, currency, accessibility labels, and copied shopping plans.
 - Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
@@ -352,6 +360,12 @@ Version `v0.27.0` makes the Recent price changes page substantially faster witho
 Version `v0.27.1` fixes stale prices that could remain in Today's bargains when an AI selection came from an older catalogue. AI still selects the products, but before display the app fetches their current records from the latest synchronized catalogue and recomputes the cheapest chain, highest price, saving, percentage, and chain count. Product details and add-to-basket use that same refreshed product. If the current record cannot be confirmed, the suggestion is hidden instead of presenting an old price. The suggestion timestamp now clearly distinguishes the AI-assisted selection from the current catalogue-price time.
 
 Version `v0.27.2` corrects stop-comparison labels when no single chain covers the complete basket. The first available complete plan is now identified as the “First complete option”, while a higher limit that reuses that plan reports its actual number of stops. “Same as one stop” is no longer shown when no one-stop plan exists.
+
+Version `v0.28.0` adds a personal Price Watch for up to 40 products. A product can be watched from its detail view with an optional target price. Opening the list fetches current records from the latest synchronized catalogue, finds the best price among active chains, and shows whether the target has been reached or how far away it remains. Reached targets appear first, together with the chain, any recent meaningful movement, and direct product-detail or add-to-basket actions. The list stores only product IDs, optional targets, and timestamps in that browser; it stores no prices, names, location, or server-side personal data. It does not send push notifications: target status is checked inside the app when the list opens. The update-status fallback now reads the small synchronized metadata file instead of decoding the complete catalogue in PHP, avoiding hosting memory errors when the upstream API blocks the request.
+
+![Price Watch and target status in version 0.28.0](screenshots/price-watch-v0.28.0.png)
+
+![Responsive Price Watch on mobile](screenshots/price-watch-mobile-v0.28.0.png)
 
 ![Fast product history with catalogue description in version 0.27.0](screenshots/price-history-description-v0.27.0.png)
 

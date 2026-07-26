@@ -5,6 +5,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Barcode,
+  Bell,
+  BellRing,
   Bookmark,
   Check,
   CheckCheck,
@@ -41,6 +43,7 @@ import {
   Store,
   Sun,
   Tag,
+  Target,
   Trash2,
   Upload,
   Wifi,
@@ -135,6 +138,13 @@ import {
   removeSavedBasket,
   upsertSavedBasket,
 } from "./savedBaskets";
+import {
+  loadPriceWatches,
+  persistPriceWatches,
+  priceWatchTargetStatus,
+  removePriceWatch,
+  upsertPriceWatch,
+} from "./priceWatch";
 import { buildCatalogImageSources } from "./imageSources";
 import {
   filterPriceChanges,
@@ -450,6 +460,11 @@ function AppContent() {
   const [savedBaskets, setSavedBaskets] = useState(loadSavedBaskets);
   const [savedBasketsOpen, setSavedBasketsOpen] = useState(false);
   const [savedBasketNotice, setSavedBasketNotice] = useState(null);
+  const [priceWatches, setPriceWatches] = useState(loadPriceWatches);
+  const [priceWatchOpen, setPriceWatchOpen] = useState(false);
+  const [priceWatchProducts, setPriceWatchProducts] = useState([]);
+  const [priceWatchState, setPriceWatchState] = useState("idle");
+  const [priceWatchRefreshVersion, setPriceWatchRefreshVersion] = useState(0);
   const [retailerFilterIds, setRetailerFilterIds] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.retailerIds
@@ -776,7 +791,40 @@ function AppContent() {
     () => new Map(allProducts.map((product) => [product.id, product])),
     [allProducts],
   );
+  const priceWatchByProductId = useMemo(
+    () => new Map(priceWatches.map((watch) => [watch.productId, watch])),
+    [priceWatches],
+  );
+  const priceWatchProductIdsKey = useMemo(
+    () => priceWatches.map((watch) => watch.productId).sort().join("|"),
+    [priceWatches],
+  );
   const isDemoBasket = useMemo(() => basketsMatch(basket, DEFAULT_DEMO_BASKET), [basket]);
+
+  useEffect(() => {
+    if (!priceWatchOpen) return undefined;
+    const productIds = priceWatchProductIdsKey ? priceWatchProductIdsKey.split("|") : [];
+    if (!productIds.length) {
+      setPriceWatchProducts([]);
+      setPriceWatchState("ready");
+      return undefined;
+    }
+
+    let cancelled = false;
+    setPriceWatchState("loading");
+    fetchProductsByIds(productIds)
+      .then((products) => {
+        if (cancelled) return;
+        setPriceWatchProducts(products);
+        setPriceWatchState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setPriceWatchState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [priceWatchOpen, priceWatchProductIdsKey, priceWatchRefreshVersion]);
 
   useEffect(() => {
     if (!liveRetailers.length || retailerFilterIds === null) return;
@@ -923,6 +971,31 @@ function AppContent() {
   const deleteSavedBasket = (id) => {
     const next = persistSavedBaskets(removeSavedBasket(savedBaskets, id));
     setSavedBaskets(next);
+  };
+
+  const saveProductWatch = (product, targetPrice = null) => {
+    const next = persistPriceWatches(
+      upsertPriceWatch(priceWatches, { productId: product.id, targetPrice }),
+    );
+    setPriceWatches(next);
+    setPriceWatchProducts((current) => mergeCatalogProducts(current, [product]));
+    return next.find((watch) => watch.productId === product.id) ?? null;
+  };
+
+  const updateProductWatchTarget = (productId, targetPrice = null) => {
+    const next = persistPriceWatches(
+      upsertPriceWatch(priceWatches, { productId, targetPrice }),
+    );
+    setPriceWatches(next);
+    return next.find((watch) => watch.productId === productId) ?? null;
+  };
+
+  const deleteProductWatch = (productId) => {
+    const next = persistPriceWatches(removePriceWatch(priceWatches, productId));
+    setPriceWatches(next);
+    setPriceWatchProducts((current) =>
+      current.filter((product) => product.id !== productId),
+    );
   };
 
   const restoreSavedBasket = async (saved) => {
@@ -1074,7 +1147,12 @@ function AppContent() {
   if (IS_BARGAINS_PAGE) {
     return (
       <div className="app-shell bargains-shell">
-        <Header health={health} basketCount={basket.length} />
+        <Header
+          health={health}
+          basketCount={basket.length}
+          priceWatchCount={priceWatches.length}
+          onOpenPriceWatch={() => setPriceWatchOpen(true)}
+        />
         <BargainsPage
           pick={dailyBargain}
           state={dailyBargainState}
@@ -1088,6 +1166,26 @@ function AppContent() {
             retailers={liveRetailers}
             onClose={() => setSelectedProduct(null)}
             onAdd={() => addToBasket(selectedProduct)}
+            watch={priceWatchByProductId.get(selectedProduct.id) ?? null}
+            onSaveWatch={(targetPrice) => saveProductWatch(selectedProduct, targetPrice)}
+            onRemoveWatch={() => deleteProductWatch(selectedProduct.id)}
+          />
+        ) : null}
+        {priceWatchOpen ? (
+          <PriceWatchDialog
+            watches={priceWatches}
+            products={priceWatchProducts}
+            retailers={liveRetailers}
+            state={priceWatchState}
+            onRefresh={() => setPriceWatchRefreshVersion((value) => value + 1)}
+            onUpdateTarget={updateProductWatchTarget}
+            onRemove={deleteProductWatch}
+            onSelect={(product) => {
+              setPriceWatchOpen(false);
+              setSelectedProduct(product);
+            }}
+            onAdd={addToBasket}
+            onClose={() => setPriceWatchOpen(false)}
           />
         ) : null}
       </div>
@@ -1099,6 +1197,8 @@ function AppContent() {
       <Header
         health={health}
         basketCount={basket.length}
+        priceWatchCount={priceWatches.length}
+        onOpenPriceWatch={() => setPriceWatchOpen(true)}
       />
 
       <AppIntro health={health} updateStatus={updateStatus} />
@@ -1205,6 +1305,9 @@ function AppContent() {
           retailers={locationEligibleRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
+          watch={priceWatchByProductId.get(selectedProduct.id) ?? null}
+          onSaveWatch={(targetPrice) => saveProductWatch(selectedProduct, targetPrice)}
+          onRemoveWatch={() => deleteProductWatch(selectedProduct.id)}
         />
       ) : null}
 
@@ -1244,6 +1347,24 @@ function AppContent() {
           onLoad={restoreSavedBasket}
           onDelete={deleteSavedBasket}
           onClose={() => setSavedBasketsOpen(false)}
+        />
+      ) : null}
+
+      {priceWatchOpen ? (
+        <PriceWatchDialog
+          watches={priceWatches}
+          products={priceWatchProducts}
+          retailers={activeRetailers}
+          state={priceWatchState}
+          onRefresh={() => setPriceWatchRefreshVersion((value) => value + 1)}
+          onUpdateTarget={updateProductWatchTarget}
+          onRemove={deleteProductWatch}
+          onSelect={(product) => {
+            setPriceWatchOpen(false);
+            setSelectedProduct(product);
+          }}
+          onAdd={addToBasket}
+          onClose={() => setPriceWatchOpen(false)}
         />
       ) : null}
     </div>
@@ -2181,7 +2302,13 @@ function BargainsPage({ pick, state, retailers, onSelect, onAdd }) {
   );
 }
 
-function Header({ health, basketCount, showBasket = true }) {
+function Header({
+  health,
+  basketCount,
+  showBasket = true,
+  priceWatchCount = 0,
+  onOpenPriceWatch = null,
+}) {
   const { language, number, setLanguage, setTheme, t, theme } = usePreferences();
   const isOnline = health.state === "online";
   const isCached = health.state === "cached";
@@ -2261,6 +2388,18 @@ function Header({ health, basketCount, showBasket = true }) {
           {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
           <span>{healthLabel}</span>
         </div>
+        {onOpenPriceWatch ? (
+          <button
+            type="button"
+            className="price-watch-pill"
+            title={t("openPriceWatch", { count: number(priceWatchCount) })}
+            aria-label={t("openPriceWatch", { count: number(priceWatchCount) })}
+            onClick={onOpenPriceWatch}
+          >
+            <Bell size={16} aria-hidden="true" />
+            <span>{number(priceWatchCount)}</span>
+          </button>
+        ) : null}
         {showBasket ? (
           <div className="basket-pill" title={t("basketItems")}>
             <ShoppingBasket size={16} />
@@ -4760,12 +4899,358 @@ function RetailerRank({
   );
 }
 
-function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
+function PriceWatchDialog({
+  watches,
+  products,
+  retailers,
+  state,
+  onRefresh,
+  onUpdateTarget,
+  onRemove,
+  onSelect,
+  onAdd,
+  onClose,
+}) {
+  const { money, number, t } = usePreferences();
+  const retailerIds = useMemo(
+    () => retailers.map((retailer) => retailer.id),
+    [retailers],
+  );
+  const retailerById = useMemo(
+    () => new Map(retailers.map((retailer) => [retailer.id, retailer])),
+    [retailers],
+  );
+  const productById = useMemo(
+    () => new Map(products.map((product) => [product.id, product])),
+    [products],
+  );
+  const rows = useMemo(
+    () =>
+      watches
+        .map((watch) => {
+          const product = productById.get(watch.productId) ?? null;
+          const best = product ? getBestProductPrice(product, retailerIds) : null;
+          const target = priceWatchTargetStatus(watch, best?.price ?? null);
+          return {
+            watch,
+            product,
+            best,
+            target,
+            retailer: best ? retailerById.get(best.retailerId) ?? null : null,
+          };
+        })
+        .sort((a, b) => {
+          const targetRank = { met: 0, above: 1, "no-target": 2, unavailable: 3 };
+          const rankDifference = targetRank[a.target.status] - targetRank[b.target.status];
+          if (rankDifference) return rankDifference;
+          return b.watch.updatedAt.localeCompare(a.watch.updatedAt);
+        }),
+    [productById, retailerById, retailerIds, watches],
+  );
+  const reachedCount = rows.filter((row) => row.target.status === "met").length;
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <aside
+      className="drawer price-watch-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="price-watch-title"
+    >
+      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-panel price-watch-panel">
+        <div className="drawer-head">
+          <span className="price-watch-dialog-icon" aria-hidden="true">
+            <BellRing size={20} />
+          </span>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="drawer-title">
+          <small>{t("priceWatchEyebrow")}</small>
+          <h2 id="price-watch-title">{t("priceWatchTitle")}</h2>
+          <p>{t("priceWatchDescription")}</p>
+        </div>
+
+        <div className="price-watch-summary" aria-label={t("priceWatchSummary")}>
+          <span>
+            <Bell size={16} aria-hidden="true" />
+            <strong>{number(watches.length)}</strong>
+            <small>{t("watchedProducts", { count: watches.length })}</small>
+          </span>
+          <span className={reachedCount ? "target-met" : ""}>
+            <Target size={16} aria-hidden="true" />
+            <strong>{number(reachedCount)}</strong>
+            <small>{t("targetsReached", { count: reachedCount })}</small>
+          </span>
+        </div>
+
+        {state === "loading" && watches.length ? (
+          <div className="price-watch-loading" role="status">
+            <RefreshCw size={17} className="spin" aria-hidden="true" />
+            <span>{t("loadingPriceWatches")}</span>
+          </div>
+        ) : null}
+
+        {state === "error" ? (
+          <div className="price-watch-error" role="alert">
+            <AlertCircle size={18} aria-hidden="true" />
+            <span>{t("priceWatchLoadError")}</span>
+            <button type="button" className="text-button" onClick={onRefresh}>
+              <RefreshCw size={15} aria-hidden="true" />
+              {t("refresh")}
+            </button>
+          </div>
+        ) : null}
+
+        {!watches.length ? (
+          <div className="empty-state price-watch-empty">
+            <Bell size={24} aria-hidden="true" />
+            <strong>{t("noPriceWatches")}</strong>
+            <span>{t("noPriceWatchesHelp")}</span>
+          </div>
+        ) : state === "ready" || products.length ? (
+          <div className="price-watch-list">
+            {rows.map((row) => (
+              <PriceWatchRow
+                key={row.watch.productId}
+                row={row}
+                money={money}
+                onUpdateTarget={onUpdateTarget}
+                onRemove={onRemove}
+                onSelect={onSelect}
+                onAdd={onAdd}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <p className="price-watch-privacy">
+          <Info size={15} aria-hidden="true" />
+          <span>{t("priceWatchPrivacy")}</span>
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function PriceWatchRow({
+  row,
+  money,
+  onUpdateTarget,
+  onRemove,
+  onSelect,
+  onAdd,
+}) {
+  const { t } = usePreferences();
+  const { watch, product, best, retailer, target } = row;
+  const [targetDraft, setTargetDraft] = useState(
+    watch.targetPrice == null ? "" : String(watch.targetPrice),
+  );
+  const [actionState, setActionState] = useState("");
+
+  useEffect(() => {
+    setTargetDraft(watch.targetPrice == null ? "" : String(watch.targetPrice));
+  }, [watch.targetPrice]);
+
+  const saveTarget = (event) => {
+    event.preventDefault();
+    try {
+      onUpdateTarget(watch.productId, targetDraft === "" ? null : Number(targetDraft));
+      setActionState("saved");
+    } catch {
+      setActionState("error");
+    }
+  };
+
+  const removeWatch = () => {
+    try {
+      onRemove(watch.productId);
+    } catch {
+      setActionState("error");
+    }
+  };
+
+  const targetLabel = target.status === "met"
+    ? target.difference > 0
+      ? t("priceWatchTargetMetBelow", { amount: money(target.difference) })
+      : t("priceWatchTargetMet")
+    : target.status === "above"
+      ? t("priceWatchAboveTarget", { amount: money(target.difference) })
+      : target.status === "unavailable"
+        ? t("priceWatchPriceUnavailable")
+        : t("priceWatchNoTarget");
+
+  return (
+    <article className={`price-watch-row ${target.status}`}>
+      <button
+        type="button"
+        className="price-watch-product"
+        disabled={!product}
+        onClick={() => product && onSelect(product)}
+      >
+        {product ? (
+          <ProductThumb product={product} compact />
+        ) : (
+          <span className="price-watch-missing-thumb" aria-hidden="true">
+            <PackageSearch size={20} />
+          </span>
+        )}
+        <span>
+          <strong>{product?.name || t("priceWatchProductUnavailable")}</strong>
+          <small>
+            {product
+              ? `${product.brand || t("noBrand")} · ${product.unitQuantity || product.unit}`
+              : watch.productId}
+          </small>
+        </span>
+      </button>
+
+      <div className="price-watch-current">
+        <small>{t("currentBestPrice")}</small>
+        <strong>{best ? money(best.price) : "-"}</strong>
+        {retailer ? (
+          <span>
+            <RetailerLogo retailer={retailer} className="tiny" ariaHidden />
+            {retailer.name}
+          </span>
+        ) : (
+          <span>{t("noPriceInSelectedChains")}</span>
+        )}
+        {product && best ? (
+          <PriceChangeBadge product={product} retailerId={best.retailerId} compact />
+        ) : null}
+      </div>
+
+      <div className="price-watch-target">
+        <span className={`price-watch-target-status ${target.status}`}>
+          {target.status === "met"
+            ? <BellRing size={14} aria-hidden="true" />
+            : <Target size={14} aria-hidden="true" />}
+          {targetLabel}
+        </span>
+        <form onSubmit={saveTarget}>
+          <label>
+            <span>{t("priceWatchTarget")}</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0.01"
+              max="100000"
+              step="0.01"
+              value={targetDraft}
+              placeholder={t("priceWatchTargetPlaceholder")}
+              aria-label={t("priceWatchTargetFor", { name: product?.name || watch.productId })}
+              onChange={(event) => {
+                setTargetDraft(event.target.value);
+                setActionState("");
+              }}
+            />
+          </label>
+          <button
+            type="submit"
+            className="icon-button"
+            title={t("savePriceWatchTarget")}
+            aria-label={t("savePriceWatchTarget")}
+          >
+            <Save size={16} aria-hidden="true" />
+          </button>
+        </form>
+        {actionState ? (
+          <small className={actionState === "error" ? "price-watch-action-error" : ""}>
+            {actionState === "saved" ? t("priceWatchTargetSaved") : t("priceWatchSaveError")}
+          </small>
+        ) : null}
+      </div>
+
+      <div className="price-watch-actions">
+        <button
+          type="button"
+          className="text-button"
+          disabled={!product}
+          onClick={() => product && onSelect(product)}
+        >
+          <Info size={15} aria-hidden="true" />
+          {t("details")}
+        </button>
+        <button
+          type="button"
+          className="text-button primary-button"
+          disabled={!product}
+          onClick={() => product && onAdd(product)}
+        >
+          <Plus size={16} aria-hidden="true" />
+          {t("toBasket")}
+        </button>
+        <button
+          type="button"
+          className="icon-button price-watch-remove"
+          title={t("removePriceWatch", { name: product?.name || watch.productId })}
+          aria-label={t("removePriceWatch", { name: product?.name || watch.productId })}
+          onClick={removeWatch}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function ProductDrawer({
+  product,
+  retailers: retailerList,
+  onClose,
+  onAdd,
+  watch = null,
+  onSaveWatch,
+  onRemoveWatch,
+}) {
   const { money, t } = usePreferences();
+  const [targetDraft, setTargetDraft] = useState(
+    watch?.targetPrice == null ? "" : String(watch.targetPrice),
+  );
+  const [watchActionState, setWatchActionState] = useState("");
   const best = getBestProductPrice(
     product,
     retailerList.map((retailer) => retailer.id),
   );
+
+  useEffect(() => {
+    setTargetDraft(watch?.targetPrice == null ? "" : String(watch.targetPrice));
+    setWatchActionState("");
+  }, [product.id, watch?.targetPrice]);
+
+  const toggleWatch = () => {
+    try {
+      if (watch) {
+        onRemoveWatch();
+      } else {
+        onSaveWatch(null);
+      }
+      setWatchActionState("");
+    } catch {
+      setWatchActionState("error");
+    }
+  };
+
+  const saveWatchTarget = (event) => {
+    event.preventDefault();
+    try {
+      onSaveWatch(targetDraft === "" ? null : Number(targetDraft));
+      setWatchActionState("saved");
+    } catch {
+      setWatchActionState("error");
+    }
+  };
+
   return (
     <aside className="drawer" aria-label={t("productLabel", { name: product.name })}>
       <div className="drawer-backdrop" onClick={onClose} />
@@ -4798,6 +5283,40 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
         <p className="drawer-description">
           {product.description || t("catalogProduct")}
         </p>
+        {watch ? (
+          <form className="drawer-watch-target" onSubmit={saveWatchTarget}>
+            <label>
+              <Target size={15} aria-hidden="true" />
+              <span>{t("priceWatchTargetOptional")}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                max="100000"
+                step="0.01"
+                value={targetDraft}
+                placeholder={t("priceWatchTargetPlaceholder")}
+                onChange={(event) => {
+                  setTargetDraft(event.target.value);
+                  setWatchActionState("");
+                }}
+              />
+            </label>
+            <button
+              type="submit"
+              className="icon-button"
+              title={t("savePriceWatchTarget")}
+              aria-label={t("savePriceWatchTarget")}
+            >
+              <Save size={16} aria-hidden="true" />
+            </button>
+          </form>
+        ) : null}
+        {watchActionState ? (
+          <p className={`drawer-watch-status ${watchActionState}`}>
+            {watchActionState === "saved" ? t("priceWatchTargetSaved") : t("priceWatchSaveError")}
+          </p>
+        ) : null}
         <div className="price-table" aria-label={t("pricesByChain")}>
           {retailerList.map((retailer) => {
             const price = getProductPrice(product, retailer.id);
@@ -4813,10 +5332,22 @@ function ProductDrawer({ product, retailers: retailerList, onClose, onAdd }) {
             );
           })}
         </div>
-        <button type="button" className="primary-action" onClick={onAdd}>
-          <Plus size={18} />
-          {t("addToBasket")}
-        </button>
+        <div className="drawer-product-actions">
+          <button type="button" className="primary-action" onClick={onAdd}>
+            <Plus size={18} />
+            {t("addToBasket")}
+          </button>
+          <button
+            type="button"
+            className={`text-button price-watch-toggle${watch ? " active" : ""}`}
+            onClick={toggleWatch}
+          >
+            {watch
+              ? <BellRing size={17} aria-hidden="true" />
+              : <Bell size={17} aria-hidden="true" />}
+            {watch ? t("stopPriceWatch") : t("startPriceWatch")}
+          </button>
+        </div>
       </div>
     </aside>
   );

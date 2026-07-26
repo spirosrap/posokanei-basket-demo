@@ -41,7 +41,8 @@ try {
     @file_put_contents($cacheFile, json_encode($status, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n", LOCK_EX);
     echo json_encode($status, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (Throwable $error) {
-    $snapshot = read_snapshot(__DIR__ . '/../data/catalog.json');
+    $snapshot = read_snapshot(__DIR__ . '/../data/catalog-meta.json')
+        ?? read_snapshot(__DIR__ . '/../data/catalog-bootstrap.json');
     if (is_array($snapshot)) {
         http_response_code(200);
         echo json_encode(snapshot_status($snapshot, $error->getMessage()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -85,6 +86,9 @@ function snapshot_status(array $snapshot, string $detail): array
     $products = is_array($snapshot['products'] ?? null) ? $snapshot['products'] : [];
     $retailers = is_array($snapshot['retailers'] ?? null) ? $snapshot['retailers'] : [];
     $generatedAt = (string) ($snapshot['generated_at'] ?? gmdate('c'));
+    $totalProducts = (int) ($stats['total_products'] ?? 0) ?: count($products);
+    $activeProducts = (int) ($stats['active_products'] ?? 0) ?: $totalProducts;
+    $retailerCount = (int) ($stats['retailer_count'] ?? 0) ?: count($retailers);
 
     return with_refresh_status([
         'status' => 'snapshot',
@@ -93,13 +97,13 @@ function snapshot_status(array $snapshot, string $detail): array
         'checked_at' => $generatedAt,
         'changed_since_last_check' => false,
         'stats' => [
-            'total_products' => count($products) ?: (int) ($stats['total_products'] ?? 0),
-            'active_products' => count($products) ?: (int) ($stats['active_products'] ?? $stats['total_products'] ?? 0),
-            'retailer_count' => count($retailers) ?: (int) ($stats['retailer_count'] ?? 0),
+            'total_products' => $totalProducts,
+            'active_products' => $activeProducts,
+            'retailer_count' => $retailerCount,
             'products_on_discount' => (int) ($stats['products_on_discount'] ?? 0),
         ],
         'sampled_products' => 0,
-        'fingerprint' => hash('sha256', $generatedAt . ':' . count($products)),
+        'fingerprint' => hash('sha256', $generatedAt . ':' . $totalProducts),
         'snapshot_generated_at' => $generatedAt,
         'next_suggested_check_after' => gmdate('c', strtotime($generatedAt) + CACHE_TTL_SECONDS),
     ]);

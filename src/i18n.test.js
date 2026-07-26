@@ -89,6 +89,14 @@ test("core interface text and dynamic values are translated", () => {
     "Loaded “Weekly” with 5 products and today's prices. 2 products are no longer available.",
   );
   assert.match(translate("el", "savedBasketsPrivacy"), /Δεν αποθηκεύουν τοποθεσία, τιμές ή πρόοδο/);
+  assert.equal(
+    translate("el", "openPriceWatch", { count: "1" }),
+    "Παρακολούθηση τιμών · 1 προϊόν",
+  );
+  assert.equal(
+    translate("en", "priceWatchAboveTarget", { amount: "€1.25" }),
+    "€1.25 above target",
+  );
 });
 
 test("language selection controls locale-sensitive formatting", () => {
