@@ -13,56 +13,29 @@ import {
   PRICE_CHANGES_PREVIEW_LIMIT,
 } from "./price-change-export.mjs";
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
+import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
-
-const snapshotPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_SNAPSHOT_OUT || "dist/data/catalog.json",
-);
-const metaPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_META_OUT || "dist/data/catalog-meta.json",
-);
-const runtimePath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_RUNTIME_OUT || "dist/data/catalog-runtime.json",
-);
-const bootstrapPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_BOOTSTRAP_OUT || "dist/data/catalog-bootstrap.json",
-);
-const priceChangesPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_PRICE_CHANGES_OUT || "dist/data/price-changes.csv",
-);
-const priceChangesJsonPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_PRICE_CHANGES_JSON_OUT || "dist/data/price-changes.json",
-);
-const priceChangesPreviewPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_PRICE_CHANGES_PREVIEW_OUT || "dist/data/price-changes-preview.json",
-);
-const priceChangesGzipPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_PRICE_CHANGES_GZIP_OUT || "dist/data/price-changes.json.gz",
-);
-const productDetailsPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_PRODUCT_DETAILS_OUT || "dist/data/catalog-details.jsonl",
-);
-const refreshStatusPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_REFRESH_STATUS_OUT || "dist/data/refresh-status.json",
-);
-const dailyBargainPath = resolve(
-  projectRoot,
-  process.env.POSOKANEI_BARGAIN_OUT || "dist/data/daily-bargain.json",
-);
 const uploadEnabled = !process.argv.includes("--no-upload");
 const compressionOnly = process.argv.includes("--compression-only");
+const {
+  snapshotPath,
+  metaPath,
+  runtimePath,
+  bootstrapPath,
+  priceChangesPath,
+  priceChangesJsonPath,
+  priceChangesPreviewPath,
+  priceChangesGzipPath,
+  productDetailsPath,
+  refreshStatusPath,
+  dailyBargainPath,
+} = resolveRefreshOutputPaths({
+  projectRoot,
+  env: process.env,
+  compressionOnly,
+});
 const ftpTargets = buildFtpTargets();
 const primaryTarget = ftpTargets[0];
 const remoteRefreshHost = process.env.POSOKANEI_REFRESH_HOST || "";

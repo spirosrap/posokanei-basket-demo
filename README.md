@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.1`
+**Τρέχουσα έκδοση:** `v0.32.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -115,6 +115,10 @@
 Η έκδοση `v0.32.0` μειώνει ξανά το πραγματικό κόστος ανοίγματος. Ολόκληρη η προβολή «Πρόσφατες αλλαγές τιμών», μαζί με το γράφημα ιστορικού και τα δικά της icons, μεταφέρεται σε ξεχωριστό on-demand bundle `7,0 KB` με Brotli. Έτσι το αρχικό JavaScript της κύριας εφαρμογής πέφτει από περίπου `66,6 KB` σε `61,3 KB` με Brotli και η σελίδα αλλαγών δεν φορτώνεται καθόλου αν ο χρήστης δεν τη χρειαστεί. Όταν ο δείκτης πλησιάσει τον σύνδεσμο, το route bundle και τα δεδομένα ξεκινούν παράλληλα· σε απευθείας άνοιγμα του `/changes/`, το preview αρχίζει ήδη από το `<head>`. Το preview περιορίζεται πλέον στις `80` πιο πρόσφατες εγγραφές (`33 KB` raw ή `5,6 KB` Brotli στο ίδιο σύνολο `9.469` αλλαγών), ενώ αναζήτηση, φίλτρα και «περισσότερα» εξακολουθούν να φορτώνουν το πλήρες αρχείο. Ο βαρύτερος searchable κατάλογος δεν ανταγωνίζεται πια την πρώτη εμφάνιση και τις φωτογραφίες: ξεκινά αμέσως όταν ο χρήστης εστιάσει στην αναζήτηση ή πολύ αργότερα σε idle χρόνο. Αφαιρέθηκε επίσης διπλή αποθήκευση τιμής μονάδας από το runtime catalogue, μειώνοντας το σημερινό Brotli payload από περίπου `622 KB` σε `566 KB` χωρίς αλλαγή σε τιμές ή ταξινόμηση. Το build αποτυγχάνει αυτόματα αν το κύριο ή το route bundle ξεπεράσει το συμφωνημένο performance budget.
 
 Η έκδοση `v0.32.1` διορθώνει την ημερομηνία στην προειδοποίηση συγχρονισμού. Η εφαρμογή ξεχωρίζει πλέον την τελευταία αποτυχημένη προσπάθεια από την τελευταία επιτυχή λήψη καταλόγου και δεν εμφανίζει ως ημερομηνία του τρέχοντος καταλόγου ένα παλιότερο timestamp του μπλοκαρισμένου request-time proxy.
+
+Η έκδοση `v0.32.2` απομονώνει πλήρως τον ωριαίο συγχρονισμό από τα production builds. Τα προσωρινά αρχεία καταλόγου δημιουργούνται πλέον κάτω από `.cache/catalog-refresh-output/` αντί για το `dist/data/`, ώστε ένα ταυτόχρονο Vite build να μην μπορεί να τα αντικαταστήσει ή να τα διαγράψει πριν ολοκληρωθεί η ατομική δημοσίευση. Το macOS LaunchAgent χρησιμοποιεί επίσης non-interactive shell, χωρίς εξάρτηση από shell themes ή prompt plugins.
+
+Η προαιρετική ημερήσια AI πρόταση διαβάζει το OpenAI key είτε από το ιδιωτικό environment είτε από το macOS Keychain με service `posokanei-basket-openai-api-key`. Η τιμή του key δεν γράφεται στο repository, στο `.env.local`, στα logs ή στον production server.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -254,7 +258,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.1`
+**Current version:** `v0.32.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -390,6 +394,10 @@ Version `v0.31.0` makes internal transitions genuinely immediate: Home, Bargains
 Version `v0.32.0` lowers the real opening cost again. The complete Recent price changes view, including its history chart and route-only icons, now lives in a separate `7.0 KB` Brotli on-demand bundle. This reduces the main application JavaScript from roughly `66.6 KB` to `61.3 KB` with Brotli, and the changes page is not downloaded at all unless it is needed. Pointer intent starts the route bundle and data in parallel; a direct `/changes/` visit starts its preview from the document `<head>`. The preview now contains the `80` newest records (`33 KB` raw or `5.6 KB` Brotli for the same `9,469`-change reference set), while search, filters, and Load more still obtain the complete archive. The heavier searchable catalogue no longer competes with first paint and product images: it starts immediately when search receives focus or much later during idle time. Duplicate per-store unit prices were also removed from the runtime catalogue, reducing the current Brotli payload from roughly `622 KB` to `566 KB` without changing displayed prices or sorting. The production build now fails automatically if either the main or route bundle exceeds its performance budget.
 
 Version `v0.32.1` corrects the synchronization warning timestamp. The interface now distinguishes the latest failed attempt from the latest successful catalogue download and no longer presents an older timestamp from the blocked request-time proxy as the current catalogue date.
+
+Version `v0.32.2` fully isolates the hourly catalogue refresh from production builds. Temporary catalogue artifacts now live under `.cache/catalog-refresh-output/` instead of `dist/data/`, so a concurrent Vite build cannot replace or delete them before atomic publication completes. The macOS LaunchAgent also uses a non-interactive shell and no longer depends on shell themes or prompt plugins.
+
+The optional daily AI suggestion reads its OpenAI key either from the private environment or from the macOS Keychain service `posokanei-basket-openai-api-key`. The key value is never written to the repository, `.env.local`, logs, or the production server.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -1015,13 +1023,13 @@ The app includes a lightweight update checker:
 - `npm run check:updates` calls the deployed endpoint with `?refresh=1` and writes the latest status to `.cache/posokanei-update-status.json`.
 - `npm run catalog:snapshot` builds `public/data/catalog.json`, `public/data/catalog-meta.json`, the compact `public/data/catalog-runtime.json`, and the first-paint `public/data/catalog-bootstrap.json` from PosoKanei API responses. `npm run catalog:runtime` can regenerate only the compact file, while `npm run catalog:bootstrap` rebuilds the startup payload from an existing runtime catalogue.
 - `npm run live:refresh` validates the last published catalogue, passes it to the selected refresh runner, and annotates notable per-chain price changes before generating the full, runtime, bootstrap, and metadata artifacts. Recent valid markers and compact per-chain history points are retained for seven days; no user, basket, or location data is involved.
-- `npm run live:refresh` builds fresh full, metadata, runtime, startup, CSV price-change, compact JSON history, precompressed history, and line-delimited product-detail artifacts under `dist/data/`, uploads them to the live FTP path, and verifies the public catalogue, price-change, rich-detail, and refresh-status generations.
+- `npm run live:refresh` builds fresh full, metadata, runtime, startup, CSV price-change, compact JSON history, precompressed history, and line-delimited product-detail artifacts under the isolated `.cache/catalog-refresh-output/` staging directory, uploads them to the live FTP path, and verifies the public catalogue, price-change, rich-detail, and refresh-status generations.
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
-- After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads `dist/data/daily-bargain.json` when available, and verifies the published suggestion timestamp.
-- When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads `dist/data/refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
+- After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads the staged `daily-bargain.json` when available, and verifies the published suggestion timestamp.
+- When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads the isolated staged `refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
 - `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - The snapshot builder uses a browser-like request header by default because the upstream API can reject obvious automation `User-Agent` values with `HTTP 403`. `POSOKANEI_USER_AGENT` can override that header if the upstream rules change again.
-- `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts an interactive login shell so the existing private local OpenAI environment is available to the once-daily bargain step; the key is never uploaded.
+- `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts a non-interactive login shell; the refresh script reads the ignored `.env.local` itself, and the private OpenAI key is never uploaded.
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Browser catalogue requests retry short network/server failures. The compact runtime snapshot is attempted first; the large full-snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache. An explicit viewport observer prevents clipped, off-screen rows from creating requests until they are close to becoming visible.

@@ -64,15 +64,21 @@ routes `/s/<code>` through the basket opener, and keeps the SPA fallback on
 `index.html`. It prefers committed build-time Brotli files, falls back to Gzip,
 and preserves identity responses for clients that do not support compression.
 
-Live catalogue support uses these build outputs:
+Live application support uses these build outputs:
 
 ```text
 dist/api/posokanei.php
 dist/api/update-status.php
 dist/api/branches.php
-dist/data/catalog.json
-dist/data/catalog-meta.json
-dist/data/refresh-status.json
+```
+
+The normal hourly refresh uses an isolated staging directory that is not touched
+by Vite builds:
+
+```text
+.cache/catalog-refresh-output/catalog.json
+.cache/catalog-refresh-output/catalog-meta.json
+.cache/catalog-refresh-output/refresh-status.json
 ```
 
 `posokanei.php` is a same-origin proxy for the public PosoKanei catalogue
@@ -162,14 +168,21 @@ By default, the script excludes `dist/data/` so a UI release cannot replace a ne
 live catalogue with an older local build artifact. Use `npm run live:refresh` for
 normal catalogue, refresh-status, and daily-bargain publishing.
 
-`live:refresh` writes `dist/data/catalog.json` plus `dist/data/catalog-meta.json`,
-updates `dist/data/daily-bargain.json` once per Athens calendar day, publishes the
+`live:refresh` writes its complete generation under the isolated
+`.cache/catalog-refresh-output/` staging directory, updates the staged
+`daily-bargain.json` once per Athens calendar day, publishes the
 data files to the primary domain, and verifies the public catalogue and suggestion
 timestamps. Optional `FTP_MIRROR_*` and `POSOKANEI_MIRROR_PUBLIC_CATALOG_URL`
 settings publish and verify the same files on the old subpath as a best-effort mirror. Configure
 targets with environment variables or the ignored `.env.local`, based on
 `.env.example`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for primary FTP
 authentication; the mirror has matching legacy variables.
+
+Keeping refresh staging outside `dist/` is intentional: `vite build` recreates
+`dist/`, while the hourly refresh may still be downloading or publishing a
+catalogue. The separate directory prevents either process from deleting or
+replacing the other's files. The compression-only recovery command continues to
+use an explicitly prepared `dist/data/` generation.
 
 Every successful refresh also creates `.br` and `.gz` companions for the full,
 metadata, runtime, bootstrap, full and preview price-change JSON/CSV, and daily-bargain files. Raw
@@ -221,8 +234,10 @@ npm run live:deploy:config:mirror
 ```
 
 Keep `OPENAI_API_KEY` only in the private environment of the Mac running the
-LaunchAgent. The key is not required on Plesk and must never be copied into
-`public/`, `dist/`, FTP, or the repository. Only public product data is sent in
+LaunchAgent, or store it in the macOS Keychain service
+`posokanei-basket-openai-api-key` under the local macOS account. The key is not
+required on Plesk and must never be copied into `public/`, `dist/`, FTP, `.env.local`,
+or the repository. Only public product data is sent in
 the once-daily model request, with `store: false`; user baskets and locations are
 not part of this pipeline.
 

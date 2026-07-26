@@ -31,7 +31,7 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>-lic</string>
+    <string>-lc</string>
     <string>${escapeXml(command)}</string>
   </array>
   <key>RunAtLoad</key>

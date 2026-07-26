@@ -4,6 +4,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { userInfo } from "node:os";
+import { promisify } from "node:util";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -25,7 +28,7 @@ const reasoningEffort = process.env.OPENAI_BARGAIN_REASONING || "high";
 const timeZone = process.env.POSOKANEI_BARGAIN_TIME_ZONE || "Europe/Athens";
 const bargainCount = 9;
 const force = process.argv.includes("--force");
-const apiKey = requiredEnv("OPENAI_API_KEY");
+const apiKey = await resolveOpenAiApiKey();
 
 const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
 const existingPick = await readJsonIfPresent(outputPath);
@@ -351,8 +354,26 @@ function loadLocalEnv(envPath) {
   }
 }
 
-function requiredEnv(name) {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} must be set in the local environment.`);
-  return value;
+async function resolveOpenAiApiKey() {
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
+
+  const service = process.env.OPENAI_API_KEYCHAIN_SERVICE
+    || "posokanei-basket-openai-api-key";
+  const account = process.env.OPENAI_API_KEYCHAIN_ACCOUNT
+    || process.env.USER
+    || userInfo().username;
+  try {
+    const { stdout } = await promisify(execFile)(
+      "/usr/bin/security",
+      ["find-generic-password", "-s", service, "-a", account, "-w"],
+      { encoding: "utf8", timeout: 5000 },
+    );
+    const value = stdout.trim();
+    if (value) return value;
+  } catch {
+    // The error below keeps the key location clear without exposing Keychain output.
+  }
+  throw new Error(
+    "OPENAI_API_KEY is unavailable in the environment and the configured macOS Keychain item.",
+  );
 }
