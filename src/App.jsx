@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowDownUp,
   ArrowDownRight,
+  ArrowRightLeft,
   ArrowUpRight,
   Barcode,
   Bell,
@@ -64,6 +65,7 @@ import {
 import {
   fetchCatalogBootstrap,
   fetchDailyBargain,
+  fetchProductAlternatives,
   fetchProducts,
   fetchProductsByIds,
   fetchUpdateStatus,
@@ -906,6 +908,38 @@ function AppContent() {
     });
   };
 
+  const replaceBasketProduct = (sourceProduct, replacementProduct) => {
+    if (!sourceProduct || !replacementProduct || sourceProduct.id === replacementProduct.id) return;
+    setSavedBasketNotice(null);
+    rememberCatalogProduct(replacementProduct, setLiveBasketProducts);
+    setBasket((current) => {
+      const sourceEntry = current.find((entry) => entry.productId === sourceProduct.id);
+      if (!sourceEntry) return current;
+      const replacementEntry = current.find(
+        (entry) => entry.productId === replacementProduct.id,
+      );
+      const withoutSource = current.filter((entry) => entry.productId !== sourceProduct.id);
+      if (replacementEntry) {
+        return withoutSource.map((entry) =>
+          entry.productId === replacementProduct.id
+            ? {
+                ...entry,
+                quantity: Math.min(
+                  999,
+                  roundQuantity(entry.quantity + sourceEntry.quantity),
+                ),
+              }
+            : entry,
+        );
+      }
+      return [
+        ...withoutSource,
+        { productId: replacementProduct.id, quantity: sourceEntry.quantity },
+      ];
+    });
+    setSelectedProduct(replacementProduct);
+  };
+
   const updateQuantity = (product, nextQuantity) => {
     setSavedBasketNotice(null);
     const quantity = Math.max(0, roundQuantity(nextQuantity));
@@ -1166,6 +1200,11 @@ function AppContent() {
             retailers={liveRetailers}
             onClose={() => setSelectedProduct(null)}
             onAdd={() => addToBasket(selectedProduct)}
+            basketQuantity={basketQuantities.get(selectedProduct.id) || 0}
+            onSelectAlternative={setSelectedProduct}
+            onAddAlternative={addToBasket}
+            onReplaceAlternative={(replacement) =>
+              replaceBasketProduct(selectedProduct, replacement)}
             watch={priceWatchByProductId.get(selectedProduct.id) ?? null}
             onSaveWatch={(targetPrice) => saveProductWatch(selectedProduct, targetPrice)}
             onRemoveWatch={() => deleteProductWatch(selectedProduct.id)}
@@ -1302,9 +1341,14 @@ function AppContent() {
       {selectedProduct ? (
         <ProductDrawer
           product={selectedProduct}
-          retailers={locationEligibleRetailers}
+          retailers={activeRetailers}
           onClose={() => setSelectedProduct(null)}
           onAdd={() => addToBasket(selectedProduct)}
+          basketQuantity={basketQuantities.get(selectedProduct.id) || 0}
+          onSelectAlternative={setSelectedProduct}
+          onAddAlternative={addToBasket}
+          onReplaceAlternative={(replacement) =>
+            replaceBasketProduct(selectedProduct, replacement)}
           watch={priceWatchByProductId.get(selectedProduct.id) ?? null}
           onSaveWatch={(targetPrice) => saveProductWatch(selectedProduct, targetPrice)}
           onRemoveWatch={() => deleteProductWatch(selectedProduct.id)}
@@ -5209,6 +5253,10 @@ function ProductDrawer({
   retailers: retailerList,
   onClose,
   onAdd,
+  basketQuantity = 0,
+  onSelectAlternative,
+  onAddAlternative,
+  onReplaceAlternative,
   watch = null,
   onSaveWatch,
   onRemoveWatch,
@@ -5218,15 +5266,49 @@ function ProductDrawer({
     watch?.targetPrice == null ? "" : String(watch.targetPrice),
   );
   const [watchActionState, setWatchActionState] = useState("");
+  const [alternativesOpen, setAlternativesOpen] = useState(false);
+  const [alternativesState, setAlternativesState] = useState({
+    status: "idle",
+    suggestions: [],
+  });
+  const alternativeRetailerIds = useMemo(
+    () => retailerList.map((retailer) => retailer.id),
+    [retailerList],
+  );
   const best = getBestProductPrice(
     product,
-    retailerList.map((retailer) => retailer.id),
+    alternativeRetailerIds,
   );
 
   useEffect(() => {
     setTargetDraft(watch?.targetPrice == null ? "" : String(watch.targetPrice));
     setWatchActionState("");
   }, [product.id, watch?.targetPrice]);
+
+  useEffect(() => {
+    if (!alternativesOpen) return undefined;
+    let cancelled = false;
+    setAlternativesState({ status: "loading", suggestions: [] });
+    fetchProductAlternatives(product.id, {
+      retailerIds: alternativeRetailerIds,
+      limit: 6,
+    })
+      .then((suggestions) => {
+        if (cancelled) return;
+        setAlternativesState({
+          status: suggestions.length ? "ready" : "empty",
+          suggestions,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAlternativesState({ status: "error", suggestions: [] });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [alternativeRetailerIds, alternativesOpen, product.id]);
 
   const toggleWatch = () => {
     try {
@@ -5283,6 +5365,37 @@ function ProductDrawer({
         <p className="drawer-description">
           {product.description || t("catalogProduct")}
         </p>
+        <button
+          type="button"
+          className={`alternative-discovery-button${alternativesOpen ? " active" : ""}`}
+          onClick={() => setAlternativesOpen((open) => !open)}
+          aria-expanded={alternativesOpen}
+          aria-controls="product-alternatives"
+        >
+          <PackageSearch size={18} aria-hidden="true" />
+          <span>
+            <strong>{t("findSimilarProducts")}</strong>
+            <small>{t("findSimilarProductsHelp")}</small>
+          </span>
+          <ChevronRight size={17} aria-hidden="true" />
+        </button>
+        {alternativesOpen ? (
+          <ProductAlternatives
+            id="product-alternatives"
+            sourceProduct={product}
+            suggestions={alternativesState.suggestions}
+            state={alternativesState.status}
+            retailers={retailerList}
+            canReplace={basketQuantity > 0}
+            onSelect={onSelectAlternative}
+            onAdd={onAddAlternative}
+            onReplace={onReplaceAlternative}
+            onRetry={() => {
+              setAlternativesOpen(false);
+              window.requestAnimationFrame(() => setAlternativesOpen(true));
+            }}
+          />
+        ) : null}
         {watch ? (
           <form className="drawer-watch-target" onSubmit={saveWatchTarget}>
             <label>
@@ -5350,6 +5463,154 @@ function ProductDrawer({
         </div>
       </div>
     </aside>
+  );
+}
+
+function ProductAlternatives({
+  id,
+  sourceProduct,
+  suggestions,
+  state,
+  retailers,
+  canReplace,
+  onSelect,
+  onAdd,
+  onReplace,
+  onRetry,
+}) {
+  const { locale, money, t } = usePreferences();
+  const retailerById = useMemo(
+    () => new Map(retailers.map((retailer) => [retailer.id, retailer])),
+    [retailers],
+  );
+  const percent = (value) => new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+  }).format(Math.abs(value));
+
+  return (
+    <section id={id} className="product-alternatives" aria-live="polite">
+      <div className="product-alternatives-heading">
+        <div>
+          <strong>{t("similarProductsTitle")}</strong>
+          <small>{t("similarProductsDescription")}</small>
+        </div>
+        {state === "ready" ? (
+          <span>{t("similarProductsCount", { count: suggestions.length })}</span>
+        ) : null}
+      </div>
+
+      {state === "loading" ? (
+        <div className="alternative-list alternative-list-loading" aria-label={t("loadingSimilarProducts")}>
+          {Array.from({ length: 3 }, (_, index) => (
+            <span className="alternative-skeleton" key={index} />
+          ))}
+        </div>
+      ) : null}
+
+      {state === "empty" ? (
+        <div className="alternative-empty">
+          <Info size={17} aria-hidden="true" />
+          <span>
+            <strong>{t("noSimilarProducts")}</strong>
+            <small>{t("noSimilarProductsHelp")}</small>
+          </span>
+        </div>
+      ) : null}
+
+      {state === "error" ? (
+        <div className="alternative-empty error">
+          <AlertCircle size={17} aria-hidden="true" />
+          <span>
+            <strong>{t("similarProductsUnavailable")}</strong>
+            <button type="button" className="text-button" onClick={onRetry}>
+              <RefreshCw size={14} aria-hidden="true" />
+              {t("tryAgain")}
+            </button>
+          </span>
+        </div>
+      ) : null}
+
+      {state === "ready" ? (
+        <div className="alternative-list">
+          {suggestions.map((suggestion) => {
+            const alternative = suggestion.product;
+            const retailer = retailerById.get(suggestion.bestRetailerId);
+            const savingsIsMeaningful = suggestion.savingsPercent >= 1;
+            const premiumIsMeaningful = suggestion.savingsPercent <= -1;
+            const valueLabel = savingsIsMeaningful
+              ? t(
+                  suggestion.savingsBasis === "unit"
+                    ? "similarProductUnitSaving"
+                    : "similarProductPackageSaving",
+                  {
+                    amount: money(Math.abs(suggestion.savingsAmount)),
+                    percent: percent(suggestion.savingsPercent),
+                    unit: sourceProduct.unit,
+                  },
+                )
+              : premiumIsMeaningful
+                ? t("similarProductPremium", { percent: percent(suggestion.savingsPercent) })
+                : t("similarProductComparablePrice");
+            return (
+              <article className="alternative-row" key={alternative.id}>
+                <button
+                  type="button"
+                  className="alternative-main"
+                  onClick={() => onSelect(alternative)}
+                  aria-label={t("openSimilarProduct", { name: alternative.name })}
+                >
+                  <ProductThumb product={alternative} compact />
+                  <span className="alternative-copy">
+                    <strong>{alternative.name}</strong>
+                    <small>{alternative.unitQuantity}</small>
+                    <span className="alternative-tags">
+                      <em>{t(suggestion.matchKind === "specific" ? "sameSpecificType" : "sameProductCategory")}</em>
+                      {suggestion.traits.map((trait) => (
+                        <em key={trait}>{t(`similarTrait_${trait}`)}</em>
+                      ))}
+                    </span>
+                  </span>
+                </button>
+                <div className="alternative-price">
+                  <strong>{money(suggestion.bestPrice)}</strong>
+                  <small>
+                    {suggestion.bestUnitPrice
+                      ? t("unitPrice", {
+                          amount: money(suggestion.bestUnitPrice),
+                          unit: alternative.unit,
+                        })
+                      : retailer?.shortName || ""}
+                  </small>
+                  <span className={savingsIsMeaningful ? "saving" : premiumIsMeaningful ? "premium" : ""}>
+                    {valueLabel}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={canReplace ? "text-button alternative-action" : "icon-button add alternative-action"}
+                  onClick={() => (canReplace ? onReplace(alternative) : onAdd(alternative))}
+                  title={canReplace
+                    ? t("replaceBasketProduct", { name: alternative.name })
+                    : t("addProduct", { name: alternative.name })}
+                  aria-label={canReplace
+                    ? t("replaceBasketProduct", { name: alternative.name })
+                    : t("addProduct", { name: alternative.name })}
+                >
+                  {canReplace ? (
+                    <>
+                      <ArrowRightLeft size={15} aria-hidden="true" />
+                      <span>{t("replace")}</span>
+                    </>
+                  ) : (
+                    <Plus size={17} aria-hidden="true" />
+                  )}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

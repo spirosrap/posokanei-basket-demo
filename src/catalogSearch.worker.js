@@ -1,6 +1,11 @@
 import { prepareCatalogSearch, queryCatalogSearch } from "./catalogSearch.js";
+import {
+  findProductAlternatives,
+  prepareProductAlternatives,
+} from "./productAlternatives.js";
 
 let preparedCatalog = null;
+let preparedAlternatives = null;
 
 self.addEventListener("message", async (event) => {
   const message = event.data || {};
@@ -12,7 +17,9 @@ self.addEventListener("message", async (event) => {
       });
       if (!response.ok) throw new Error(`catalog_runtime_${response.status}`);
       const catalog = await response.json();
-      preparedCatalog = prepareCatalogSearch(catalog.products || []);
+      const products = catalog.products || [];
+      preparedCatalog = prepareCatalogSearch(products);
+      preparedAlternatives = prepareProductAlternatives(products);
       self.postMessage({
         type: "ready",
         generatedAt: catalog.generated_at || "",
@@ -33,6 +40,20 @@ self.addEventListener("message", async (event) => {
       result: {
         ...result,
         query_time_ms: Math.max(0.1, performance.now() - startedAt),
+      },
+    });
+  }
+
+  if (message.type === "alternatives" && preparedAlternatives) {
+    const startedAt = performance.now();
+    const result = findProductAlternatives(preparedAlternatives, message.params);
+    self.postMessage({
+      type: "result",
+      requestId: message.requestId,
+      result: {
+        ...result,
+        query_time_ms: Math.max(0.1, performance.now() - startedAt),
+        source: "snapshot-worker",
       },
     });
   }

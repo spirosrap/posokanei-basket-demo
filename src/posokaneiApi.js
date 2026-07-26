@@ -30,6 +30,7 @@ const RETAILER_COLORS = [
 let catalogSnapshotPromise = null;
 let fullCatalogSnapshotPromise = null;
 const responseCache = new Map();
+const productAlternativesCache = new Map();
 let catalogSearchWorker = null;
 let catalogSearchWorkerState = "idle";
 let catalogSearchInitPromise = null;
@@ -227,7 +228,7 @@ export function warmCatalogSearch(catalogVersion = "") {
   }
 }
 
-function queryLocalCatalog(params) {
+function requestCatalogWorker(type, params, timeoutMs = 1200) {
   if (catalogSearchWorkerState !== "ready" || !catalogSearchWorker) {
     return Promise.resolve(null);
   }
@@ -237,10 +238,14 @@ function queryLocalCatalog(params) {
     const timeout = window.setTimeout(() => {
       catalogSearchRequests.delete(requestId);
       resolve(null);
-    }, 1200);
+    }, timeoutMs);
     catalogSearchRequests.set(requestId, { resolve, timeout });
-    catalogSearchWorker.postMessage({ type: "query", requestId, params });
+    catalogSearchWorker.postMessage({ type, requestId, params });
   });
+}
+
+function queryLocalCatalog(params) {
+  return requestCatalogWorker("query", params);
 }
 
 async function fetchStaticBootstrapRaw() {
@@ -966,6 +971,58 @@ async function fetchProductsByIdsWithMeta(
 export async function fetchProductsByIds(productIds = [], options = {}) {
   const result = await fetchProductsByIdsWithMeta(productIds, options);
   return result.products;
+}
+
+function normalizeAlternativeSuggestions(raw) {
+  return (raw?.suggestions || []).map((suggestion) => ({
+    ...suggestion,
+    product: normalizeProduct(suggestion.product, raw?.source || "snapshot"),
+  }));
+}
+
+export async function fetchProductAlternatives(
+  productId,
+  { retailerIds = [], limit = 6 } = {},
+) {
+  const normalizedRetailerIds = [...new Set(
+    retailerIds.map((id) => String(id).toLocaleLowerCase("en-US")).filter(Boolean),
+  )].sort();
+  const safeLimit = Math.max(1, Math.min(8, Number(limit) || 6));
+  const cacheKey = `${String(productId)}|${normalizedRetailerIds.join(",")}|${safeLimit}`;
+  const cached = productAlternativesCache.get(cacheKey);
+  if (cached) return cached;
+
+  const request = (async () => {
+    const ready = await warmCatalogSearch();
+    if (ready) {
+      const workerResult = await requestCatalogWorker("alternatives", {
+        productId: String(productId),
+        retailerIds: normalizedRetailerIds,
+        limit: safeLimit,
+      }, 1800);
+      if (workerResult) return normalizeAlternativeSuggestions(workerResult);
+    }
+
+    const [{ findProductAlternatives, prepareProductAlternatives }, snapshot] = await Promise.all([
+      import("./productAlternatives.js"),
+      fetchCatalogSnapshot(),
+    ]);
+    const result = findProductAlternatives(
+      prepareProductAlternatives(snapshot.products || []),
+      {
+        productId: String(productId),
+        retailerIds: normalizedRetailerIds,
+        limit: safeLimit,
+      },
+    );
+    return normalizeAlternativeSuggestions({ ...result, source: "snapshot" });
+  })().catch((error) => {
+    productAlternativesCache.delete(cacheKey);
+    throw error;
+  });
+
+  productAlternativesCache.set(cacheKey, request);
+  return request;
 }
 
 function searchByTitle(query, categoryId, page, pageSize, sortMode) {

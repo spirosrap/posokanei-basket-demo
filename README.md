@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.28.0`
+**Τρέχουσα έκδοση:** `v0.29.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -25,6 +25,7 @@
 - Αν επιλέξεις περισσότερες από μία στάσεις, σου δείχνει τι αγοράζεις από κάθε αλυσίδα.
 - Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
 - Μπορείς να παρακολουθείς προϊόντα και να ορίζεις προαιρετική τιμή-στόχο, ώστε να βλέπεις ποια έφτασαν το ποσό που σε ενδιαφέρει.
+- Από τις λεπτομέρειες οποιουδήποτε προϊόντος μπορείς να δεις λίγες, αυστηρά ταιριασμένες εναλλακτικές και να συγκρίνεις τιμή μονάδας, χαρακτηριστικά και μέγεθος συσκευασίας.
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
@@ -103,6 +104,12 @@
 Η έκδοση `v0.27.2` διορθώνει τις ετικέτες στη σύγκριση στάσεων όταν καμία αλυσίδα δεν καλύπτει ολόκληρο το καλάθι με μία στάση. Η πρώτη διαθέσιμη πλήρης λύση επισημαίνεται πλέον ως «Πρώτη πλήρης επιλογή», ενώ ένα μεγαλύτερο όριο που χρησιμοποιεί το ίδιο πλάνο αναφέρει τον πραγματικό αριθμό στάσεων. Δεν εμφανίζεται πια το παραπλανητικό «Ίδιο με 1 στάση» όταν η λύση μίας στάσης δεν υπάρχει.
 
 Η έκδοση `v0.28.0` προσθέτει προσωπική «Παρακολούθηση τιμών» για έως 40 προϊόντα. Από τη λεπτομερή προβολή μπορείς να παρακολουθήσεις ένα προϊόν και, προαιρετικά, να ορίσεις τιμή-στόχο. Όταν ανοίγεις τη λίστα, η εφαρμογή ζητά τις τρέχουσες εγγραφές από τον τελευταίο συγχρονισμένο κατάλογο, βρίσκει την καλύτερη τιμή στις ενεργές αλυσίδες και δείχνει αν ο στόχος επιτεύχθηκε ή πόσο απέχει ακόμη. Προϊόντα που έφτασαν τον στόχο εμφανίζονται πρώτα, μαζί με την αλυσίδα, την πρόσφατη ουσιαστική μεταβολή και άμεσες ενέργειες για λεπτομέρειες ή προσθήκη στο καλάθι. Η λίστα αποθηκεύει μόνο κωδικούς προϊόντων, προαιρετικούς στόχους και timestamps στον συγκεκριμένο browser· δεν αποθηκεύει τιμές, ονόματα, τοποθεσία ή δεδομένα σε server. Δεν στέλνει push notifications: ο έλεγχος γίνεται μέσα στην εφαρμογή όταν ανοίγει η λίστα. Το fallback ελέγχου ενημέρωσης διαβάζει πλέον το μικρό συγχρονισμένο metadata αντί να αποκωδικοποιεί ολόκληρο τον κατάλογο στο PHP, αποφεύγοντας σφάλματα μνήμης στο hosting όταν το upstream API μπλοκάρει το request. Διορθώθηκε επίσης η αναμονή επανάληψης του τελικού ελέγχου δημοσίευσης, η οποία μπορούσε να χαρακτηρίσει έναν επιτυχημένο συγχρονισμό ως αποτυχημένο πριν ενημερωθεί το mirror.
+
+Η έκδοση `v0.29.0` προσθέτει «Παρόμοιες επιλογές» στις λεπτομέρειες κάθε προϊόντος, είτε αυτό ανοίξει από τον κύριο κατάλογο είτε από το καλάθι. Η εφαρμογή εμφανίζει έως έξι εναλλακτικές από τον ίδιο συγχρονισμένο κατάλογο και δίνει προτεραιότητα στην πραγματική ισοδυναμία πριν από τη χαμηλή τιμή: απαιτεί την ίδια πιο συγκεκριμένη κατηγορία, συμβατή μονάδα και συγκρίσιμο μέγεθος συσκευασίας. Σε ευρείες κατηγορίες εφαρμόζει αυστηρότερο έλεγχο τύπου και μορφής, ώστε cottage cheese να μη συγκρίνεται με γενικό τυρί κρέμα και Gouda σε φέτες να μη συγκρίνεται με τριμμένη Gouda. Οι προτάσεις δείχνουν καλύτερη τιμή συσκευασίας και μονάδας στις ενεργές αλυσίδες, ποσοστιαία διαφορά και χρήσιμα χαρακτηριστικά όπως `light`, πρωτεΐνη, βιολογικό, πολύσπορο ή χωρίς γλουτένη. Αν το αρχικό προϊόν βρίσκεται ήδη στο καλάθι, μπορεί να αντικατασταθεί με μία κίνηση χωρίς να χαθεί η ποσότητά του· όλα τα σύνολα και τα πλάνα υπολογίζονται ξανά. Η αντιστοίχιση γίνεται τοπικά στον υπάρχοντα Web Worker, δεν στέλνει προσωπικά δεδομένα και προτιμά να μη δείξει πρόταση όταν δεν υπάρχει αρκετά κοντινό προϊόν.
+
+![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
+
+![Παρόμοιες επιλογές σε κινητό](screenshots/similar-products-mobile-v0.29.0.jpg)
 
 ![Παρακολούθηση τιμών και στόχων στην έκδοση 0.28.0](screenshots/price-watch-v0.28.0.png)
 
@@ -238,7 +245,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.28.0`
+**Current version:** `v0.29.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -282,6 +289,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Show savings compared with the most expensive complete basket.
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
+- Open up to six carefully matched alternatives for any catalogue or basket product, compare unit value and useful traits, and replace a basket item without losing its quantity.
 - Load optimized, cacheable WebP product thumbnails directly from an edge image cache, with a same-origin proxy fallback and a separate high-resolution detail image.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
 - Optionally request browser location and show nearby supermarket branches.
@@ -362,6 +370,12 @@ Version `v0.27.1` fixes stale prices that could remain in Today's bargains when 
 Version `v0.27.2` corrects stop-comparison labels when no single chain covers the complete basket. The first available complete plan is now identified as the “First complete option”, while a higher limit that reuses that plan reports its actual number of stops. “Same as one stop” is no longer shown when no one-stop plan exists.
 
 Version `v0.28.0` adds a personal Price Watch for up to 40 products. A product can be watched from its detail view with an optional target price. Opening the list fetches current records from the latest synchronized catalogue, finds the best price among active chains, and shows whether the target has been reached or how far away it remains. Reached targets appear first, together with the chain, any recent meaningful movement, and direct product-detail or add-to-basket actions. The list stores only product IDs, optional targets, and timestamps in that browser; it stores no prices, names, location, or server-side personal data. It does not send push notifications: target status is checked inside the app when the list opens. The update-status fallback now reads the small synchronized metadata file instead of decoding the complete catalogue in PHP, avoiding hosting memory errors when the upstream API blocks the request. The final publication verification retry now also waits correctly, preventing a successful synchronization from being reported as failed before the mirror is updated.
+
+Version `v0.29.0` adds Similar options to every product detail opened from either the main catalogue or the basket. The app returns no more than six alternatives from the same synchronized catalogue and ranks true equivalence before price: candidates must share the most specific catalogue category, use a compatible unit, and have a comparable pack size. Broad categories receive stricter family and format checks, preventing cottage cheese from being mixed with general cream cheese and sliced Gouda from being mixed with grated Gouda. Each result shows its best package and unit price among active chains, the percentage difference, and useful traits such as `light`, protein, organic, multiseed, or gluten free. When the source product is already in the basket, one action replaces it while preserving the selected quantity and recalculating every basket total and plan. Matching runs locally in the existing Web Worker, transmits no personal data, and deliberately returns no suggestions when a sufficiently close equivalent cannot be established.
+
+![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
+
+![Responsive similar product options](screenshots/similar-products-mobile-v0.29.0.jpg)
 
 ![Price Watch and target status in version 0.28.0](screenshots/price-watch-v0.28.0.png)
 
@@ -618,6 +632,12 @@ https://kalathitimon.com/
 `npm run build` creates the root-domain build. `npm run build:legacy` remains available for the compatibility mirror at `https://agenticspiros.com/demo/posokanei-basket/`. `index.html` is served with no-store cache headers, while hashed JS/CSS assets can be cached immutably. The first screen and warmed catalogue search use synchronized static JSON files. Product hydration, image fallback, update status, compact links, and optional nearby-branch lookup use small PHP endpoints under `public/api/`, so production hosting must still execute PHP for those same-origin fallbacks and features.
 
 ### Screenshots
+
+Version 0.29.0 strict equivalent-product matching and quantity-preserving basket replacement:
+
+![Equivalent product suggestions in Kalathi Timon 0.29.0](screenshots/similar-products-v0.29.0.jpg)
+
+![Equivalent product suggestions on mobile](screenshots/similar-products-mobile-v0.29.0.jpg)
 
 Version 0.27.0 faster recent changes and lazy catalogue details:
 
