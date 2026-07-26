@@ -31,6 +31,11 @@ export default defineConfig(({ command }) => ({
   },
   build: {
     target: ["es2019", "safari14"],
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-v${packageJson.version}-[hash].js`,
+      },
+    },
   },
   plugins: [react(), stripSameOriginCrossorigin()],
 }));
