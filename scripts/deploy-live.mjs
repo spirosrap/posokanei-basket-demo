@@ -24,14 +24,16 @@ const bootstrapOnly = process.argv.includes("--bootstrap-only");
 const buildFiles = await listFiles(distRoot);
 const files = bootstrapOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
-  return buildPath === "data/catalog-bootstrap.json";
+  return /^data\/catalog-bootstrap\.json(?:\.(?:br|gz))?$/u.test(buildPath);
 }) : buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return includeData || !buildPath.startsWith("data/");
 });
 
-if (bootstrapOnly && files.length !== 1) {
-  throw new Error("dist/data/catalog-bootstrap.json is required for --bootstrap-only.");
+if (bootstrapOnly && files.length !== 3) {
+  throw new Error(
+    "dist/data/catalog-bootstrap.json plus its .br and .gz variants are required for --bootstrap-only.",
+  );
 }
 
 if (!bootstrapOnly && !includeData && files.length !== buildFiles.length) {

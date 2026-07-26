@@ -328,6 +328,29 @@ const downloadJsonFile = (value, filename) => {
   downloadBlob(blob, filename);
 };
 
+const scheduleIdleWork = (work, { delay = 0, timeout = 2500 } = {}) => {
+  let cancelled = false;
+  let idleId = null;
+  const run = () => {
+    if (!cancelled) work();
+  };
+  const timer = window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(run, { timeout });
+    } else {
+      run();
+    }
+  }, delay);
+
+  return () => {
+    cancelled = true;
+    window.clearTimeout(timer);
+    if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+      window.cancelIdleCallback(idleId);
+    }
+  };
+};
+
 function useShortBasketLink(longUrl) {
   const [state, setState] = useState(() => ({
     status: longUrl ? "loading" : "idle",
@@ -620,62 +643,57 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!catalogBootstrapped) return undefined;
-    let idleId = null;
-    const warm = () => {
+    if (IS_BARGAINS_PAGE || !catalogBootstrapped) return undefined;
+    return scheduleIdleWork(() => {
       void warmCatalogSearch(health.snapshotGeneratedAt);
-    };
-    const timer = window.setTimeout(() => {
-      if (typeof window.requestIdleCallback === "function") {
-        idleId = window.requestIdleCallback(warm, { timeout: 4000 });
-      } else {
-        warm();
-      }
-    }, 2600);
-    return () => {
-      window.clearTimeout(timer);
-      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
-      }
-    };
+    }, { delay: 900, timeout: 2800 });
   }, [catalogBootstrapped, health.snapshotGeneratedAt]);
 
   useEffect(() => {
+    if (IS_BARGAINS_PAGE || !catalogBootstrapped) return undefined;
     let cancelled = false;
-    const timer = window.setTimeout(() => {
+    const cancelScheduledWork = scheduleIdleWork(() => {
       fetchUpdateStatus()
         .then((status) => {
           if (!cancelled) setUpdateStatus(status);
         })
         .catch(() => {});
-    }, 700);
+    }, { delay: 650, timeout: 2200 });
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      cancelScheduledWork();
     };
-  }, []);
+  }, [catalogBootstrapped]);
 
   useEffect(() => {
+    if (!IS_BARGAINS_PAGE && !catalogBootstrapped) return undefined;
     let cancelled = false;
-    fetchDailyBargain()
-      .then((pick) => {
-        if (cancelled) return;
-        setDailyBargain(pick);
-        setDailyBargainState("ready");
-        setLiveBasketProducts((current) =>
-          mergeCatalogProducts(
-            current,
-            pick.bargains.map((item) => item.product),
-          ),
-        );
-      })
-      .catch(() => {
-        if (!cancelled) setDailyBargainState("error");
-      });
+    const loadDailyBargain = () => {
+      fetchDailyBargain()
+        .then((pick) => {
+          if (cancelled) return;
+          setDailyBargain(pick);
+          setDailyBargainState("ready");
+          setLiveBasketProducts((current) =>
+            mergeCatalogProducts(
+              current,
+              pick.bargains.map((item) => item.product),
+            ),
+          );
+        })
+        .catch(() => {
+          if (!cancelled) setDailyBargainState("error");
+        });
+    };
+    const cancelScheduledWork = IS_BARGAINS_PAGE
+      ? () => {}
+      : scheduleIdleWork(loadDailyBargain, { delay: 180, timeout: 1800 });
+    if (IS_BARGAINS_PAGE) loadDailyBargain();
     return () => {
       cancelled = true;
+      cancelScheduledWork();
     };
-  }, []);
+  }, [catalogBootstrapped]);
 
   useEffect(() => {
     if (!catalogBootstrapped) return undefined;
@@ -1845,14 +1863,14 @@ function PriceChangesApp() {
 async function fetchPriceChangesFeed(signal) {
   let lastError;
   const urls = [
-    runtimeAppUrl("api/price-changes.php"),
     runtimeAppUrl("data/price-changes.json"),
+    runtimeAppUrl("api/price-changes.php"),
   ];
   for (const url of urls) {
     try {
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
-        cache: "no-cache",
+        cache: "default",
         signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

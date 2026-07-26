@@ -11,6 +11,23 @@
     <link rel="preconnect" href="https://images.weserv.nl" />
     <link rel="dns-prefetch" href="//images.weserv.nl" />
     <title>Καλάθι Τιμών Supermarket</title>
+    <script>
+      (() => {
+        const path = window.location.pathname.replace(/\/+$/, "");
+        if (path.endsWith("/bargains") || path.endsWith("/changes")) return;
+        const url = new URL("%BASE_URL%data/catalog-bootstrap.json", window.location.origin);
+        window.__catalogBootstrapPromise = fetch(url, {
+          cache: "default",
+          headers: { Accept: "application/json" },
+          priority: "high",
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error(`catalog_bootstrap_${response.status}`);
+            return response.json();
+          })
+          .catch(() => null);
+      })();
+    </script>
     <style>
       :root {
         --boot-bg: #f4f7fb;
@@ -93,21 +110,6 @@
         }
       })();
     </script>
-    <script>
-      (() => {
-        if (window.location.pathname.replace(/\/+$/, "").endsWith("/bargains")) return;
-        const url = new URL("%BASE_URL%data/catalog-bootstrap.json", window.location.origin);
-        window.__catalogBootstrapPromise = fetch(url, {
-          cache: "default",
-          headers: { Accept: "application/json" },
-        })
-          .then((response) => {
-            if (!response.ok) throw new Error(`catalog_bootstrap_${response.status}`);
-            return response.json();
-          })
-          .catch(() => null);
-      })();
-    </script>
   </head>
   <body>
     <div id="root">
@@ -144,6 +146,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx" fetchpriority="high"></script>
   </body>
 </html>

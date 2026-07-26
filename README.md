@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.29.0`
+**Τρέχουσα έκδοση:** `v0.30.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -26,6 +26,7 @@
 - Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
 - Μπορείς να παρακολουθείς προϊόντα και να ορίζεις προαιρετική τιμή-στόχο, ώστε να βλέπεις ποια έφτασαν το ποσό που σε ενδιαφέρει.
 - Από τις λεπτομέρειες οποιουδήποτε προϊόντος μπορείς να δεις λίγες, αυστηρά ταιριασμένες εναλλακτικές και να συγκρίνεις τιμή μονάδας, χαρακτηριστικά και μέγεθος συσκευασίας.
+- Τα κρίσιμα αρχεία παραδίδονται προ-συμπιεσμένα και οι επόμενες μεταβάσεις μεταξύ αρχικής, ευκαιριών και αλλαγών τιμών χρησιμοποιούν ένα ασφαλές cached app shell.
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
 
@@ -106,6 +107,8 @@
 Η έκδοση `v0.28.0` προσθέτει προσωπική «Παρακολούθηση τιμών» για έως 40 προϊόντα. Από τη λεπτομερή προβολή μπορείς να παρακολουθήσεις ένα προϊόν και, προαιρετικά, να ορίσεις τιμή-στόχο. Όταν ανοίγεις τη λίστα, η εφαρμογή ζητά τις τρέχουσες εγγραφές από τον τελευταίο συγχρονισμένο κατάλογο, βρίσκει την καλύτερη τιμή στις ενεργές αλυσίδες και δείχνει αν ο στόχος επιτεύχθηκε ή πόσο απέχει ακόμη. Προϊόντα που έφτασαν τον στόχο εμφανίζονται πρώτα, μαζί με την αλυσίδα, την πρόσφατη ουσιαστική μεταβολή και άμεσες ενέργειες για λεπτομέρειες ή προσθήκη στο καλάθι. Η λίστα αποθηκεύει μόνο κωδικούς προϊόντων, προαιρετικούς στόχους και timestamps στον συγκεκριμένο browser· δεν αποθηκεύει τιμές, ονόματα, τοποθεσία ή δεδομένα σε server. Δεν στέλνει push notifications: ο έλεγχος γίνεται μέσα στην εφαρμογή όταν ανοίγει η λίστα. Το fallback ελέγχου ενημέρωσης διαβάζει πλέον το μικρό συγχρονισμένο metadata αντί να αποκωδικοποιεί ολόκληρο τον κατάλογο στο PHP, αποφεύγοντας σφάλματα μνήμης στο hosting όταν το upstream API μπλοκάρει το request. Διορθώθηκε επίσης η αναμονή επανάληψης του τελικού ελέγχου δημοσίευσης, η οποία μπορούσε να χαρακτηρίσει έναν επιτυχημένο συγχρονισμό ως αποτυχημένο πριν ενημερωθεί το mirror.
 
 Η έκδοση `v0.29.0` προσθέτει «Παρόμοιες επιλογές» στις λεπτομέρειες κάθε προϊόντος, είτε αυτό ανοίξει από τον κύριο κατάλογο είτε από το καλάθι. Η εφαρμογή εμφανίζει έως έξι εναλλακτικές από τον ίδιο συγχρονισμένο κατάλογο και δίνει προτεραιότητα στην πραγματική ισοδυναμία πριν από τη χαμηλή τιμή: απαιτεί την ίδια πιο συγκεκριμένη κατηγορία, συμβατή μονάδα και συγκρίσιμο μέγεθος συσκευασίας. Σε ευρείες κατηγορίες εφαρμόζει αυστηρότερο έλεγχο τύπου και μορφής, ώστε cottage cheese να μη συγκρίνεται με γενικό τυρί κρέμα και Gouda σε φέτες να μη συγκρίνεται με τριμμένη Gouda. Οι προτάσεις δείχνουν καλύτερη τιμή συσκευασίας και μονάδας στις ενεργές αλυσίδες, ποσοστιαία διαφορά και χρήσιμα χαρακτηριστικά όπως `light`, πρωτεΐνη, βιολογικό, πολύσπορο ή χωρίς γλουτένη. Αν το αρχικό προϊόν βρίσκεται ήδη στο καλάθι, μπορεί να αντικατασταθεί με μία κίνηση χωρίς να χαθεί η ποσότητά του· όλα τα σύνολα και τα πλάνα υπολογίζονται ξανά. Η αντιστοίχιση γίνεται τοπικά στον υπάρχοντα Web Worker, δεν στέλνει προσωπικά δεδομένα και προτιμά να μη δείξει πρόταση όταν δεν υπάρχει αρκετά κοντινό προϊόν.
+
+Η έκδοση `v0.30.0` είναι έκδοση απόδοσης. Το build δημιουργεί πλέον έτοιμες εκδόσεις Brotli και Gzip για τα hashed JavaScript/CSS και ο ωριαίος συγχρονισμός κάνει το ίδιο για τα αρχεία καταλόγου. Στο συγκεκριμένο build, το κύριο JavaScript μειώνεται από `258,5 KB` σε `65,5 KB` με Brotli, το CSS από `93 KB` σε `13,8 KB`, το startup catalogue από `112 KB` σε `14,8 KB` και το runtime catalogue από `8,84 MB` σε `622 KB`. Ο server επιλέγει Brotli, επιστρέφει σε Gzip και διατηρεί identity fallback. Το bootstrap request ξεκινά νωρίτερα στο `<head>`, ενώ update status, ημερήσια πρόταση και προθέρμανση του πλήρους search index μετακινούνται μετά το πρώτο χρήσιμο render. Η σελίδα πρόσφατων αλλαγών δεν κατεβάζει πλέον άχρηστα το startup catalogue, προτιμά το cacheable static feed από το PHP και επαναχρησιμοποιεί το πεντάλεπτο browser cache. Ένας μικρός versioned Service Worker αποθηκεύει μόνο το HTML app shell, ώστε οι επόμενες μεταβάσεις ανάμεσα σε αρχική, ευκαιρίες και αλλαγές τιμών να ανοίγουν χωρίς να περιμένουν ξανά το αργό document TTFB· δεν παρεμβαίνει σε data, API ή σύντομους shared-basket συνδέσμους.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -245,7 +248,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.29.0`
+**Current version:** `v0.30.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -290,6 +293,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
 - Open up to six carefully matched alternatives for any catalogue or basket product, compare unit value and useful traits, and replace a basket item without losing its quantity.
+- Receive critical app and catalogue files as precompressed assets, with a safe cached app shell for subsequent navigation between the basket, bargains, and price-change views.
 - Load optimized, cacheable WebP product thumbnails directly from an edge image cache, with a same-origin proxy fallback and a separate high-resolution detail image.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
 - Optionally request browser location and show nearby supermarket branches.
@@ -372,6 +376,8 @@ Version `v0.27.2` corrects stop-comparison labels when no single chain covers th
 Version `v0.28.0` adds a personal Price Watch for up to 40 products. A product can be watched from its detail view with an optional target price. Opening the list fetches current records from the latest synchronized catalogue, finds the best price among active chains, and shows whether the target has been reached or how far away it remains. Reached targets appear first, together with the chain, any recent meaningful movement, and direct product-detail or add-to-basket actions. The list stores only product IDs, optional targets, and timestamps in that browser; it stores no prices, names, location, or server-side personal data. It does not send push notifications: target status is checked inside the app when the list opens. The update-status fallback now reads the small synchronized metadata file instead of decoding the complete catalogue in PHP, avoiding hosting memory errors when the upstream API blocks the request. The final publication verification retry now also waits correctly, preventing a successful synchronization from being reported as failed before the mirror is updated.
 
 Version `v0.29.0` adds Similar options to every product detail opened from either the main catalogue or the basket. The app returns no more than six alternatives from the same synchronized catalogue and ranks true equivalence before price: candidates must share the most specific catalogue category, use a compatible unit, and have a comparable pack size. Broad categories receive stricter family and format checks, preventing cottage cheese from being mixed with general cream cheese and sliced Gouda from being mixed with grated Gouda. Each result shows its best package and unit price among active chains, the percentage difference, and useful traits such as `light`, protein, organic, multiseed, or gluten free. When the source product is already in the basket, one action replaces it while preserving the selected quantity and recalculating every basket total and plan. Matching runs locally in the existing Web Worker, transmits no personal data, and deliberately returns no suggestions when a sufficiently close equivalent cannot be established.
+
+Version `v0.30.0` is a performance release. Builds now create ready-to-serve Brotli and Gzip variants for hashed JavaScript/CSS, and the hourly catalogue refresh does the same for catalogue data. In this build, the main JavaScript falls from `258.5 KB` to `65.5 KB` with Brotli, CSS from `93 KB` to `13.8 KB`, the startup catalogue from `112 KB` to `14.8 KB`, and the runtime catalogue from `8.84 MB` to `622 KB`. The server negotiates Brotli, falls back to Gzip, and retains identity delivery. The bootstrap request starts earlier in the document `<head>`, while update status, the daily pick, and full search-index warming move behind the first useful render. The recent price-change page no longer downloads the unrelated startup catalogue, prefers the cacheable static feed over PHP, and reuses its five-minute browser cache. A small versioned Service Worker caches only the HTML app shell, making subsequent navigation between the basket, bargains, and price changes independent of the slower document TTFB; data, API, and short shared-basket URLs remain outside its interception scope.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -942,6 +948,23 @@ selection now fails closed: the publisher downloads and validates the production
 catalogue itself before comparing prices, while a validated explicit previous
 snapshot remains available for controlled history recovery.
 
+Version 0.30.0 precompresses every production JavaScript/CSS asset and the startup
+catalogue during `npm run build`. Each successful hourly refresh also writes Brotli
+and Gzip companions for the full, runtime, metadata, bootstrap, price-change, CSV,
+and daily-bargain files before publishing status. Apache content negotiation prefers
+`.br`, uses `.gz` as a compatibility fallback, and keeps the original file available.
+The compression-only command validates that local and public catalogue timestamps
+match before it backfills only those companions:
+
+```bash
+npm run live:deploy:compression
+```
+
+The generated Service Worker caches only the versioned HTML shell and explicitly
+leaves `/data/`, `/api/`, `/s/`, and all other non-app navigations to the network.
+Its registration is delayed until after load and browser idle time, so installing
+the repeat-navigation cache never competes with the first useful render.
+
 After first paint, a module Web Worker loads `catalog-runtime.json` without blocking
 the interface and builds three pre-sorted in-memory views. Once ready, product search,
 barcode lookup, category filtering, sorting, and pagination run inside that worker;
@@ -966,7 +989,7 @@ values need to be committed or printed.
 
 For a narrowly scoped recovery, `npm run live:deploy:bootstrap` and
 `npm run live:deploy:bootstrap:mirror` atomically publish only
-`dist/data/catalog-bootstrap.json`. This is useful when the application shell is
+`dist/data/catalog-bootstrap.json` and its matching `.br` and `.gz` files. This is useful when the application shell is
 already live and the small first-paint payload has just been rebuilt from the
 currently published runtime catalogue. It does not replace `npm run live:refresh`,
 which remains responsible for generating and verifying a complete new catalogue

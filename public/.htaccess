@@ -1,10 +1,18 @@
 ModPagespeed off
 DirectoryIndex index.html
 
-<IfModule mod_filter.c>
-  <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE application/json application/javascript text/javascript text/css text/csv image/svg+xml
-  </IfModule>
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/json application/javascript text/javascript text/css text/csv image/svg+xml
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType application/json .json
+  AddType image/svg+xml .svg
+  AddType text/css .css
+  AddType text/csv .csv
+  AddEncoding br .br
+  AddEncoding gzip .gz
 </IfModule>
 
 <IfModule mod_headers.c>
@@ -14,17 +22,26 @@ DirectoryIndex index.html
     Header set Expires "0"
   </Files>
 
-  <FilesMatch "\.(css|js)$">
+  <FilesMatch "\.(css|js)(\.(br|gz))?$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 
-  <FilesMatch "^(catalog-(bootstrap|runtime)|price-changes)\.json$">
+  <FilesMatch "^(catalog(-meta|-bootstrap|-runtime)?|price-changes)\.(json|csv)(\.(br|gz))?$">
     Header set Cache-Control "public, max-age=300, stale-while-revalidate=300"
   </FilesMatch>
 
-  <Files "daily-bargain.json">
+  <FilesMatch "^daily-bargain\.json(\.(br|gz))?$">
     Header set Cache-Control "public, max-age=900, stale-while-revalidate=3600"
-  </Files>
+  </FilesMatch>
+
+  <FilesMatch "\.(br|gz)$">
+    Header merge Vary "Accept-Encoding"
+  </FilesMatch>
+
+  <FilesMatch "^sw\.js(\.(br|gz))?$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Service-Worker-Allowed "/"
+  </FilesMatch>
 
   <Files "favicon.svg">
     Header set Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
@@ -35,6 +52,15 @@ DirectoryIndex index.html
   RewriteEngine On
   RewriteCond %{HTTP_HOST} ^www\.kalathitimon\.com$ [NC]
   RewriteRule ^ https://kalathitimon.com%{REQUEST_URI} [R=301,L]
+
+  RewriteCond %{HTTP:Accept-Encoding} br
+  RewriteCond %{REQUEST_FILENAME}.br -f
+  RewriteRule ^(.+\.(css|csv|js|json|svg))$ $1.br [L]
+
+  RewriteCond %{HTTP:Accept-Encoding} gzip
+  RewriteCond %{REQUEST_FILENAME}.gz -f
+  RewriteRule ^(.+\.(css|csv|js|json|svg))$ $1.gz [L]
+
   RewriteRule ^s/([A-Za-z0-9_-]{10,32})/?$ api/open-basket.php?code=$1 [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

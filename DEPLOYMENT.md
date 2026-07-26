@@ -61,7 +61,8 @@ Safari-compatible syntax. `npm run build:legacy` creates the old
 `/demo/posokanei-basket/` subpath build when that mirror needs a full app update.
 The generated `.htaccess` disables PageSpeed, redirects `www` to the apex domain,
 routes `/s/<code>` through the basket opener, and keeps the SPA fallback on
-`index.html`.
+`index.html`. It prefers committed build-time Brotli files, falls back to Gzip,
+and preserves identity responses for clients that do not support compression.
 
 Live catalogue support uses these build outputs:
 
@@ -169,6 +170,22 @@ settings publish and verify the same files on the old subpath as a best-effort m
 targets with environment variables or the ignored `.env.local`, based on
 `.env.example`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for primary FTP
 authentication; the mirror has matching legacy variables.
+
+Every successful refresh also creates `.br` and `.gz` companions for the full,
+metadata, runtime, bootstrap, price-change JSON/CSV, and daily-bargain files. Raw
+files remain the source of truth and the status file is still published last. To
+backfill compression without contacting PosoKanei or changing any catalogue value,
+use:
+
+```bash
+npm run live:deploy:compression
+```
+
+This command first requires the local and public catalogue generation timestamps
+to match, uploads only compressed companions, and verifies Brotli and Gzip delivery.
+The normal UI deployment also includes precompressed hashed JavaScript/CSS and a
+versioned `sw.js`. The worker caches only the HTML app shell after first load; data,
+API, and `/s/<code>` requests are deliberately excluded.
 
 Keep `OPENAI_API_KEY` only in the private environment of the Mac running the
 LaunchAgent. The key is not required on Plesk and must never be copied into

@@ -5,8 +5,8 @@ import { mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { gzipSync } from "node:zlib";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
+import { writeCompressedVariants } from "./precompress-assets.mjs";
 import {
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
@@ -57,6 +57,7 @@ const dailyBargainPath = resolve(
   process.env.POSOKANEI_BARGAIN_OUT || "dist/data/daily-bargain.json",
 );
 const uploadEnabled = !process.argv.includes("--no-upload");
+const compressionOnly = process.argv.includes("--compression-only");
 const ftpTargets = buildFtpTargets();
 const primaryTarget = ftpTargets[0];
 const remoteRefreshHost = process.env.POSOKANEI_REFRESH_HOST || "";
@@ -81,18 +82,72 @@ const configuredPreviousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(projectRoot, process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
   : "";
 let detailVerificationProductId = "";
+let compressedPublicationFiles = [];
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
   console.log("Another catalogue refresh is already running; this overlapping run was skipped.");
 } else {
   try {
-    await refreshCatalog();
+    if (compressionOnly) await deployCurrentCatalogueCompression();
+    else await refreshCatalog();
   } catch (error) {
-    await recordRefreshFailure(error);
+    if (!compressionOnly) await recordRefreshFailure(error);
     throw error;
   } finally {
     await releaseRefreshLock();
+  }
+}
+
+async function deployCurrentCatalogueCompression() {
+  const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
+  const expectedGeneratedAt = snapshot.generated_at || "";
+  const productCount = Array.isArray(snapshot.products) ? snapshot.products.length : 0;
+  if (!expectedGeneratedAt || productCount < minimumProducts) {
+    throw new Error("Local catalogue data is not valid for compression-only publication.");
+  }
+
+  const timestampedFiles = [metaPath, runtimePath, bootstrapPath, priceChangesJsonPath];
+  for (const filePath of timestampedFiles) {
+    const data = JSON.parse(await readFile(filePath, "utf8"));
+    if (data.generated_at !== expectedGeneratedAt) {
+      throw new Error(`Local catalogue timestamp mismatch in ${filePath}.`);
+    }
+  }
+  if (existsSync(dailyBargainPath)) {
+    const bargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));
+    if (!bargain.generated_at || !bargain.catalog_generated_at) {
+      throw new Error("Local daily bargain is incomplete.");
+    }
+  }
+
+  compressedPublicationFiles = await writeCatalogueCompressionVariants();
+  if (!uploadEnabled) {
+    console.log("Compression-only upload skipped because --no-upload was passed.");
+    return;
+  }
+
+  for (const target of ftpTargets) {
+    try {
+      const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
+      const publicMeta = await fetchPublicJson(
+        targetCatalogUrl.replace(/catalog\.json$/u, "catalog-meta.json"),
+      );
+      if (publicMeta.generated_at !== expectedGeneratedAt) {
+        throw new Error(
+          `Public catalogue ${publicMeta.generated_at || "unknown"} does not match local ${expectedGeneratedAt}.`,
+        );
+      }
+
+      const password = await readTargetPassword(target);
+      for (const file of compressedPublicationFiles) {
+        await publishDataFile(file.filePath, file.remoteName, target, password);
+      }
+      await verifyCompressedDataDelivery(target, expectedGeneratedAt);
+    } catch (error) {
+      if (target.required) throw error;
+      console.error(`Optional compression mirror ${target.name} failed: ${error.message}`);
+    }
   }
 }
 
@@ -170,8 +225,6 @@ async function refreshCatalog() {
     `Wrote ${productDetails.count.toLocaleString("en-US")} product-detail records `
     + `(${productDetails.bytes.toLocaleString("en-US")} bytes).`,
   );
-  await writePriceChangesGzip();
-
   try {
     await runNodeScript("scripts/generate-daily-bargain.mjs", {
       POSOKANEI_BARGAIN_CATALOG: snapshotPath,
@@ -180,6 +233,8 @@ async function refreshCatalog() {
   } catch (error) {
     console.error(`Daily bargain generation failed; keeping the previous pick: ${error.message}`);
   }
+
+  compressedPublicationFiles = await writeCatalogueCompressionVariants();
 
   await writeRefreshStatus({
     status: "ok",
@@ -441,14 +496,54 @@ async function writeRefreshStatus(status) {
   await writeFile(refreshStatusPath, `${JSON.stringify(status, null, 2)}\n`, "utf8");
 }
 
-async function writePriceChangesGzip() {
-  const json = await readFile(priceChangesJsonPath);
-  const gzip = gzipSync(json, { level: 9 });
-  await mkdir(dirname(priceChangesGzipPath), { recursive: true });
-  await writeFile(priceChangesGzipPath, gzip);
+async function writeCatalogueCompressionVariants() {
+  const sources = [
+    { filePath: snapshotPath, remoteName: "catalog.json" },
+    { filePath: metaPath, remoteName: "catalog-meta.json" },
+    { filePath: runtimePath, remoteName: "catalog-runtime.json" },
+    { filePath: bootstrapPath, remoteName: "catalog-bootstrap.json" },
+    { filePath: priceChangesPath, remoteName: "price-changes.csv" },
+    { filePath: priceChangesJsonPath, remoteName: "price-changes.json" },
+    ...(existsSync(dailyBargainPath)
+      ? [{ filePath: dailyBargainPath, remoteName: "daily-bargain.json" }]
+      : []),
+  ];
+  const publicationFiles = [];
+
+  for (const source of sources) {
+    const variants = await writeCompressedVariants(source.filePath, {
+      ...(source.remoteName === "price-changes.json"
+        ? { gzipPath: priceChangesGzipPath }
+        : {}),
+    });
+    variants.forEach((variant) => {
+      publicationFiles.push({
+        ...variant,
+        remoteName: `${source.remoteName}.${variant.encoding === "gzip" ? "gz" : "br"}`,
+      });
+    });
+  }
+
+  const rawBytes = new Map();
+  publicationFiles.forEach((file) => {
+    rawBytes.set(file.remoteName.replace(/\.(?:br|gz)$/u, ""), file.sourceBytes);
+  });
+  const sourceTotal = [...rawBytes.values()].reduce((sum, value) => sum + value, 0);
+  const brotliTotal = publicationFiles
+    .filter((file) => file.encoding === "br")
+    .reduce((sum, file) => sum + file.bytes, 0);
+  const gzipTotal = publicationFiles
+    .filter((file) => file.encoding === "gzip")
+    .reduce((sum, file) => sum + file.bytes, 0);
   console.log(
-    `Wrote precompressed price-change display data (${gzip.length.toLocaleString("en-US")} bytes).`,
+    `Wrote ${publicationFiles.length.toLocaleString("en-US")} compressed catalogue files `
+    + `(raw ${formatBytes(sourceTotal)}, Brotli ${formatBytes(brotliTotal)}, gzip ${formatBytes(gzipTotal)}).`,
   );
+  return publicationFiles;
+}
+
+function formatBytes(value) {
+  return `${(value / 1024 / 1024).toFixed(2)} MiB`;
 }
 
 function describeRefreshError(error) {
@@ -540,14 +635,17 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(bootstrapPath, "catalog-bootstrap.json", target, password);
   await publishDataFile(priceChangesPath, "price-changes.csv", target, password);
   await publishDataFile(priceChangesJsonPath, "price-changes.json", target, password);
-  await publishDataFile(priceChangesGzipPath, "price-changes.json.gz", target, password);
   await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
+  for (const file of compressedPublicationFiles) {
+    await publishDataFile(file.filePath, file.remoteName, target, password);
+  }
   // Publish status last so it only announces a refresh after every data file is live.
   await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
   await verifyPublicRefreshFiles(expectedGeneratedAt, target);
+  await verifyCompressedDataDelivery(target, expectedGeneratedAt);
 }
 
 async function publishDataFile(filePath, remoteName, target, password) {
@@ -719,6 +817,35 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
     }
     console.log(`Verified public daily bargain at ${targetBargainUrl}`);
   }
+}
+
+async function verifyCompressedDataDelivery(target, expectedGeneratedAt) {
+  const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
+  const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/u, "catalog-runtime.json");
+  const targetBootstrapUrl = targetCatalogUrl.replace(/catalog\.json$/u, "catalog-bootstrap.json");
+
+  for (const encoding of ["br", "gzip"]) {
+    for (const url of [targetRuntimeUrl, targetBootstrapUrl]) {
+      const response = await fetch(cacheBustUrl(url), {
+        method: "HEAD",
+        headers: { "Accept-Encoding": encoding },
+        signal: AbortSignal.timeout(60000),
+      });
+      if (!response.ok || response.headers.get("content-encoding") !== encoding) {
+        throw new Error(`${url} did not negotiate ${encoding} compression.`);
+      }
+    }
+  }
+
+  const bootstrapResponse = await fetch(cacheBustUrl(targetBootstrapUrl), {
+    headers: { Accept: "application/json", "Accept-Encoding": "br" },
+    signal: AbortSignal.timeout(60000),
+  });
+  const bootstrap = await bootstrapResponse.json();
+  if (bootstrap.generated_at !== expectedGeneratedAt) {
+    throw new Error("Compressed bootstrap verification returned a different catalogue.");
+  }
+  console.log(`Verified Brotli and gzip catalogue delivery at ${targetRuntimeUrl}`);
 }
 
 function buildFtpTargets() {
