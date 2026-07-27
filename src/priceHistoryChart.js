@@ -41,19 +41,80 @@ function historySummary(points) {
     (count, point, index) => count + (point.price !== points[index].price ? 1 : 0),
     0,
   );
+  const firstPrice = points[0].price;
+  const latestPrice = points[points.length - 1].price;
+  const delta = round(latestPrice - firstPrice, 4);
   return {
-    firstPrice: points[0].price,
-    latestPrice: points[points.length - 1].price,
+    firstPrice,
+    latestPrice,
     minimumPrice: Math.min(...prices),
     maximumPrice: Math.max(...prices),
     observations: points.length,
     changes,
+    delta,
+    percentage: firstPrice > 0 ? round((delta / firstPrice) * 100, 2) : null,
+    direction: delta < 0 ? "decrease" : delta > 0 ? "increase" : "same",
   };
+}
+
+function niceStep(value) {
+  if (!Number.isFinite(value) || value <= 0) return 0.1;
+  const exponent = Math.floor(Math.log10(value));
+  const magnitude = 10 ** exponent;
+  const fraction = value / magnitude;
+  const niceFraction = fraction <= 1.5
+    ? 1
+    : fraction <= 2.25
+      ? 2
+      : fraction <= 3.5
+        ? 2.5
+        : fraction <= 7.5
+          ? 5
+          : 10;
+  return niceFraction * magnitude;
+}
+
+function priceScale(rawMinPrice, rawMaxPrice) {
+  const range = rawMaxPrice - rawMinPrice;
+  let step = niceStep(range > 0 ? range / 5 : Math.max(rawMaxPrice * 0.08, 0.1));
+
+  const createDomain = () => {
+    const margin = range > 0 ? step * 0.35 : step;
+    const minPrice = Math.max(0, Math.floor((rawMinPrice - margin) / step) * step);
+    const maxPrice = Math.ceil((rawMaxPrice + margin) / step) * step;
+    return {
+      minPrice: round(minPrice, 4),
+      maxPrice: round(Math.max(maxPrice, minPrice + step), 4),
+    };
+  };
+
+  let domain = createDomain();
+  if (Math.round((domain.maxPrice - domain.minPrice) / step) + 1 > 7) {
+    step = niceStep(step * 1.5);
+    domain = createDomain();
+  }
+
+  const tickCount = Math.round((domain.maxPrice - domain.minPrice) / step);
+  const prices = Array.from(
+    { length: tickCount + 1 },
+    (_, index) => round(domain.maxPrice - index * step, 4),
+  );
+  return { ...domain, prices };
+}
+
+function parsedTimestamp(value) {
+  if (Number.isFinite(value)) return Number(value);
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 export function createPriceHistoryChart(
   history,
-  { width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = {},
+  {
+    width = DEFAULT_WIDTH,
+    height = DEFAULT_HEIGHT,
+    observedUntilMs: observedUntilValue,
+  } = {},
 ) {
   const rawSeries = Array.isArray(history?.retailers) ? history.retailers : [];
   const allPoints = rawSeries.flatMap((series) => series.points || []);
@@ -61,17 +122,14 @@ export function createPriceHistoryChart(
 
   const rawMinTime = Math.min(...allPoints.map((point) => point.observedAtMs));
   const rawMaxTime = Math.max(...allPoints.map((point) => point.observedAtMs));
-  const timePadding = rawMinTime === rawMaxTime ? 30 * 60 * 1000 : 0;
+  const requestedObservedUntil = parsedTimestamp(observedUntilValue);
+  const observedUntilMs = Math.max(rawMaxTime, requestedObservedUntil || rawMaxTime);
+  const timePadding = rawMinTime === observedUntilMs ? 30 * 60 * 1000 : 0;
   const minTime = rawMinTime - timePadding;
-  const maxTime = rawMaxTime + timePadding;
+  const maxTime = observedUntilMs + timePadding;
   const rawMinPrice = Math.min(...allPoints.map((point) => point.price));
   const rawMaxPrice = Math.max(...allPoints.map((point) => point.price));
-  const priceRange = rawMaxPrice - rawMinPrice;
-  const pricePadding = priceRange > 0
-    ? Math.max(0.04, priceRange * 0.1)
-    : Math.max(0.1, rawMaxPrice * 0.05);
-  const minPrice = Math.max(0, rawMinPrice - pricePadding);
-  const maxPrice = rawMaxPrice + pricePadding;
+  const { minPrice, maxPrice, prices: yTickPrices } = priceScale(rawMinPrice, rawMaxPrice);
   const plot = {
     left: PADDING.left,
     right: width - PADDING.right,
@@ -85,22 +143,29 @@ export function createPriceHistoryChart(
   });
   const series = rawSeries.map((entry, index) => {
     const points = entry.points.map(projectPoint);
+    const latestPoint = points[points.length - 1];
+    const currentX = scale(observedUntilMs, minTime, maxTime, plot.left, plot.right);
     return {
       ...entry,
       color: PRICE_HISTORY_COLORS[index % PRICE_HISTORY_COLORS.length],
       points,
       path: stepPath(points),
+      continuationPath: currentX > latestPoint.x + 0.5
+        ? `M ${round(latestPoint.x)} ${round(latestPoint.y)} H ${round(currentX)}`
+        : "",
+      currentPoint: {
+        ...latestPoint,
+        observedAtMs: observedUntilMs,
+        x: currentX,
+      },
+      hasContinuation: currentX > latestPoint.x + 0.5,
       summary: historySummary(points),
     };
   });
-  const yTicks = Array.from({ length: 5 }, (_, index) => {
-    const ratio = index / 4;
-    const price = maxPrice - ratio * (maxPrice - minPrice);
-    return {
-      price,
-      y: scale(price, minPrice, maxPrice, plot.bottom, plot.top),
-    };
-  });
+  const yTicks = yTickPrices.map((price) => ({
+    price,
+    y: scale(price, minPrice, maxPrice, plot.bottom, plot.top),
+  }));
   const xTickCount = width < 500 ? 2 : width < 720 ? 3 : 4;
   const xTicks = Array.from({ length: xTickCount }, (_, index) => {
     const ratio = index / (xTickCount - 1);
@@ -117,6 +182,8 @@ export function createPriceHistoryChart(
     plot,
     minTime,
     maxTime,
+    observedUntilMs,
+    timeSpanMs: observedUntilMs - rawMinTime,
     minPrice,
     maxPrice,
     series,

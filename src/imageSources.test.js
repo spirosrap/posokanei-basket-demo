@@ -62,3 +62,30 @@ test("large product previews fall back to an already cached thumbnail size", () 
     ],
   );
 });
+
+test("expanded product images prefer every larger source before thumbnails", () => {
+  const sources = buildCatalogImageSources(
+    "https://api.posokanei.gov.gr/images/product/product-1?v=revision-2",
+    {
+      ...options,
+      size: 960,
+      fallbackSizes: [640, 96],
+      prioritizeResolution: true,
+    },
+  );
+
+  assert.deepEqual(
+    sources.map((source) => {
+      const url = new URL(source);
+      return [url.hostname, url.searchParams.get("size") || url.searchParams.get("w")];
+    }),
+    [
+      ["images.weserv.nl", "960"],
+      ["kalathitimon.com", "960"],
+      ["images.weserv.nl", "640"],
+      ["kalathitimon.com", "640"],
+      ["images.weserv.nl", "96"],
+      ["kalathitimon.com", "96"],
+    ],
+  );
+});

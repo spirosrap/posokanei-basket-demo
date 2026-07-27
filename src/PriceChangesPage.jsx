@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Download,
   Info,
+  Maximize2,
   PackageSearch,
   Plus,
   RefreshCw,
@@ -48,6 +49,7 @@ export default function PriceChangesPage({ appBasePath, ui }) {
   const {
     AppLink,
     Header,
+    ProductPreviewImage,
     ProductThumb,
     formatDataTime,
     formatDateTime,
@@ -414,6 +416,8 @@ export default function PriceChangesPage({ appBasePath, ui }) {
         <PriceHistoryDialog
           formatDateTime={formatDateTime}
           history={selectedHistory}
+          observedUntil={data?.generatedAt}
+          ProductPreviewImageComponent={ProductPreviewImage}
           ProductThumbComponent={ProductThumb}
           product={selectedHistoryProduct}
           productLoading={selectedProductDetail?.status === "loading"}
@@ -583,6 +587,8 @@ const PriceChangeRow = memo(function PriceChangeRow({
 function PriceHistoryDialog({
   formatDateTime,
   history,
+  observedUntil,
+  ProductPreviewImageComponent,
   ProductThumbComponent,
   product,
   productLoading,
@@ -592,11 +598,40 @@ function PriceHistoryDialog({
   const { locale, money, number, t } = usePreferences();
   const closeButtonRef = useRef(null);
   const chartContainerRef = useRef(null);
+  const imageCloseButtonRef = useRef(null);
+  const imageExpandedRef = useRef(false);
+  const imageSurfaceRef = useRef(null);
+  const imageTriggerRef = useRef(null);
+  const panelRef = useRef(null);
   const [chartDimensions, setChartDimensions] = useState({ width: 900, height: 330 });
+  const [imageExpanded, setImageExpanded] = useState(false);
   const chart = useMemo(
-    () => createPriceHistoryChart(history, chartDimensions),
-    [chartDimensions, history],
+    () => createPriceHistoryChart(history, {
+      ...chartDimensions,
+      observedUntilMs: observedUntil,
+    }),
+    [chartDimensions, history, observedUntil],
   );
+  const displayProduct = useMemo(() => (
+    product
+      ? { ...product, imageUrl: product.imageUrl || history.imageUrl }
+      : {
+          id: history.productId,
+          name: history.productName,
+          imageUrl: history.imageUrl,
+        }
+  ), [history.imageUrl, history.productId, history.productName, product]);
+  const canExpandImage = Boolean(displayProduct.imageUrl && ProductPreviewImageComponent);
+
+  const closeExpandedImage = useCallback(() => {
+    setImageExpanded(false);
+    window.requestAnimationFrame(() => imageTriggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    imageExpandedRef.current = imageExpanded;
+    if (imageExpanded) imageCloseButtonRef.current?.focus();
+  }, [imageExpanded]);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -626,10 +661,15 @@ function PriceHistoryDialog({
     const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement;
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (imageExpandedRef.current) closeExpandedImage();
+        else onClose();
+      }
       if (event.key === "Tab") {
-        event.preventDefault();
-        closeButtonRef.current?.focus();
+        trapDialogFocus(
+          imageExpandedRef.current ? imageSurfaceRef.current : panelRef.current,
+          event,
+        );
       }
     };
     document.body.style.overflow = "hidden";
@@ -640,7 +680,7 @@ function PriceHistoryDialog({
       window.removeEventListener("keydown", handleKeyDown);
       if (typeof previousFocus?.focus === "function") previousFocus.focus();
     };
-  }, [onClose]);
+  }, [closeExpandedImage, onClose]);
 
   const titleId = `price-history-${history.productId}`;
   const chartLabel = t("priceHistoryChartLabel", { name: history.productName });
@@ -653,15 +693,23 @@ function PriceHistoryDialog({
       aria-labelledby={titleId}
     >
       <div className="drawer-backdrop" onClick={onClose} />
-      <div className="drawer-panel price-history-panel">
+      <div ref={panelRef} className="drawer-panel price-history-panel">
         <header className="price-history-head">
-          {createElement(ProductThumbComponent, {
-            product: product || {
-              id: history.productId,
-              name: history.productName,
-              imageUrl: history.imageUrl,
-            },
-          })}
+          {canExpandImage ? (
+            <button
+              ref={imageTriggerRef}
+              type="button"
+              className="price-history-image-trigger"
+              aria-label={t("openProductImage", { name: history.productName })}
+              title={t("openProductImage", { name: history.productName })}
+              onClick={() => setImageExpanded(true)}
+            >
+              {createElement(ProductThumbComponent, { product: displayProduct })}
+              <span className="price-history-image-trigger-icon" aria-hidden="true">
+                <Maximize2 size={12} />
+              </span>
+            </button>
+          ) : createElement(ProductThumbComponent, { product: displayProduct })}
           <div className="price-history-heading-copy">
             <span className="changes-eyebrow">
               <ChartLine size={16} aria-hidden="true" />
@@ -701,6 +749,14 @@ function PriceHistoryDialog({
               className="price-history-chart"
               aria-label={chartLabel}
             >
+              <header className="price-history-chart-head">
+                <strong>{t("priceHistoryChartHeading")}</strong>
+                <time dateTime={observedUntil || undefined}>
+                  {t("priceHistoryThrough", {
+                    time: formatDateTime(new Date(chart.observedUntilMs), locale),
+                  })}
+                </time>
+              </header>
               <svg
                 viewBox={`0 0 ${chart.width} ${chart.height}`}
                 role="img"
@@ -746,7 +802,7 @@ function PriceHistoryDialog({
                           ? "end"
                           : "middle"}
                     >
-                      {formatHistoryDate(tick.observedAtMs, locale)}
+                      {formatHistoryAxisDate(tick.observedAtMs, locale, chart.timeSpanMs)}
                     </text>
                   </g>
                 ))}
@@ -757,6 +813,13 @@ function PriceHistoryDialog({
                       d={series.path}
                       stroke={series.color}
                     />
+                    {series.continuationPath ? (
+                      <path
+                        className="history-series-line current"
+                        d={series.continuationPath}
+                        stroke={series.color}
+                      />
+                    ) : null}
                     {series.points.map((point) => (
                       <circle
                         key={`${point.observedAt}:${point.price}`}
@@ -771,6 +834,19 @@ function PriceHistoryDialog({
                         </title>
                       </circle>
                     ))}
+                    {series.hasContinuation ? (
+                      <circle
+                        className="history-series-current-point"
+                        cx={series.currentPoint.x}
+                        cy={series.currentPoint.y}
+                        r="5"
+                        fill={series.color}
+                      >
+                        <title>
+                          {`${series.retailerName}: ${money(series.summary.latestPrice)} · ${formatDateTime(new Date(series.currentPoint.observedAtMs), locale)}`}
+                        </title>
+                      </circle>
+                    ) : null}
                   </g>
                 ))}
               </svg>
@@ -793,12 +869,17 @@ function PriceHistoryDialog({
                     </small>
                   </span>
                   <span className="price-history-series-values">
-                    <strong>{money(series.summary.latestPrice)}</strong>
-                    <small>
-                      {t("priceHistoryStartedAt", {
-                        price: money(series.summary.firstPrice),
-                      })}
-                    </small>
+                    <strong className="price-history-flow">
+                      <span>{money(series.summary.firstPrice)}</span>
+                      <ChevronRight size={13} aria-hidden="true" />
+                      <span>{money(series.summary.latestPrice)}</span>
+                    </strong>
+                    <HistoryChangeSummary
+                      locale={locale}
+                      money={money}
+                      summary={series.summary}
+                      t={t}
+                    />
                   </span>
                 </article>
               ))}
@@ -816,20 +897,88 @@ function PriceHistoryDialog({
           <span>{t("priceHistoryFootnote")}</span>
         </p>
       </div>
+
+      {imageExpanded && canExpandImage ? (
+        <div className="price-history-image-preview" role="group" aria-label={t("expandedProductImage", { name: history.productName })}>
+          <div className="price-history-image-backdrop" onClick={closeExpandedImage} />
+          <section ref={imageSurfaceRef} className="price-history-image-surface">
+            <header>
+              <strong>{history.productName}</strong>
+              <button
+                ref={imageCloseButtonRef}
+                type="button"
+                className="icon-button"
+                aria-label={t("close")}
+                title={t("close")}
+                onClick={closeExpandedImage}
+              >
+                <X size={19} aria-hidden="true" />
+              </button>
+            </header>
+            {createElement(ProductPreviewImageComponent, {
+              product: displayProduct,
+              size: 960,
+              className: "price-history-large-image",
+            })}
+          </section>
+        </div>
+      ) : null}
     </aside>
   );
 }
 
-function formatHistoryDate(timestamp, locale) {
+function trapDialogFocus(container, event) {
+  if (!container) return;
+  const focusable = [...container.querySelectorAll(
+    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  )].filter((element) => element.getClientRects().length > 0);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function HistoryChangeSummary({ locale, money, summary, t }) {
+  if (summary.direction === "same") {
+    return <small className="price-history-change same">{t("priceHistoryUnchanged")}</small>;
+  }
+  const decreased = summary.direction === "decrease";
+  const Icon = decreased ? ArrowDownRight : ArrowUpRight;
+  const amount = `${decreased ? "−" : "+"}${money(Math.abs(summary.delta))}`;
+  const percentage = `${decreased ? "−" : "+"}${formatHistoryPercentage(Math.abs(summary.percentage), locale)}%`;
+  return (
+    <small className={`price-history-change ${summary.direction}`}>
+      <Icon size={12} aria-hidden="true" />
+      {t("priceHistoryTotalChange", { amount, percentage })}
+    </small>
+  );
+}
+
+function formatHistoryAxisDate(timestamp, locale, timeSpanMs) {
   try {
     return new Intl.DateTimeFormat(locale, {
       day: "numeric",
       month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
+      ...(timeSpanMs < 48 * 60 * 60 * 1000
+        ? { hour: "2-digit", minute: "2-digit" }
+        : {}),
     }).format(new Date(timestamp));
   } catch {
     return "";
+  }
+}
+
+function formatHistoryPercentage(value, locale) {
+  try {
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+  } catch {
+    return String(Math.round(value * 10) / 10);
   }
 }
 

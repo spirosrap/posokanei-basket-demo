@@ -404,6 +404,7 @@ const preloadPriceChangesRoute = () => {
 const PRICE_CHANGES_PAGE_UI = Object.freeze({
   AppLink,
   Header,
+  ProductPreviewImage,
   ProductThumb,
   formatDataTime,
   formatDateTime,
@@ -5106,11 +5107,16 @@ function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
   );
 }
 
-function ProductPreviewImage({ product }) {
+function ProductPreviewImage({ product, size = 640, className = "" }) {
   const { t } = usePreferences();
   const imageSources = useMemo(
-    () => productImageSources(product, 640, [96]),
-    [product],
+    () => productImageSources(
+      product,
+      size,
+      size > 640 ? [640, 96] : [96],
+      size > 640,
+    ),
+    [product, size],
   );
   const [sourceIndex, setSourceIndex] = useState(0);
   const imageUrl = imageSources[sourceIndex] || "";
@@ -5120,7 +5126,10 @@ function ProductPreviewImage({ product }) {
   }, [imageSources]);
 
   return (
-    <div className="drawer-image-frame" aria-label={t("productImage", { name: product.name })}>
+    <div
+      className={`drawer-image-frame${className ? ` ${className}` : ""}`}
+      aria-label={t("productImage", { name: product.name })}
+    >
       {imageUrl ? (
         <img
           src={imageUrl}
@@ -5234,11 +5243,17 @@ function ProductThumb({ product, compact = false, priority = false }) {
   );
 }
 
-function productImageSources(product, size = 96, fallbackSizes = []) {
+function productImageSources(
+  product,
+  size = 96,
+  fallbackSizes = [],
+  prioritizeResolution = false,
+) {
   return buildCatalogImageSources(product?.imageUrl || "", {
     kind: "product",
     size,
     fallbackSizes,
+    prioritizeResolution,
     proxyBase: IMAGE_PROXY_BASE,
     baseUrl: window.location.href,
   });

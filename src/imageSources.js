@@ -4,6 +4,7 @@ export function buildCatalogImageSources(
     kind = "product",
     size = 96,
     fallbackSizes = [],
+    prioritizeResolution = false,
     proxyBase,
     baseUrl,
   },
@@ -50,5 +51,7 @@ export function buildCatalogImageSources(
     return proxyUrl.toString();
   });
 
-  return [...cacheUrls, ...proxyUrls];
+  return prioritizeResolution
+    ? cacheUrls.flatMap((cacheUrl, index) => [cacheUrl, proxyUrls[index]])
+    : [...cacheUrls, ...proxyUrls];
 }

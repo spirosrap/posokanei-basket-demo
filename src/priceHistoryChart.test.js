@@ -40,9 +40,16 @@ test("price-history chart renders changes as a step path", () => {
     maximumPrice: 4,
     observations: 3,
     changes: 1,
+    delta: -0.5,
+    percentage: -12.5,
+    direction: "decrease",
   });
   assert.equal(chart.xTicks.length, 4);
-  assert.equal(chart.yTicks.length, 5);
+  assert.equal(chart.yTicks.length >= 3 && chart.yTicks.length <= 7, true);
+  assert.equal(
+    chart.yTicks.every((tick) => Number.isInteger(tick.price * 10)),
+    true,
+  );
   assert.equal(
     series.points.every((point) => (
       point.x >= chart.plot.left
@@ -52,6 +59,18 @@ test("price-history chart renders changes as a step path", () => {
     )),
     true,
   );
+});
+
+test("price-history chart carries the latest known price through the catalogue snapshot", () => {
+  const observedUntilMs = Date.parse("2026-07-17T13:00:00.000Z");
+  const chart = createPriceHistoryChart(history, { observedUntilMs });
+  const [series] = chart.series;
+
+  assert.equal(chart.observedUntilMs, observedUntilMs);
+  assert.equal(series.currentPoint.observedAtMs, observedUntilMs);
+  assert.equal(series.currentPoint.x, chart.plot.right);
+  assert.equal(series.hasContinuation, true);
+  assert.match(series.continuationPath, new RegExp(`H ${chart.plot.right}$`));
 });
 
 test("price-history chart requires at least one observation", () => {

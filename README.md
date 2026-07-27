@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.5`
+**Τρέχουσα έκδοση:** `v0.33.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -125,6 +125,16 @@
 Η έκδοση `v0.32.4` διορθώνει την κλιμάκωση τετράγωνων εικόνων μέσα στο χαμηλότερο πλαίσιο λεπτομερειών. Η εικόνα περιορίζεται πλέον ρητά και στους δύο άξονες, ώστε να εμφανίζεται ολόκληρο το αρχείο του PosoKanei χωρίς κατακόρυφο κόψιμο.
 
 Η έκδοση `v0.32.5` κάνει την ωριαία δημοσίευση ανθεκτική σε προσωρινά FTP timeouts. Κάθε αρχείο δοκιμάζεται ξανά έως τέσσερις φορές μόνο για δικτυακά σφάλματα, με νέο μοναδικό προσωρινό όνομα και ασφαλή καθαρισμό της προηγούμενης προσπάθειας. Σφάλματα τοπικού αρχείου ή σύνδεσης δεν επαναλαμβάνονται. Ο συγχρονισμός δηλώνεται επιτυχής μόνο αφού δημοσιευτούν και επαληθευτούν ο κατάλογος, οι συμπιεσμένες εκδόσεις, το ιστορικό τιμών και το status της ίδιας γενιάς.
+
+Η έκδοση `v0.33.0` κάνει το ιστορικό επτά ημερών σαφέστερο. Οι συμπαγείς γραμμές ενώνουν τις πραγματικές καταγραφές αλλαγής, ενώ το διακεκομμένο τελευταίο τμήμα δείχνει ότι η τελευταία γνωστή τιμή παραμένει ενεργή έως τον πιο πρόσφατο επιτυχημένο συγχρονισμό. Ο άξονας τιμών χρησιμοποιεί πλέον καθαρές στρογγυλές τιμές και, σε πολυήμερη προβολή, ο άξονας χρόνου δείχνει ημερομηνίες χωρίς αυθαίρετες ενδιάμεσες ώρες. Κάθε αλυσίδα εμφανίζει την πρώτη και την τρέχουσα τιμή μαζί με τη συνολική διαφορά σε ευρώ και ποσοστό. Η μικρογραφία του προϊόντος λειτουργεί επίσης ως κουμπί μεγέθυνσης: ζητά εικόνα έως `960px`, επιστρέφει σε `640px` και χρησιμοποιεί τη διαθέσιμη μικρογραφία μόνο ως τελευταίο fallback.
+
+![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
+
+![Ιστορικό επτά ημερών σε κινητό](screenshots/price-history-mobile-v0.33.0.png)
+
+![Μεγάλη εικόνα προϊόντος από το ιστορικό](screenshots/price-history-image-v0.33.0.png)
+
+![Μεγάλη εικόνα προϊόντος σε κινητό](screenshots/price-history-image-mobile-v0.33.0.png)
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -264,7 +274,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.5`
+**Current version:** `v0.33.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -410,6 +420,16 @@ Version `v0.32.3` fixes large product images when the upstream image service onl
 Version `v0.32.4` fixes square product-image scaling inside the shorter detail frame. Images are now explicitly constrained on both axes, so the complete PosoKanei source file remains visible without vertical clipping.
 
 Version `v0.32.5` makes hourly publication resilient to temporary FTP timeouts. Each file is retried up to four times only for transient network errors, using a fresh unique temporary name and safely cleaning up the previous attempt. Local-file and authentication errors are not retried. A synchronization is accepted only after the catalogue, compressed variants, price history, and same-generation status have all been published and verified.
+
+Version `v0.33.0` makes the seven-day history easier to read. Solid lines connect actual recorded changes, while the final dashed segment shows that the latest known price remains current through the most recent successful catalogue sync. The price axis now uses clean rounded values and multi-day timelines show dates without arbitrary interpolated times. Each chain states its first and current price together with the total euro and percentage movement. The product thumbnail is also an image-expansion control: it requests up to `960px`, falls back to `640px`, and uses the available thumbnail only as the last fallback.
+
+![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
+
+![Responsive seven-day price history](screenshots/price-history-mobile-v0.33.0.png)
+
+![Expanded product image from price history](screenshots/price-history-image-v0.33.0.png)
+
+![Responsive expanded product image](screenshots/price-history-image-mobile-v0.33.0.png)
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
