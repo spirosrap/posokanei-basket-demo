@@ -5108,7 +5108,10 @@ function RetailerLogo({ retailer, className = "", ariaHidden = false }) {
 
 function ProductPreviewImage({ product }) {
   const { t } = usePreferences();
-  const imageSources = useMemo(() => productImageSources(product, 640), [product]);
+  const imageSources = useMemo(
+    () => productImageSources(product, 640, [96]),
+    [product],
+  );
   const [sourceIndex, setSourceIndex] = useState(0);
   const imageUrl = imageSources[sourceIndex] || "";
 
@@ -5231,10 +5234,11 @@ function ProductThumb({ product, compact = false, priority = false }) {
   );
 }
 
-function productImageSources(product, size = 96) {
+function productImageSources(product, size = 96, fallbackSizes = []) {
   return buildCatalogImageSources(product?.imageUrl || "", {
     kind: "product",
     size,
+    fallbackSizes,
     proxyBase: IMAGE_PROXY_BASE,
     baseUrl: window.location.href,
   });

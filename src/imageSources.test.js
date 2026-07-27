@@ -42,3 +42,23 @@ test("retailer logos keep their aspect ratio and external images pass through", 
     ["https://example.com/logo.svg"],
   );
 });
+
+test("large product previews fall back to an already cached thumbnail size", () => {
+  const sources = buildCatalogImageSources(
+    "https://api.posokanei.gov.gr/images/product/product-1?v=revision-2",
+    { ...options, size: 640, fallbackSizes: [96] },
+  );
+
+  assert.deepEqual(
+    sources.map((source) => {
+      const url = new URL(source);
+      return [url.hostname, url.searchParams.get("size") || url.searchParams.get("w")];
+    }),
+    [
+      ["images.weserv.nl", "640"],
+      ["images.weserv.nl", "96"],
+      ["kalathitimon.com", "640"],
+      ["kalathitimon.com", "96"],
+    ],
+  );
+});

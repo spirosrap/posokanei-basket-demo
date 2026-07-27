@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.2`
+**Τρέχουσα έκδοση:** `v0.32.3`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -119,6 +119,8 @@
 Η έκδοση `v0.32.2` απομονώνει πλήρως τον ωριαίο συγχρονισμό από τα production builds. Τα προσωρινά αρχεία καταλόγου δημιουργούνται πλέον κάτω από `.cache/catalog-refresh-output/` αντί για το `dist/data/`, ώστε ένα ταυτόχρονο Vite build να μην μπορεί να τα αντικαταστήσει ή να τα διαγράψει πριν ολοκληρωθεί η ατομική δημοσίευση. Το macOS LaunchAgent χρησιμοποιεί επίσης non-interactive shell, χωρίς εξάρτηση από shell themes ή prompt plugins.
 
 Η προαιρετική ημερήσια AI πρόταση διαβάζει το OpenAI key είτε από το ιδιωτικό environment είτε από το macOS Keychain με service `posokanei-basket-openai-api-key`. Η τιμή του key δεν γράφεται στο repository, στο `.env.local`, στα logs ή στον production server.
+
+Η έκδοση `v0.32.3` διορθώνει τη μεγάλη εικόνα προϊόντος όταν το upstream image service διαθέτει μόνο την ήδη αποθηκευμένη μικρογραφία. Η προβολή λεπτομερειών δοκιμάζει πλέον πρώτα την εικόνα υψηλής ανάλυσης και, αν αυτή αποτύχει, εμφανίζει αυτόματα την υπαρκτή μικρογραφία αντί για placeholder.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -258,7 +260,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.2`
+**Current version:** `v0.32.3`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -398,6 +400,8 @@ Version `v0.32.1` corrects the synchronization warning timestamp. The interface 
 Version `v0.32.2` fully isolates the hourly catalogue refresh from production builds. Temporary catalogue artifacts now live under `.cache/catalog-refresh-output/` instead of `dist/data/`, so a concurrent Vite build cannot replace or delete them before atomic publication completes. The macOS LaunchAgent also uses a non-interactive shell and no longer depends on shell themes or prompt plugins.
 
 The optional daily AI suggestion reads its OpenAI key either from the private environment or from the macOS Keychain service `posokanei-basket-openai-api-key`. The key value is never written to the repository, `.env.local`, logs, or the production server.
+
+Version `v0.32.3` fixes large product images when the upstream image service only has an already cached thumbnail available. The detail view now tries the high-resolution image first and automatically uses the existing thumbnail instead of a placeholder when the larger variant fails.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
