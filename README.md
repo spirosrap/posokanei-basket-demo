@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.3`
+**Τρέχουσα έκδοση:** `v0.32.4`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -121,6 +121,8 @@
 Η προαιρετική ημερήσια AI πρόταση διαβάζει το OpenAI key είτε από το ιδιωτικό environment είτε από το macOS Keychain με service `posokanei-basket-openai-api-key`. Η τιμή του key δεν γράφεται στο repository, στο `.env.local`, στα logs ή στον production server.
 
 Η έκδοση `v0.32.3` διορθώνει τη μεγάλη εικόνα προϊόντος όταν το upstream image service διαθέτει μόνο την ήδη αποθηκευμένη μικρογραφία. Η προβολή λεπτομερειών δοκιμάζει πλέον πρώτα την εικόνα υψηλής ανάλυσης και, αν αυτή αποτύχει, εμφανίζει αυτόματα την υπαρκτή μικρογραφία αντί για placeholder.
+
+Η έκδοση `v0.32.4` διορθώνει την κλιμάκωση τετράγωνων εικόνων μέσα στο χαμηλότερο πλαίσιο λεπτομερειών. Η εικόνα περιορίζεται πλέον ρητά και στους δύο άξονες, ώστε να εμφανίζεται ολόκληρο το αρχείο του PosoKanei χωρίς κατακόρυφο κόψιμο.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -260,7 +262,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.3`
+**Current version:** `v0.32.4`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -402,6 +404,8 @@ Version `v0.32.2` fully isolates the hourly catalogue refresh from production bu
 The optional daily AI suggestion reads its OpenAI key either from the private environment or from the macOS Keychain service `posokanei-basket-openai-api-key`. The key value is never written to the repository, `.env.local`, logs, or the production server.
 
 Version `v0.32.3` fixes large product images when the upstream image service only has an already cached thumbnail available. The detail view now tries the high-resolution image first and automatically uses the existing thumbnail instead of a placeholder when the larger variant fails.
+
+Version `v0.32.4` fixes square product-image scaling inside the shorter detail frame. Images are now explicitly constrained on both axes, so the complete PosoKanei source file remains visible without vertical clipping.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
