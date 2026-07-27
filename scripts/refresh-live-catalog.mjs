@@ -556,6 +556,9 @@ function describeRefreshError(error) {
   if (/UND_ERR_CONNECT_TIMEOUT|Connect Timeout Error/i.test(message)) {
     return "Refresh runner could not connect to the upstream API.";
   }
+  if (/curl exited with 28|FTP response timeout|operation timed out/i.test(message)) {
+    return "Catalogue publication timed out.";
+  }
   if (/fetch failed/i.test(message)) {
     return "Refresh runner fetch failed.";
   }

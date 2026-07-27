@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.32.4`
+**Τρέχουσα έκδοση:** `v0.32.5`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -123,6 +123,8 @@
 Η έκδοση `v0.32.3` διορθώνει τη μεγάλη εικόνα προϊόντος όταν το upstream image service διαθέτει μόνο την ήδη αποθηκευμένη μικρογραφία. Η προβολή λεπτομερειών δοκιμάζει πλέον πρώτα την εικόνα υψηλής ανάλυσης και, αν αυτή αποτύχει, εμφανίζει αυτόματα την υπαρκτή μικρογραφία αντί για placeholder.
 
 Η έκδοση `v0.32.4` διορθώνει την κλιμάκωση τετράγωνων εικόνων μέσα στο χαμηλότερο πλαίσιο λεπτομερειών. Η εικόνα περιορίζεται πλέον ρητά και στους δύο άξονες, ώστε να εμφανίζεται ολόκληρο το αρχείο του PosoKanei χωρίς κατακόρυφο κόψιμο.
+
+Η έκδοση `v0.32.5` κάνει την ωριαία δημοσίευση ανθεκτική σε προσωρινά FTP timeouts. Κάθε αρχείο δοκιμάζεται ξανά έως τέσσερις φορές μόνο για δικτυακά σφάλματα, με νέο μοναδικό προσωρινό όνομα και ασφαλή καθαρισμό της προηγούμενης προσπάθειας. Σφάλματα τοπικού αρχείου ή σύνδεσης δεν επαναλαμβάνονται. Ο συγχρονισμός δηλώνεται επιτυχής μόνο αφού δημοσιευτούν και επαληθευτούν ο κατάλογος, οι συμπιεσμένες εκδόσεις, το ιστορικό τιμών και το status της ίδιας γενιάς.
 
 ![Παρόμοιες επιλογές και άμεση αντικατάσταση καλαθιού στην έκδοση 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -262,7 +264,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.32.4`
+**Current version:** `v0.32.5`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -406,6 +408,8 @@ The optional daily AI suggestion reads its OpenAI key either from the private en
 Version `v0.32.3` fixes large product images when the upstream image service only has an already cached thumbnail available. The detail view now tries the high-resolution image first and automatically uses the existing thumbnail instead of a placeholder when the larger variant fails.
 
 Version `v0.32.4` fixes square product-image scaling inside the shorter detail frame. Images are now explicitly constrained on both axes, so the complete PosoKanei source file remains visible without vertical clipping.
+
+Version `v0.32.5` makes hourly publication resilient to temporary FTP timeouts. Each file is retried up to four times only for transient network errors, using a fresh unique temporary name and safely cleaning up the previous attempt. Local-file and authentication errors are not retried. A synchronization is accepted only after the catalogue, compressed variants, price history, and same-generation status have all been published and verified.
 
 ![Similar product options and direct basket replacement in version 0.29.0](screenshots/similar-products-v0.29.0.jpg)
 
@@ -936,7 +940,9 @@ file is uploaded under a unique temporary name and is renamed over the public
 destination only after the transfer succeeds. The previous complete catalogue
 therefore remains available throughout the upload, avoiding the
 temporary empty catalogue that can occur when PHP reads a partially written JSON
-file.
+file. Transient FTP connection and response timeouts are retried per file with a
+fresh temporary name; permanent authentication and local-file errors still fail
+immediately and remain visible.
 
 Version 0.20.0 serves ordinary catalogue reads from the synchronized snapshot first,
 so a known upstream `403` cannot add a failed network timeout to each visitor request.

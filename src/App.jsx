@@ -5377,6 +5377,9 @@ function formatDateTime(date, locale) {
 function friendlyRefreshError(error, t) {
   if (!error) return t("checkIncomplete");
   if (String(error).includes("HTTP 403")) return t("upstreamBlocked");
+  if (String(error).includes("Catalogue publication timed out")) {
+    return t("publicationTimedOut");
+  }
   return t("checkIncomplete");
 }
 
