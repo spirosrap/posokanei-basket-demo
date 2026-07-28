@@ -411,18 +411,21 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       ].join(" "),
     ]);
     try {
-      const imageFallbackCursor = await readImageFallbackCursor();
+      const imageFallbackState = await readImageFallbackState();
       await run("ssh", [
         ...sshOptions,
         host,
         [
           `POSOKANEI_IMAGE_SNAPSHOT=${shellQuote(remoteSnapshot)}`,
           `POSOKANEI_IMAGE_PREVIEW=${shellQuote(remotePriceChangesPreview)}`,
+          `POSOKANEI_IMAGE_CHANGES=${shellQuote(remotePriceChangesJson)}`,
           `POSOKANEI_IMAGE_BOOTSTRAP=${shellQuote(remoteBootstrap)}`,
           `POSOKANEI_IMAGE_FALLBACK_OUT=${shellQuote(remoteImageFallbackDir)}`,
           `POSOKANEI_IMAGE_FALLBACK_SUMMARY=${shellQuote(remoteImageFallbackSummary)}`,
           `POSOKANEI_IMAGE_PROXY_URLS=${shellQuote(imageProxyUrlsForTargets().join(","))}`,
-          `POSOKANEI_IMAGE_FALLBACK_CURSOR=${shellQuote(String(imageFallbackCursor))}`,
+          `POSOKANEI_IMAGE_FALLBACK_CURSOR=${shellQuote(String(imageFallbackState.catalogCursor))}`,
+          `POSOKANEI_IMAGE_RECENT_CURSOR=${shellQuote(String(imageFallbackState.recentCursor))}`,
+          ...optionalRemoteImageEnvironment(),
           `node ${shellQuote(remoteImageFallbackScript)}`,
         ].join(" "),
       ]);
@@ -444,7 +447,10 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
         imageSummary.files,
         imageFallbackOutputDir,
       );
-      await writeImageFallbackCursor(imageSummary.next_cursor);
+      await writeImageFallbackState({
+        catalogCursor: imageSummary.next_cursor,
+        recentCursor: imageSummary.next_recent_cursor,
+      });
       console.log(
         `Prepared ${imageFallbackPublicationFiles.length} new official image fallback(s); `
         + `${Number(imageSummary.available || 0)} candidates were already available.`,
@@ -1078,22 +1084,52 @@ function imageProxyUrlForTarget(target) {
   return catalogUrl.replace(/\/data\/catalog\.json$/u, "/api/posokanei.php");
 }
 
-async function readImageFallbackCursor() {
+async function readImageFallbackState() {
   try {
     const state = JSON.parse(await readFile(imageFallbackStatePath, "utf8"));
-    return Math.max(0, Number(state?.cursor) || 0);
+    return {
+      catalogCursor: Math.max(
+        0,
+        Number(state?.catalog_cursor ?? state?.cursor) || 0,
+      ),
+      recentCursor: Math.max(0, Number(state?.recent_changes_cursor) || 0),
+    };
   } catch {
-    return 0;
+    return { catalogCursor: 0, recentCursor: 0 };
   }
 }
 
-async function writeImageFallbackCursor(cursor) {
+async function writeImageFallbackState({ catalogCursor, recentCursor }) {
   await mkdir(dirname(imageFallbackStatePath), { recursive: true });
   await writeFile(
     imageFallbackStatePath,
-    `${JSON.stringify({ cursor: Math.max(0, Number(cursor) || 0), updated_at: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify({
+      catalog_cursor: Math.max(0, Number(catalogCursor) || 0),
+      recent_changes_cursor: Math.max(0, Number(recentCursor) || 0),
+      updated_at: new Date().toISOString(),
+    }, null, 2)}\n`,
     "utf8",
   );
+}
+
+function optionalRemoteImageEnvironment() {
+  return [
+    ["POSOKANEI_IMAGE_FORCE_IDS", process.env.POSOKANEI_IMAGE_FORCE_IDS],
+    [
+      "POSOKANEI_IMAGE_FALLBACK_ROTATION_LIMIT",
+      process.env.POSOKANEI_IMAGE_FALLBACK_ROTATION_LIMIT,
+    ],
+    [
+      "POSOKANEI_IMAGE_RECENT_ROTATION_LIMIT",
+      process.env.POSOKANEI_IMAGE_RECENT_ROTATION_LIMIT,
+    ],
+    [
+      "POSOKANEI_IMAGE_FALLBACK_CONCURRENCY",
+      process.env.POSOKANEI_IMAGE_FALLBACK_CONCURRENCY,
+    ],
+  ]
+    .filter(([, value]) => String(value || "").trim() !== "")
+    .map(([name, value]) => `${name}=${shellQuote(String(value))}`);
 }
 
 function normalizeImageFallbackFiles(files, outputDirectory) {

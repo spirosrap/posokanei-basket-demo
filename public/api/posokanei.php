@@ -196,7 +196,7 @@ function forward_image(string $kind = 'product'): void
 
     http_response_code(502);
     header('Content-Type: image/svg+xml; charset=utf-8');
-    header('Cache-Control: public, max-age=300, stale-while-revalidate=3600');
+    header('Cache-Control: no-store, max-age=0');
     header('X-Posokanei-Image-Source: unavailable');
     header('X-Posokanei-Image-Kind: ' . $kind);
     echo placeholder_svg(strtoupper(substr($id, 0, 2)));

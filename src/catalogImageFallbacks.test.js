@@ -38,6 +38,33 @@ test("image fallback candidates prioritize visible products and rotate through t
   assert.equal(selection.nextCursor, 1);
 });
 
+test("deep recent-change products use an independent rotating window", () => {
+  const snapshot = {
+    products: [product("a"), product("b"), product("c"), product("d"), product("e")],
+  };
+  const selection = selectImageFallbackCandidates({
+    snapshot,
+    preview: { products: { b: ["B"] } },
+    bootstrap: { products: [] },
+    recentChanges: { products: { b: [], d: [], e: [] } },
+    forcedIds: ["c"],
+    cursor: 0,
+    recentCursor: 1,
+    rotationLimit: 2,
+    recentRotationLimit: 2,
+  });
+
+  assert.deepEqual(
+    selection.candidates.map(({ id }) => id),
+    ["c", "b", "d", "e", "a"],
+  );
+  assert.equal(selection.priorityCount, 2);
+  assert.equal(selection.recentRotationCount, 2);
+  assert.equal(selection.catalogRotationCount, 1);
+  assert.equal(selection.nextRecentCursor, 0);
+  assert.equal(selection.nextCursor, 2);
+});
+
 test("only official product image URLs become fallback candidates", () => {
   assert.equal(normalizeImageCandidate({
     id: "product-1",
@@ -110,4 +137,16 @@ test("a missing public image is cached from the official source", async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test("temporary image placeholders are not cached after a fallback becomes available", async () => {
+  const source = await readFile(
+    new URL("../public/api/posokanei.php", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /http_response_code\(502\);[\s\S]*Cache-Control: no-store, max-age=0[\s\S]*X-Posokanei-Image-Source: unavailable/u,
+  );
 });

@@ -5,7 +5,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const API_HOST = "api.posokanei.gov.gr";
-const DEFAULT_ROTATION_LIMIT = 80;
+const DEFAULT_ROTATION_LIMIT = 160;
+const DEFAULT_RECENT_ROTATION_LIMIT = 600;
 const DEFAULT_CONCURRENCY = 8;
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
@@ -13,8 +14,12 @@ export function selectImageFallbackCandidates({
   snapshot,
   preview,
   bootstrap,
+  recentChanges,
+  forcedIds = [],
   cursor = 0,
+  recentCursor = 0,
   rotationLimit = DEFAULT_ROTATION_LIMIT,
+  recentRotationLimit = DEFAULT_RECENT_ROTATION_LIMIT,
 }) {
   const products = Array.isArray(snapshot?.products) ? snapshot.products : [];
   const eligible = products
@@ -22,20 +27,24 @@ export function selectImageFallbackCandidates({
     .filter(Boolean);
   const byId = new Map(eligible.map((product) => [product.id, product]));
   const priorityIds = [
+    ...forcedIds,
     ...Object.keys(preview?.products || {}),
     ...(Array.isArray(bootstrap?.products)
       ? bootstrap.products.map((product) => String(product?.id || ""))
       : []),
   ];
-  const normalizedCursor = eligible.length
-    ? Math.max(0, Number(cursor) || 0) % eligible.length
-    : 0;
-  const requestedRotation = Math.max(0, Number(rotationLimit) || 0);
-  const actualRotation = Math.min(requestedRotation, eligible.length);
-  const rotated = [];
-  for (let index = 0; index < actualRotation; index += 1) {
-    rotated.push(eligible[(normalizedCursor + index) % eligible.length]);
-  }
+  const recentSelection = rotateCandidates({
+    ids: Object.keys(recentChanges?.products || {}),
+    byId,
+    cursor: recentCursor,
+    limit: recentRotationLimit,
+  });
+  const catalogSelection = rotateCandidates({
+    ids: eligible.map((product) => product.id),
+    byId,
+    cursor,
+    limit: rotationLimit,
+  });
 
   const candidates = [];
   const seen = new Set();
@@ -46,20 +55,46 @@ export function selectImageFallbackCandidates({
     candidates.push(product);
   }
   const priorityCount = candidates.length;
-  for (const product of rotated) {
+  for (const product of recentSelection.products) {
     if (seen.has(product.id)) continue;
     seen.add(product.id);
     candidates.push(product);
   }
+  const recentRotationCount = candidates.length - priorityCount;
+  for (const product of catalogSelection.products) {
+    if (seen.has(product.id)) continue;
+    seen.add(product.id);
+    candidates.push(product);
+  }
+  const catalogRotationCount = candidates.length - priorityCount - recentRotationCount;
 
   return {
     candidates,
     eligibleCount: eligible.length,
     priorityCount,
-    rotationCount: candidates.length - priorityCount,
-    nextCursor: eligible.length
-      ? (normalizedCursor + actualRotation) % eligible.length
-      : 0,
+    recentRotationCount,
+    catalogRotationCount,
+    rotationCount: recentRotationCount + catalogRotationCount,
+    nextRecentCursor: recentSelection.nextCursor,
+    nextCursor: catalogSelection.nextCursor,
+  };
+}
+
+function rotateCandidates({ ids, byId, cursor, limit }) {
+  const eligibleIds = ids.filter((id) => byId.has(id));
+  if (!eligibleIds.length) return { products: [], nextCursor: 0 };
+  const normalizedCursor = Math.max(0, Number(cursor) || 0) % eligibleIds.length;
+  const actualRotation = Math.min(
+    Math.max(0, Number(limit) || 0),
+    eligibleIds.length,
+  );
+  const products = [];
+  for (let index = 0; index < actualRotation; index += 1) {
+    products.push(byId.get(eligibleIds[(normalizedCursor + index) % eligibleIds.length]));
+  }
+  return {
+    products,
+    nextCursor: (normalizedCursor + actualRotation) % eligibleIds.length,
   };
 }
 
@@ -215,23 +250,36 @@ async function main() {
   const snapshotPath = requiredEnv("POSOKANEI_IMAGE_SNAPSHOT");
   const previewPath = requiredEnv("POSOKANEI_IMAGE_PREVIEW");
   const bootstrapPath = requiredEnv("POSOKANEI_IMAGE_BOOTSTRAP");
+  const recentChangesPath = process.env.POSOKANEI_IMAGE_CHANGES || "";
   const outputDirectory = requiredEnv("POSOKANEI_IMAGE_FALLBACK_OUT");
   const summaryPath = requiredEnv("POSOKANEI_IMAGE_FALLBACK_SUMMARY");
   const proxyUrls = String(requiredEnv("POSOKANEI_IMAGE_PROXY_URLS"))
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const [snapshot, preview, bootstrap] = await Promise.all(
-    [snapshotPath, previewPath, bootstrapPath].map(async (path) =>
-      JSON.parse(await readFile(path, "utf8"))),
-  );
+  const [snapshot, preview, bootstrap, recentChanges] = await Promise.all([
+    readJson(snapshotPath),
+    readJson(previewPath),
+    readJson(bootstrapPath),
+    recentChangesPath ? readJson(recentChangesPath) : { products: {} },
+  ]);
   const selection = selectImageFallbackCandidates({
     snapshot,
     preview,
     bootstrap,
+    recentChanges,
+    forcedIds: String(process.env.POSOKANEI_IMAGE_FORCE_IDS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
     cursor: Number(process.env.POSOKANEI_IMAGE_FALLBACK_CURSOR || 0),
+    recentCursor: Number(process.env.POSOKANEI_IMAGE_RECENT_CURSOR || 0),
     rotationLimit: Number(
       process.env.POSOKANEI_IMAGE_FALLBACK_ROTATION_LIMIT || DEFAULT_ROTATION_LIMIT,
+    ),
+    recentRotationLimit: Number(
+      process.env.POSOKANEI_IMAGE_RECENT_ROTATION_LIMIT
+      || DEFAULT_RECENT_ROTATION_LIMIT,
     ),
   });
   const result = await cacheMissingCatalogImages({
@@ -247,10 +295,13 @@ async function main() {
     eligible: selection.eligibleCount,
     priority: selection.priorityCount,
     rotation: selection.rotationCount,
+    recent_rotation: selection.recentRotationCount,
+    catalog_rotation: selection.catalogRotationCount,
     available: result.available,
     cached: result.files.length,
     failed: result.failures.length,
     next_cursor: selection.nextCursor,
+    next_recent_cursor: selection.nextRecentCursor,
     files: result.files.map(({ filePath: _filePath, ...file }) => file),
     failures: result.failures,
   };
@@ -260,6 +311,10 @@ async function main() {
     `Image fallback scan: ${summary.checked} checked, ${summary.cached} cached, `
     + `${summary.available} already available, ${summary.failed} unavailable.`,
   );
+}
+
+async function readJson(path) {
+  return JSON.parse(await readFile(path, "utf8"));
 }
 
 function requiredEnv(name) {
