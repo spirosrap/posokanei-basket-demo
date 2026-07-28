@@ -9,6 +9,7 @@ const DEFAULT_ROTATION_LIMIT = 160;
 const DEFAULT_RECENT_ROTATION_LIMIT = 600;
 const DEFAULT_CONCURRENCY = 8;
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const PUBLIC_PROXY_CHECK_SIZES = [96, 960];
 
 export function selectImageFallbackCandidates({
   snapshot,
@@ -213,17 +214,30 @@ export async function cacheMissingCatalogImages({
 }
 
 async function publicProxyHasImage(candidate, proxyBase, fetcher) {
-  const url = new URL(proxyBase);
-  url.searchParams.set("resource", "image");
-  url.searchParams.set("id", candidate.id);
-  url.searchParams.set("size", "96");
-  if (candidate.version) url.searchParams.set("v", candidate.version);
-  try {
-    await fetchValidatedImage(url, fetcher);
-    return true;
-  } catch {
-    return false;
+  for (const size of PUBLIC_PROXY_CHECK_SIZES) {
+    const url = new URL(proxyBase);
+    url.searchParams.set("resource", "image");
+    url.searchParams.set("id", candidate.id);
+    url.searchParams.set("size", String(size));
+    if (candidate.version) url.searchParams.set("v", candidate.version);
+    try {
+      const response = await fetcher(url, {
+        method: "HEAD",
+        headers: {
+          Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+      const contentType = String(response.headers.get("content-type") || "");
+      const source = String(response.headers.get("x-posokanei-image-source") || "");
+      if (!response.ok || !contentType.startsWith("image/") || source === "unavailable") {
+        return false;
+      }
+    } catch {
+      return false;
+    }
   }
+  return true;
 }
 
 async function fetchValidatedImage(url, fetcher, headers = {}) {

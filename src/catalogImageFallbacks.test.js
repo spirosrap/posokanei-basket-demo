@@ -139,6 +139,56 @@ test("a missing public image is cached from the official source", async () => {
   }
 });
 
+test("a broken expanded image is cached even when its thumbnail still works", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "kalathi-large-image-fallback-"));
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, ...Array(150).fill(2)]);
+  const candidate = normalizeImageCandidate(product("product-2", "revision-3"));
+  const calls = [];
+  const fetcher = async (url, options = {}) => {
+    const requestUrl = new URL(String(url));
+    calls.push({ url: requestUrl.toString(), method: options.method || "GET" });
+    if (requestUrl.hostname === "kalathitimon.com") {
+      if (requestUrl.searchParams.get("size") === "96") {
+        return new Response(jpeg, {
+          status: 200,
+          headers: {
+            "content-type": "image/jpeg",
+            "x-posokanei-image-source": "edge-cache",
+          },
+        });
+      }
+      return new Response("missing", {
+        status: 502,
+        headers: { "content-type": "text/plain" },
+      });
+    }
+    return new Response(jpeg, {
+      status: 200,
+      headers: { "content-type": "image/jpeg" },
+    });
+  };
+
+  try {
+    const result = await cacheMissingCatalogImages({
+      candidates: [candidate],
+      proxyUrls: ["https://kalathitimon.com/api/posokanei.php"],
+      outputDirectory: directory,
+      concurrency: 1,
+      fetcher,
+    });
+
+    assert.equal(result.files.length, 1);
+    assert.equal(result.failures.length, 0);
+    assert.equal(new URL(calls[0].url).searchParams.get("size"), "96");
+    assert.equal(new URL(calls[1].url).searchParams.get("size"), "960");
+    assert.deepEqual(calls.slice(0, 2).map(({ method }) => method), ["HEAD", "HEAD"]);
+    assert.equal(calls.at(-1).url, candidate.imageUrl);
+    assert.equal(calls.at(-1).method, "GET");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("temporary image placeholders are not cached after a fallback becomes available", async () => {
   const source = await readFile(
     new URL("../public/api/posokanei.php", import.meta.url),
