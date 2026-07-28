@@ -8,7 +8,7 @@ const options = {
 };
 
 test("catalogue images use the edge cache before the same-origin fallback", () => {
-  const [edge, fallback] = buildCatalogImageSources(
+  const [edge, unversionedEdge, fallback, unversionedFallback] = buildCatalogImageSources(
     "https://api.posokanei.gov.gr/images/product/product-1?v=revision-2",
     { ...options, size: 96 },
   );
@@ -18,11 +18,28 @@ test("catalogue images use the edge cache before the same-origin fallback", () =
   assert.equal(edgeUrl.searchParams.get("url"), "api.posokanei.gov.gr/images/product/product-1?v=revision-2");
   assert.equal(edgeUrl.searchParams.get("w"), "96");
 
+  const unversionedEdgeUrl = new URL(unversionedEdge);
+  assert.equal(unversionedEdgeUrl.searchParams.get("url"), "api.posokanei.gov.gr/images/product/product-1");
+
   const fallbackUrl = new URL(fallback);
   assert.equal(fallbackUrl.origin, "https://kalathitimon.com");
   assert.equal(fallbackUrl.searchParams.get("resource"), "image");
   assert.equal(fallbackUrl.searchParams.get("id"), "product-1");
   assert.equal(fallbackUrl.searchParams.get("v"), "revision-2");
+
+  const unversionedFallbackUrl = new URL(unversionedFallback);
+  assert.equal(unversionedFallbackUrl.searchParams.get("v"), null);
+});
+
+test("unversioned catalogue images do not create duplicate fallbacks", () => {
+  const sources = buildCatalogImageSources(
+    "https://api.posokanei.gov.gr/images/product/product-1",
+    { ...options, size: 96 },
+  );
+
+  assert.equal(sources.length, 2);
+  assert.equal(new URL(sources[0]).hostname, "images.weserv.nl");
+  assert.equal(new URL(sources[1]).hostname, "kalathitimon.com");
 });
 
 test("retailer logos keep their aspect ratio and external images pass through", () => {
@@ -56,8 +73,12 @@ test("large product previews fall back to an already cached thumbnail size", () 
     }),
     [
       ["images.weserv.nl", "640"],
+      ["images.weserv.nl", "640"],
+      ["images.weserv.nl", "96"],
       ["images.weserv.nl", "96"],
       ["kalathitimon.com", "640"],
+      ["kalathitimon.com", "640"],
+      ["kalathitimon.com", "96"],
       ["kalathitimon.com", "96"],
     ],
   );
@@ -81,10 +102,16 @@ test("expanded product images prefer every larger source before thumbnails", () 
     }),
     [
       ["images.weserv.nl", "960"],
+      ["images.weserv.nl", "960"],
+      ["kalathitimon.com", "960"],
       ["kalathitimon.com", "960"],
       ["images.weserv.nl", "640"],
+      ["images.weserv.nl", "640"],
+      ["kalathitimon.com", "640"],
       ["kalathitimon.com", "640"],
       ["images.weserv.nl", "96"],
+      ["images.weserv.nl", "96"],
+      ["kalathitimon.com", "96"],
       ["kalathitimon.com", "96"],
     ],
   );

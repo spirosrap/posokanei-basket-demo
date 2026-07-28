@@ -23,13 +23,14 @@ export function buildCatalogImageSources(
     // The catalogue ID still gives the server fallback enough information.
   }
 
-  const cacheSource = `api.posokanei.gov.gr/images/${safeKind}/${encodeURIComponent(id)}${
-    version ? `?v=${encodeURIComponent(version)}` : ""
-  }`;
   const sizes = [...new Set([size, ...fallbackSizes])]
     .map(Number)
     .filter((candidate) => Number.isFinite(candidate) && candidate >= 48);
-  const cacheUrls = sizes.map((candidate) => {
+  const versions = version ? [version, ""] : [""];
+  const buildCacheUrl = (candidate, candidateVersion) => {
+    const cacheSource = `api.posokanei.gov.gr/images/${safeKind}/${encodeURIComponent(id)}${
+      candidateVersion ? `?v=${encodeURIComponent(candidateVersion)}` : ""
+    }`;
     const cacheUrl = new URL("https://images.weserv.nl/");
     cacheUrl.searchParams.set("url", cacheSource);
     cacheUrl.searchParams.set("w", String(candidate));
@@ -41,17 +42,27 @@ export function buildCatalogImageSources(
     cacheUrl.searchParams.set("output", "webp");
     cacheUrl.searchParams.set("q", "82");
     return cacheUrl.toString();
-  });
-  const proxyUrls = sizes.map((candidate) => {
+  };
+  const buildProxyUrl = (candidate, candidateVersion) => {
     const proxyUrl = new URL(proxyBase, baseUrl);
     proxyUrl.searchParams.set("resource", safeKind === "retailer" ? "retailer-image" : "image");
     proxyUrl.searchParams.set("id", id);
     proxyUrl.searchParams.set("size", String(candidate));
-    if (version) proxyUrl.searchParams.set("v", version);
+    if (candidateVersion) proxyUrl.searchParams.set("v", candidateVersion);
     return proxyUrl.toString();
-  });
+  };
+
+  const cacheUrls = sizes.flatMap((candidate) =>
+    versions.map((candidateVersion) => buildCacheUrl(candidate, candidateVersion)),
+  );
+  const proxyUrls = sizes.flatMap((candidate) =>
+    versions.map((candidateVersion) => buildProxyUrl(candidate, candidateVersion)),
+  );
 
   return prioritizeResolution
-    ? cacheUrls.flatMap((cacheUrl, index) => [cacheUrl, proxyUrls[index]])
+    ? sizes.flatMap((candidate) => [
+      ...versions.map((candidateVersion) => buildCacheUrl(candidate, candidateVersion)),
+      ...versions.map((candidateVersion) => buildProxyUrl(candidate, candidateVersion)),
+    ])
     : [...cacheUrls, ...proxyUrls];
 }
