@@ -24,10 +24,14 @@ const bootstrapOnly = process.argv.includes("--bootstrap-only");
 const previewOnly = process.argv.includes("--preview-only");
 const runtimeOnly = process.argv.includes("--runtime-only");
 const configOnly = process.argv.includes("--config-only");
+const apiOnly = process.argv.includes("--api-only");
 const buildFiles = await listFiles(distRoot);
 const files = configOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return buildPath === ".htaccess";
+}) : apiOnly ? buildFiles.filter((filePath) => {
+  const buildPath = relative(distRoot, filePath).split("\\").join("/");
+  return /^api\/[a-z0-9-]+\.php$/u.test(buildPath);
 }) : previewOnly ? buildFiles.filter((filePath) => {
   const buildPath = relative(distRoot, filePath).split("\\").join("/");
   return /^data\/price-changes-preview\.json(?:\.(?:br|gz))?$/u.test(buildPath);
@@ -64,7 +68,11 @@ if (configOnly && files.length !== 1) {
   throw new Error("dist/.htaccess is required for --config-only.");
 }
 
-if (!bootstrapOnly && !includeData && files.length !== buildFiles.length) {
+if (apiOnly && files.length === 0) {
+  throw new Error("At least one dist/api/*.php endpoint is required for --api-only.");
+}
+
+if (!apiOnly && !bootstrapOnly && !includeData && files.length !== buildFiles.length) {
   console.log(
     `Preserving ${buildFiles.length - files.length} live data files. Use npm run live:refresh to update catalogue data.`,
   );
@@ -85,6 +93,8 @@ console.log(
   `Deployed ${files.length} ${
     configOnly
       ? "server configuration file"
+      : apiOnly
+        ? "PHP API files"
       : bootstrapOnly
         ? "startup catalogue files"
         : previewOnly

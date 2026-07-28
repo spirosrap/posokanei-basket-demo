@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
@@ -19,6 +19,10 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
 const uploadEnabled = !process.argv.includes("--no-upload");
 const compressionOnly = process.argv.includes("--compression-only");
+const imagesOnly = process.argv.includes("--images-only");
+if (compressionOnly && imagesOnly) {
+  throw new Error("--compression-only and --images-only cannot be used together.");
+}
 const {
   snapshotPath,
   metaPath,
@@ -59,8 +63,24 @@ const previousSnapshotCachePath = resolve(
 const configuredPreviousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(projectRoot, process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
   : "";
+const imageFallbackOutputDir = resolve(
+  projectRoot,
+  process.env.POSOKANEI_IMAGE_FALLBACK_OUT
+    || ".cache/catalog-refresh-output/image-fallbacks",
+);
+const imageFallbackSummaryPath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_IMAGE_FALLBACK_SUMMARY
+    || ".cache/catalog-refresh-output/image-fallback-summary.json",
+);
+const imageFallbackStatePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_IMAGE_FALLBACK_STATE
+    || ".cache/catalog-image-fallback-state.json",
+);
 let detailVerificationProductId = "";
 let compressedPublicationFiles = [];
+let imageFallbackPublicationFiles = [];
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
@@ -68,12 +88,40 @@ if (!releaseRefreshLock) {
 } else {
   try {
     if (compressionOnly) await deployCurrentCatalogueCompression();
+    else if (imagesOnly) await publishCurrentImageFallbacks();
     else await refreshCatalog();
   } catch (error) {
-    if (!compressionOnly) await recordRefreshFailure(error);
+    if (!compressionOnly && !imagesOnly) await recordRefreshFailure(error);
     throw error;
   } finally {
     await releaseRefreshLock();
+  }
+}
+
+async function publishCurrentImageFallbacks() {
+  const summary = JSON.parse(await readFile(imageFallbackSummaryPath, "utf8"));
+  imageFallbackPublicationFiles = normalizeImageFallbackFiles(
+    summary.files,
+    imageFallbackOutputDir,
+  );
+  if (!imageFallbackPublicationFiles.length) {
+    throw new Error("No validated image fallbacks are staged for publication.");
+  }
+  if (!uploadEnabled) {
+    console.log(
+      `Validated ${imageFallbackPublicationFiles.length} staged image fallback(s); upload skipped.`,
+    );
+    return;
+  }
+
+  for (const target of ftpTargets) {
+    try {
+      const password = await readTargetPassword(target);
+      await publishImageFallbackFiles(target, password, { strict: true });
+    } catch (error) {
+      if (target.required) throw error;
+      console.error(`Optional image mirror ${target.name} failed: ${describeRefreshError(error)}`);
+    }
   }
 }
 
@@ -269,6 +317,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
   const remotePriceExportModule = `${remoteScriptsDir}/price-change-export.mjs`;
   const remotePriceHistoryModule = `${remoteScriptsDir}/price-change-history.mjs`;
+  const remoteImageFallbackScript = `${remoteScriptsDir}/catalog-image-fallbacks.mjs`;
   const remoteDemoBasket = `${remoteSrcDir}/demoBasket.js`;
   const remotePackage = `${remoteDir}/package.json`;
   const remoteSnapshot = `${remoteDir}/catalog.json`;
@@ -279,6 +328,8 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remotePriceChangesJson = `${remoteDir}/price-changes.json`;
   const remotePriceChangesPreview = `${remoteDir}/price-changes-preview.json`;
   const remotePreviousSnapshot = `${remoteDir}/catalog-previous.json`;
+  const remoteImageFallbackDir = `${remoteDir}/image-fallbacks`;
+  const remoteImageFallbackSummary = `${remoteDir}/image-fallback-summary.json`;
   const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
 
   await mkdir(dirname(snapshotPath), { recursive: true });
@@ -322,6 +373,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
     ]);
     await run("scp", [
       ...sshOptions,
+      resolve(projectRoot, "scripts/catalog-image-fallbacks.mjs"),
+      `${host}:${remoteImageFallbackScript}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
       resolve(projectRoot, "src/demoBasket.js"),
       `${host}:${remoteDemoBasket}`,
     ]);
@@ -354,6 +410,49 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
         `node ${shellQuote(remoteScript)}`,
       ].join(" "),
     ]);
+    try {
+      const imageFallbackCursor = await readImageFallbackCursor();
+      await run("ssh", [
+        ...sshOptions,
+        host,
+        [
+          `POSOKANEI_IMAGE_SNAPSHOT=${shellQuote(remoteSnapshot)}`,
+          `POSOKANEI_IMAGE_PREVIEW=${shellQuote(remotePriceChangesPreview)}`,
+          `POSOKANEI_IMAGE_BOOTSTRAP=${shellQuote(remoteBootstrap)}`,
+          `POSOKANEI_IMAGE_FALLBACK_OUT=${shellQuote(remoteImageFallbackDir)}`,
+          `POSOKANEI_IMAGE_FALLBACK_SUMMARY=${shellQuote(remoteImageFallbackSummary)}`,
+          `POSOKANEI_IMAGE_PROXY_URLS=${shellQuote(imageProxyUrlsForTargets().join(","))}`,
+          `POSOKANEI_IMAGE_FALLBACK_CURSOR=${shellQuote(String(imageFallbackCursor))}`,
+          `node ${shellQuote(remoteImageFallbackScript)}`,
+        ].join(" "),
+      ]);
+      await mkdir(dirname(imageFallbackSummaryPath), { recursive: true });
+      await run("scp", [
+        ...sshOptions,
+        `${host}:${remoteImageFallbackSummary}`,
+        imageFallbackSummaryPath,
+      ]);
+      const imageSummary = JSON.parse(await readFile(imageFallbackSummaryPath, "utf8"));
+      await rm(imageFallbackOutputDir, { recursive: true, force: true });
+      await run("scp", [
+        ...sshOptions,
+        "-r",
+        `${host}:${remoteImageFallbackDir}`,
+        imageFallbackOutputDir,
+      ]);
+      imageFallbackPublicationFiles = normalizeImageFallbackFiles(
+        imageSummary.files,
+        imageFallbackOutputDir,
+      );
+      await writeImageFallbackCursor(imageSummary.next_cursor);
+      console.log(
+        `Prepared ${imageFallbackPublicationFiles.length} new official image fallback(s); `
+        + `${Number(imageSummary.available || 0)} candidates were already available.`,
+      );
+    } catch (error) {
+      imageFallbackPublicationFiles = [];
+      console.error(`Image fallback scan skipped: ${describeRefreshError(error)}`);
+    }
     await run("scp", [...sshOptions, `${host}:${remoteSnapshot}`, snapshotPath]);
     await run("scp", [...sshOptions, `${host}:${remoteMeta}`, metaPath]);
     await run("scp", [...sshOptions, `${host}:${remoteRuntime}`, runtimePath]);
@@ -626,6 +725,7 @@ async function readTargetPassword(target) {
 
 async function publishRefreshToTarget(target, expectedGeneratedAt) {
   const password = await readTargetPassword(target);
+  await publishImageFallbackFiles(target, password);
   await publishDataFile(snapshotPath, "catalog.json", target, password);
   await publishDataFile(metaPath, "catalog-meta.json", target, password);
   await publishDataFile(runtimePath, "catalog-runtime.json", target, password);
@@ -644,6 +744,75 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
   await verifyPublicRefreshFiles(expectedGeneratedAt, target);
   await verifyCompressedDataDelivery(target, expectedGeneratedAt);
+}
+
+async function publishImageFallbackFiles(target, password, { strict = false } = {}) {
+  let published = 0;
+  const failures = [];
+  for (const file of imageFallbackPublicationFiles) {
+    try {
+      await publishDataFile(
+        file.filePath,
+        `image-fallbacks/${file.fileName}`,
+        target,
+        password,
+      );
+      await verifyPublishedImageFallback(file, target);
+      if (strict) await verifyImageProxyFallback(file, target);
+      published += 1;
+    } catch (error) {
+      failures.push({ file, error });
+      console.error(
+        `Image fallback ${file.id} was not published to ${target.name}: `
+        + `${describeRefreshError(error)}`,
+      );
+    }
+  }
+  if (published) {
+    console.log(`Verified ${published} new image fallback(s) on ${target.name}.`);
+  }
+  if (strict && failures.length) {
+    throw new Error(
+      `${failures.length} of ${imageFallbackPublicationFiles.length} image fallbacks failed on ${target.name}.`,
+    );
+  }
+  return { published, failed: failures.length };
+}
+
+async function verifyPublishedImageFallback(file, target) {
+  const url = publicDataUrl(target, `image-fallbacks/${file.fileName}`);
+  const response = await fetch(cacheBustUrl(url), {
+    headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" },
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!response.ok || !String(response.headers.get("content-type") || "").startsWith("image/")) {
+    throw new Error(`${url} verification returned HTTP ${response.status}.`);
+  }
+  const bytes = (await response.arrayBuffer()).byteLength;
+  if (bytes < 100) throw new Error(`${url} verification returned an empty image.`);
+}
+
+async function verifyImageProxyFallback(file, target) {
+  const url = new URL(imageProxyUrlForTarget(target));
+  url.searchParams.set("resource", "image");
+  url.searchParams.set("id", file.id);
+  url.searchParams.set("size", "96");
+  if (file.version) url.searchParams.set("v", file.version);
+  url.searchParams.set("check", String(Date.now()));
+  const response = await fetch(url, {
+    headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" },
+    signal: AbortSignal.timeout(60000),
+  });
+  const source = String(response.headers.get("x-posokanei-image-source") || "");
+  if (
+    !response.ok
+    || !String(response.headers.get("content-type") || "").startsWith("image/")
+    || !["local-fallback", "local-image-cache"].includes(source)
+  ) {
+    throw new Error(`${url} proxy verification returned HTTP ${response.status} from ${source || "unknown"}.`);
+  }
+  const bytes = (await response.arrayBuffer()).byteLength;
+  if (bytes < 100) throw new Error(`${url} proxy verification returned an empty image.`);
 }
 
 async function publishDataFile(filePath, remoteName, target, password) {
@@ -898,6 +1067,52 @@ function publicDataUrl(target, fileName) {
   }
   const remoteRoot = target.remoteDir === "." ? "" : `${target.remoteDir}/`;
   return `https://${target.host}/${remoteRoot}data/${fileName}`;
+}
+
+function imageProxyUrlsForTargets() {
+  return ftpTargets.map(imageProxyUrlForTarget);
+}
+
+function imageProxyUrlForTarget(target) {
+  const catalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
+  return catalogUrl.replace(/\/data\/catalog\.json$/u, "/api/posokanei.php");
+}
+
+async function readImageFallbackCursor() {
+  try {
+    const state = JSON.parse(await readFile(imageFallbackStatePath, "utf8"));
+    return Math.max(0, Number(state?.cursor) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+async function writeImageFallbackCursor(cursor) {
+  await mkdir(dirname(imageFallbackStatePath), { recursive: true });
+  await writeFile(
+    imageFallbackStatePath,
+    `${JSON.stringify({ cursor: Math.max(0, Number(cursor) || 0), updated_at: new Date().toISOString() }, null, 2)}\n`,
+    "utf8",
+  );
+}
+
+function normalizeImageFallbackFiles(files, outputDirectory) {
+  if (!Array.isArray(files)) return [];
+  return files.map((file) => {
+    const fileName = String(file?.fileName || "");
+    if (
+      basename(fileName) !== fileName
+      || !/^[a-zA-Z0-9_.-]+\.(?:avif|gif|jpg|png|webp)$/u.test(fileName)
+    ) {
+      throw new Error("Image fallback summary contains an unsafe file name.");
+    }
+    return {
+      id: String(file?.id || ""),
+      version: String(file?.version || ""),
+      fileName,
+      filePath: resolve(outputDirectory, fileName),
+    };
+  });
 }
 
 function run(command, args, options = {}) {

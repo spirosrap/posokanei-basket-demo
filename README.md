@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.33.1`
+**Τρέχουσα έκδοση:** `v0.33.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -129,6 +129,8 @@
 Η έκδοση `v0.33.0` κάνει το ιστορικό επτά ημερών σαφέστερο. Οι συμπαγείς γραμμές ενώνουν τις πραγματικές καταγραφές αλλαγής, ενώ το διακεκομμένο τελευταίο τμήμα δείχνει ότι η τελευταία γνωστή τιμή παραμένει ενεργή έως τον πιο πρόσφατο επιτυχημένο συγχρονισμό. Ο άξονας τιμών χρησιμοποιεί πλέον καθαρές στρογγυλές τιμές και, σε πολυήμερη προβολή, ο άξονας χρόνου δείχνει ημερομηνίες χωρίς αυθαίρετες ενδιάμεσες ώρες. Κάθε αλυσίδα εμφανίζει την πρώτη και την τρέχουσα τιμή μαζί με τη συνολική διαφορά σε ευρώ και ποσοστό. Η μικρογραφία του προϊόντος λειτουργεί επίσης ως κουμπί μεγέθυνσης: ζητά εικόνα έως `960px`, επιστρέφει σε `640px` και χρησιμοποιεί τη διαθέσιμη μικρογραφία μόνο ως τελευταίο fallback.
 
 Η έκδοση `v0.33.1` διορθώνει προϊόντα των οποίων ο κατάλογος δηλώνει διαθέσιμη εικόνα αλλά το versioned URL απορρίπτεται προσωρινά από την upstream υπηρεσία εικόνων. Η εφαρμογή δοκιμάζει πλέον αυτόματα και το ίδιο επίσημο αρχείο χωρίς το ασυνεπές version token, στην ίδια ανάλυση, πριν επιστρέψει σε χαμηλότερη ποιότητα ή placeholder. Η διόρθωση καλύπτει μικρογραφίες και μεγάλες εικόνες χωρίς να χρησιμοποιεί τρίτη ή μη επαληθευμένη φωτογραφία προϊόντος.
+
+Η έκδοση `v0.33.2` καλύπτει και τις περιπτώσεις όπου η επίσημη εικόνα υπάρχει, αλλά τόσο το hosting όσο και η δημόσια image cache μπλοκάρονται προσωρινά από την upstream υπηρεσία. Σε κάθε ωριαίο συγχρονισμό, ένας έμπιστος runner ελέγχει πρώτα τα προϊόντα των πρόσφατων αλλαγών και της αρχικής προβολής και έπειτα ένα διαφορετικό τμήμα του πλήρους καταλόγου. Μόνο όταν η εικόνα λείπει από τη δημόσια εφαρμογή, λαμβάνει το αρχικό αρχείο απευθείας από το PosoKanei, επαληθεύει ότι είναι πραγματική raster εικόνα και το δημοσιεύει ως versioned τοπικό fallback και στα δύο domains. Έτσι διορθώνονται αυτόματα μικρογραφίες και μεγάλες εικόνες χωρίς τρίτες φωτογραφίες ή AI ανακατασκευή. Πολύ μεγάλα αρχεία βελτιστοποιούνται στο ζητούμενο μέγεθος από την υπάρχουσα image cache, με το πλήρες επίσημο αρχείο ως ασφαλές fallback, ώστε η διόρθωση να μην επιβαρύνει την πρώτη φόρτωση. Για έκτακτη αποκατάσταση ήδη επαληθευμένων εικόνων, το `npm run live:publish-images` δημοσιεύει μόνο τα image fallbacks, χωρίς να αλλάζει τον κατάλογο ή την εφαρμογή.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -276,7 +278,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.33.1`
+**Current version:** `v0.33.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -426,6 +428,8 @@ Version `v0.32.5` makes hourly publication resilient to temporary FTP timeouts. 
 Version `v0.33.0` makes the seven-day history easier to read. Solid lines connect actual recorded changes, while the final dashed segment shows that the latest known price remains current through the most recent successful catalogue sync. The price axis now uses clean rounded values and multi-day timelines show dates without arbitrary interpolated times. Each chain states its first and current price together with the total euro and percentage movement. The product thumbnail is also an image-expansion control: it requests up to `960px`, falls back to `640px`, and uses the available thumbnail only as the last fallback.
 
 Version `v0.33.1` fixes products whose catalogue metadata advertises an image while the versioned URL is temporarily rejected by the upstream image service. The app now automatically tries the same official file without the inconsistent version token, at the same resolution, before falling back to lower quality or a placeholder. This applies to both thumbnails and expanded images and never substitutes an unverified third-party product photo.
+
+Version `v0.33.2` also handles cases where the official image exists but both the hosting server and the public image cache are temporarily blocked by the upstream service. During every hourly synchronization, a trusted runner checks products from Recent price changes and the startup view first, then rotates through a different part of the complete catalogue. Only when the public app cannot deliver an image does it download the original PosoKanei file, validate that it is a real raster image, and publish an immutable versioned local fallback to both domains. This automatically repairs thumbnails and expanded images without third-party photos or AI reconstruction. Very large files are optimized to the requested dimensions through the existing image cache, with the complete official file retained as a safe fallback, so the repair does not add unnecessary first-load weight.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -1071,6 +1075,9 @@ The app includes a lightweight update checker:
 - The UI reads `api/update-status.php` and shows the catalogue freshness in the amber status notice.
 - Browser catalogue requests retry short network/server failures. The compact runtime snapshot is attempted first; the large full-snapshot fallback has a 45-second timeout and resets a failed cached request so Safari or another browser can recover without being trapped in an empty state.
 - Product images are requested through `api/posokanei.php?resource=image&id=<product-id>&v=<version>&size=<pixels>` so the browser sees same-origin image URLs. The proxy requests size-appropriate WebP output from the image cache before falling back to the full upstream image. Search rows use `96px` thumbnails, compact rows use `72px`, and product details use `640px`. Versioned responses are immutable for one year in the browser cache. An explicit viewport observer prevents clipped, off-screen rows from creating requests until they are close to becoming visible.
+- The hourly refresh also checks whether priority product images are actually deliverable from every published domain. Missing files are fetched only by a healthy trusted runner from the official `api.posokanei.gov.gr/images/product/<id>` endpoint, validated by raster signature and size, and atomically published under `data/image-fallbacks/`. Recent-change and startup products are checked on every run, while a bounded rotating window covers the rest of the catalogue over time. Image failures remain best effort and cannot block a valid price-catalogue publication.
+- `npm run live:publish-images` is the narrow recovery path for already staged, validated fallback images. It publishes no catalogue or application files and verifies both the static file and the same-origin PHP image response on every configured domain.
+- `npm run live:deploy:api` and `npm run live:deploy:api:mirror` publish only the built PHP endpoints, preserving application assets and every catalogue file. They are intended for narrowly scoped endpoint fixes.
 - Retailer logos are requested through `api/posokanei.php?resource=retailer-image&id=<retailer-id>` and use the same fallback strategy.
 
 For a cron job:

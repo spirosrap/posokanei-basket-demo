@@ -146,6 +146,14 @@ function forward_image(string $kind = 'product'): void
     }
 
     $version = preg_replace('/[^a-zA-Z0-9._-]/', '', $version);
+    $localFallback = find_local_image_fallback($id, $version);
+    if (
+        $localFallback !== null
+        && emit_local_image_fallback($localFallback, $kind, $version !== '', $size)
+    ) {
+        return;
+    }
+
     $sourceUrl = POSOKANEI_API . '/images/' . $kind . '/' . rawurlencode($id);
     if ($version !== '') {
         $sourceUrl .= '?v=' . rawurlencode($version);
@@ -192,6 +200,91 @@ function forward_image(string $kind = 'product'): void
     header('X-Posokanei-Image-Source: unavailable');
     header('X-Posokanei-Image-Kind: ' . $kind);
     echo placeholder_svg(strtoupper(substr($id, 0, 2)));
+}
+
+function find_local_image_fallback(string $id, string $version): ?string
+{
+    $directory = dirname(__DIR__) . '/data/image-fallbacks';
+    if (!is_dir($directory)) return null;
+    $suffix = $version !== '' ? '-' . $version : '';
+    $base = $directory . '/' . $id . $suffix;
+    foreach (['jpg', 'png', 'webp', 'gif', 'avif'] as $extension) {
+        $candidate = $base . '.' . $extension;
+        if (is_file($candidate) && filesize($candidate) > 100) return $candidate;
+    }
+    return null;
+}
+
+function emit_local_image_fallback(
+    string $path,
+    string $kind,
+    bool $immutable,
+    int $size
+): bool {
+    $fileSize = (int) filesize($path);
+    if ($fileSize > 300000) {
+        $cached = fetch_local_image_derivative($path, $kind, $size);
+        if (is_valid_image_response($cached)) {
+            emit_image($cached, 'local-image-cache', $kind, $immutable, $size);
+            return true;
+        }
+    }
+
+    $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+    $contentTypes = [
+        'jpg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        'avif' => 'image/avif',
+    ];
+    $contentType = $contentTypes[$extension] ?? '';
+    $body = $contentType !== '' ? file_get_contents($path) : false;
+    if ($body === false || strlen($body) <= 100) return false;
+
+    http_response_code(200);
+    header('Content-Type: ' . $contentType);
+    header(
+        $immutable
+            ? 'Cache-Control: public, max-age=31536000, immutable'
+            : 'Cache-Control: public, max-age=604800, stale-while-revalidate=2592000'
+    );
+    header('Access-Control-Allow-Origin: *');
+    header('X-Posokanei-Image-Source: local-fallback');
+    header('X-Posokanei-Image-Kind: ' . $kind);
+    header('X-Posokanei-Image-Size: ' . $size);
+    header('Content-Length: ' . strlen($body));
+    echo $body;
+    return true;
+}
+
+function fetch_local_image_derivative(string $path, string $kind, int $size): array
+{
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $host = preg_replace('/:\d+$/', '', $host);
+    if (!in_array($host, ['kalathitimon.com', 'www.kalathitimon.com', 'agenticspiros.com'], true)) {
+        return ['status' => 0, 'body' => '', 'content_type' => ''];
+    }
+
+    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '/api/posokanei.php');
+    $appBase = str_replace('\\', '/', dirname(dirname($scriptName)));
+    if ($appBase === '/' || $appBase === '.') $appBase = '';
+    $staticUrl = 'https://' . $host . $appBase
+        . '/data/image-fallbacks/' . rawurlencode(basename($path));
+    $cacheUrl = 'https://images.weserv.nl/?' . http_build_query([
+        'url' => $staticUrl,
+        'w' => $size,
+        'h' => $kind === 'retailer' ? (int) round($size / 2) : $size,
+        'fit' => 'contain',
+        'output' => 'webp',
+        'q' => 82,
+    ]);
+    return fetch_image($cacheUrl, [
+        'Accept: image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+            . 'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15 '
+            . 'agenticspiros-posokanei-basket-demo/1.0',
+    ]);
 }
 
 function fetch_image(string $url, array $headers): array
