@@ -10,6 +10,11 @@ if ($resource === 'image' || $resource === 'retailer-image') {
     return;
 }
 
+if ($resource === 'image-missing-reports') {
+    emit_missing_image_reports();
+    return;
+}
+
 if (extension_loaded('zlib') && !ini_get('zlib.output_compression')) {
     ob_start('ob_gzhandler');
 }
@@ -194,12 +199,120 @@ function forward_image(string $kind = 'product'): void
         return;
     }
 
+    if ($kind === 'product') {
+        record_missing_image_report($id, $version);
+    }
+
     http_response_code(502);
     header('Content-Type: image/svg+xml; charset=utf-8');
     header('Cache-Control: no-store, max-age=0');
     header('X-Posokanei-Image-Source: unavailable');
     header('X-Posokanei-Image-Kind: ' . $kind);
     echo placeholder_svg(strtoupper(substr($id, 0, 2)));
+}
+
+function image_missing_reports_path(): string
+{
+    return dirname(__DIR__) . '/data/image-missing-reports.json';
+}
+
+function read_missing_image_reports(): array
+{
+    $path = image_missing_reports_path();
+    if (!is_file($path)) return [];
+
+    $handle = fopen($path, 'rb');
+    if ($handle === false) return [];
+    try {
+        if (!flock($handle, LOCK_SH)) return [];
+        $body = stream_get_contents($handle);
+        flock($handle, LOCK_UN);
+    } finally {
+        fclose($handle);
+    }
+
+    $decoded = is_string($body) ? json_decode($body, true) : null;
+    $reports = is_array($decoded) ? ($decoded['reports'] ?? []) : [];
+    return is_array($reports) ? $reports : [];
+}
+
+function record_missing_image_report(string $id, string $version): void
+{
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $id)) return;
+    $version = preg_replace('/[^a-zA-Z0-9._-]/', '', $version);
+    $path = image_missing_reports_path();
+    $directory = dirname($path);
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) return;
+
+    $handle = fopen($path, 'c+');
+    if ($handle === false) return;
+    try {
+        if (!flock($handle, LOCK_EX)) return;
+        rewind($handle);
+        $body = stream_get_contents($handle);
+        $decoded = is_string($body) && $body !== '' ? json_decode($body, true) : null;
+        $existing = is_array($decoded) ? ($decoded['reports'] ?? []) : [];
+        $minimumTimestamp = time() - 86400;
+        $reportsById = [];
+        if (is_array($existing)) {
+            foreach ($existing as $report) {
+                if (!is_array($report)) continue;
+                $rawReportId = $report['id'] ?? '';
+                $rawReportVersion = $report['version'] ?? '';
+                $reportId = is_scalar($rawReportId)
+                    ? clean_string((string) $rawReportId, 160)
+                    : '';
+                $rawReportedAt = $report['reported_at'] ?? 0;
+                $reportedAt = is_scalar($rawReportedAt) ? (int) $rawReportedAt : 0;
+                if (!preg_match('/^[a-zA-Z0-9_-]+$/', $reportId) || $reportedAt < $minimumTimestamp) {
+                    continue;
+                }
+                $reportsById[$reportId] = [
+                    'id' => $reportId,
+                    'version' => preg_replace(
+                        '/[^a-zA-Z0-9._-]/',
+                        '',
+                        is_scalar($rawReportVersion)
+                            ? clean_string((string) $rawReportVersion, 80)
+                            : ''
+                    ),
+                    'reported_at' => $reportedAt,
+                ];
+            }
+        }
+        $reportsById[$id] = [
+            'id' => $id,
+            'version' => $version,
+            'reported_at' => time(),
+        ];
+        uasort($reportsById, static fn(array $left, array $right): int =>
+            $right['reported_at'] <=> $left['reported_at']
+        );
+        $reports = array_slice(array_values($reportsById), 0, 2000);
+        $payload = json_encode([
+            'generated_at' => gmdate(DATE_ATOM),
+            'reports' => $reports,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($payload)) return;
+        rewind($handle);
+        ftruncate($handle, 0);
+        fwrite($handle, $payload . "\n");
+        fflush($handle);
+        flock($handle, LOCK_UN);
+    } finally {
+        fclose($handle);
+    }
+}
+
+function emit_missing_image_reports(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, max-age=0');
+    header('Access-Control-Allow-Origin: *');
+    echo json_encode([
+        'generated_at' => gmdate(DATE_ATOM),
+        'reports' => read_missing_image_reports(),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
 function find_local_image_fallback(string $id, string $version): ?string

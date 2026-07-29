@@ -11,6 +11,30 @@ const DEFAULT_CONCURRENCY = 8;
 const MAX_SOURCE_IMAGE_BYTES = 32 * 1024 * 1024;
 const PUBLIC_PROXY_CHECK_SIZES = [96, 960];
 
+export function normalizeImageProxyCheckSizes(value) {
+  const sizes = String(value || "")
+    .split(",")
+    .map((candidate) => Number(candidate.trim()))
+    .filter((candidate) => Number.isInteger(candidate) && candidate >= 48 && candidate <= 960);
+  return sizes.length ? [...new Set(sizes)] : [...PUBLIC_PROXY_CHECK_SIZES];
+}
+
+export function collectReportedImageIds(payloads, forcedIds = []) {
+  const ids = new Set();
+  for (const id of forcedIds) {
+    const normalized = String(id || "").trim();
+    if (/^[a-zA-Z0-9_-]+$/u.test(normalized)) ids.add(normalized);
+  }
+  for (const payload of payloads) {
+    const reports = Array.isArray(payload?.reports) ? payload.reports : [];
+    for (const report of reports) {
+      const id = String(report?.id || "").trim();
+      if (/^[a-zA-Z0-9_-]+$/u.test(id)) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
 export function selectImageFallbackCandidates({
   snapshot,
   preview,
@@ -176,6 +200,7 @@ export async function cacheMissingCatalogImages({
   proxyUrls,
   outputDirectory,
   concurrency = DEFAULT_CONCURRENCY,
+  proxyCheckSizes = PUBLIC_PROXY_CHECK_SIZES,
   fetcher = fetch,
 }) {
   await mkdir(outputDirectory, { recursive: true });
@@ -194,7 +219,12 @@ export async function cacheMissingCatalogImages({
       nextIndex += 1;
       try {
         const delivered = await Promise.all(
-          proxyUrls.map((proxyUrl) => publicProxyHasImage(candidate, proxyUrl, fetcher)),
+          proxyUrls.map((proxyUrl) => publicProxyHasImage(
+            candidate,
+            proxyUrl,
+            proxyCheckSizes,
+            fetcher,
+          )),
         );
         if (delivered.every(Boolean)) {
           available += 1;
@@ -240,8 +270,8 @@ async function fetchFirstValidatedImage(urls, fetcher, headers) {
   throw lastError || new Error("No official image URL was available.");
 }
 
-async function publicProxyHasImage(candidate, proxyBase, fetcher) {
-  for (const size of PUBLIC_PROXY_CHECK_SIZES) {
+async function publicProxyHasImage(candidate, proxyBase, proxyCheckSizes, fetcher) {
+  for (const size of proxyCheckSizes) {
     const url = new URL(proxyBase);
     url.searchParams.set("resource", "image");
     url.searchParams.set("id", candidate.id);
@@ -329,6 +359,9 @@ async function main() {
     outputDirectory,
     concurrency: Number(
       process.env.POSOKANEI_IMAGE_FALLBACK_CONCURRENCY || DEFAULT_CONCURRENCY,
+    ),
+    proxyCheckSizes: normalizeImageProxyCheckSizes(
+      process.env.POSOKANEI_IMAGE_PROXY_CHECK_SIZES,
     ),
   });
   const summary = {

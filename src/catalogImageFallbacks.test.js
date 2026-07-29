@@ -6,9 +6,11 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   cacheMissingCatalogImages,
+  collectReportedImageIds,
   detectImageFormat,
   imageFallbackFileName,
   normalizeImageCandidate,
+  normalizeImageProxyCheckSizes,
   officialImageCandidateUrls,
   selectImageFallbackCandidates,
 } from "../scripts/catalog-image-fallbacks.mjs";
@@ -64,6 +66,24 @@ test("deep recent-change products use an independent rotating window", () => {
   assert.equal(selection.catalogRotationCount, 1);
   assert.equal(selection.nextRecentCursor, 0);
   assert.equal(selection.nextCursor, 2);
+});
+
+test("reported missing images are deduplicated and validated before prioritization", () => {
+  assert.deepEqual(collectReportedImageIds([
+    { reports: [{ id: "missing-a" }, { id: "missing-b" }, { id: "../unsafe" }] },
+    { reports: [{ id: "missing-b" }, { id: "missing-c" }] },
+    { reports: "invalid" },
+  ], ["forced-a", "missing-a", ""]), [
+    "forced-a",
+    "missing-a",
+    "missing-b",
+    "missing-c",
+  ]);
+});
+
+test("full image audits can use one validated large proxy size", () => {
+  assert.deepEqual(normalizeImageProxyCheckSizes("960,960,invalid"), [960]);
+  assert.deepEqual(normalizeImageProxyCheckSizes("20,1200"), [96, 960]);
 });
 
 test("only official product image URLs become fallback candidates", () => {
@@ -169,6 +189,7 @@ test("a missing public image is cached from the official source", async () => {
       proxyUrls: ["https://kalathitimon.com/api/posokanei.php"],
       outputDirectory: directory,
       concurrency: 1,
+      proxyCheckSizes: [960],
       fetcher,
     });
 
@@ -176,6 +197,7 @@ test("a missing public image is cached from the official source", async () => {
     assert.equal(result.failures.length, 0);
     assert.equal(result.files[0].fileName, "product-1-revision-2.jpg");
     assert.deepEqual(await readFile(result.files[0].filePath), jpeg);
+    assert.equal(new URL(calls[0]).searchParams.get("size"), "960");
     assert.equal(calls.at(-1), candidate.imageUrl);
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -241,5 +263,13 @@ test("temporary image placeholders are not cached after a fallback becomes avail
   assert.match(
     source,
     /http_response_code\(502\);[\s\S]*Cache-Control: no-store, max-age=0[\s\S]*X-Posokanei-Image-Source: unavailable/u,
+  );
+  assert.match(
+    source,
+    /record_missing_image_report\(\$id, \$version\);[\s\S]*http_response_code\(502\)/u,
+  );
+  assert.match(
+    source,
+    /image-missing-reports[\s\S]*emit_missing_image_reports\(\)/u,
   );
 });

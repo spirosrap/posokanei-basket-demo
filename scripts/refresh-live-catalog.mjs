@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, open, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { collectReportedImageIds } from "./catalog-image-fallbacks.mjs";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 import { writeCompressedVariants } from "./precompress-assets.mjs";
+import { acquireRefreshLock } from "./refresh-lock.mjs";
 import {
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
@@ -82,6 +84,7 @@ const maximumPublishedImageFallbackBytes = 6 * 1024 * 1024;
 let detailVerificationProductId = "";
 let compressedPublicationFiles = [];
 let imageFallbackPublicationFiles = [];
+let reportedImageIds = [];
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
@@ -187,46 +190,8 @@ async function deployCurrentCatalogueCompression() {
   }
 }
 
-async function acquireRefreshLock(lockPath, retried = false) {
-  await mkdir(dirname(lockPath), { recursive: true });
-  try {
-    const handle = await open(lockPath, "wx");
-    await handle.writeFile(`${JSON.stringify({ pid: process.pid, started_at: new Date().toISOString() })}\n`);
-    return async () => {
-      await handle.close();
-      await unlink(lockPath).catch(() => {});
-    };
-  } catch (error) {
-    if (error?.code !== "EEXIST") throw error;
-    if (!retried) {
-      const details = await stat(lockPath).catch(() => null);
-      const staleAfterMs = 50 * 60 * 1000;
-      const ownerRunning = await refreshLockOwnerIsRunning(lockPath);
-      if (
-        !ownerRunning
-        || (details && Date.now() - details.mtimeMs > staleAfterMs)
-      ) {
-        await unlink(lockPath).catch(() => {});
-        return acquireRefreshLock(lockPath, true);
-      }
-    }
-    return null;
-  }
-}
-
-async function refreshLockOwnerIsRunning(lockPath) {
-  try {
-    const details = JSON.parse(await readFile(lockPath, "utf8"));
-    const pid = Number(details?.pid);
-    if (!Number.isInteger(pid) || pid <= 0) return false;
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error?.code === "EPERM";
-  }
-}
-
 async function refreshCatalog() {
+  reportedImageIds = await fetchReportedImageIds();
   const previousSnapshotPath = await preparePreviousSnapshot();
   if (remoteRefreshHosts.length) {
     await buildSnapshotOnRemoteHosts(remoteRefreshHosts, previousSnapshotPath);
@@ -762,25 +727,43 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
 async function publishImageFallbackFiles(target, password, { strict = false } = {}) {
   let published = 0;
   const failures = [];
-  for (const file of imageFallbackPublicationFiles) {
-    try {
-      await publishDataFile(
-        file.filePath,
-        `image-fallbacks/${file.fileName}`,
-        target,
-        password,
-      );
-      await verifyPublishedImageFallback(file, target);
-      if (strict) await verifyImageProxyFallback(file, target);
-      published += 1;
-    } catch (error) {
-      failures.push({ file, error });
-      console.error(
-        `Image fallback ${file.id} was not published to ${target.name}: `
-        + `${describeRefreshError(error)}`,
-      );
+  let nextIndex = 0;
+  const requestedConcurrency = Number(
+    process.env.POSOKANEI_IMAGE_UPLOAD_CONCURRENCY || 1,
+  );
+  const workerCount = Math.max(
+    1,
+    Math.min(
+      Number.isInteger(requestedConcurrency) ? requestedConcurrency : 1,
+      imageFallbackPublicationFiles.length,
+    ),
+  );
+
+  async function worker() {
+    while (nextIndex < imageFallbackPublicationFiles.length) {
+      const file = imageFallbackPublicationFiles[nextIndex];
+      nextIndex += 1;
+      try {
+        await publishDataFile(
+          file.filePath,
+          `image-fallbacks/${file.fileName}`,
+          target,
+          password,
+        );
+        await verifyPublishedImageFallback(file, target);
+        if (strict) await verifyImageProxyFallback(file, target);
+        published += 1;
+      } catch (error) {
+        failures.push({ file, error });
+        console.error(
+          `Image fallback ${file.id} was not published to ${target.name}: `
+          + `${describeRefreshError(error)}`,
+        );
+      }
     }
   }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
   if (published) {
     console.log(`Verified ${published} new image fallback(s) on ${target.name}.`);
   }
@@ -1120,8 +1103,16 @@ async function writeImageFallbackState({ catalogCursor, recentCursor }) {
 }
 
 function optionalRemoteImageEnvironment() {
+  const configuredForcedIds = String(process.env.POSOKANEI_IMAGE_FORCE_IDS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const forcedIds = collectReportedImageIds([], [
+    ...configuredForcedIds,
+    ...reportedImageIds,
+  ]);
   return [
-    ["POSOKANEI_IMAGE_FORCE_IDS", process.env.POSOKANEI_IMAGE_FORCE_IDS],
+    ["POSOKANEI_IMAGE_FORCE_IDS", forcedIds.join(",")],
     [
       "POSOKANEI_IMAGE_FALLBACK_ROTATION_LIMIT",
       process.env.POSOKANEI_IMAGE_FALLBACK_ROTATION_LIMIT,
@@ -1134,9 +1125,33 @@ function optionalRemoteImageEnvironment() {
       "POSOKANEI_IMAGE_FALLBACK_CONCURRENCY",
       process.env.POSOKANEI_IMAGE_FALLBACK_CONCURRENCY,
     ],
+    [
+      "POSOKANEI_IMAGE_PROXY_CHECK_SIZES",
+      process.env.POSOKANEI_IMAGE_PROXY_CHECK_SIZES,
+    ],
   ]
     .filter(([, value]) => String(value || "").trim() !== "")
     .map(([name, value]) => `${name}=${shellQuote(String(value))}`);
+}
+
+async function fetchReportedImageIds() {
+  const payloads = [];
+  for (const target of ftpTargets) {
+    const url = new URL(imageProxyUrlForTarget(target));
+    url.searchParams.set("resource", "image-missing-reports");
+    try {
+      payloads.push(await fetchPublicJson(url.toString()));
+    } catch (error) {
+      console.error(
+        `Missing-image reports were unavailable on ${target.name}: ${describeRefreshError(error)}`,
+      );
+    }
+  }
+  const ids = collectReportedImageIds(payloads);
+  if (ids.length) {
+    console.log(`Prioritizing ${ids.length} browser-observed missing image(s).`);
+  }
+  return ids;
 }
 
 function normalizeImageFallbackFiles(files, outputDirectory) {
