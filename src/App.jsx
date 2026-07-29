@@ -5177,8 +5177,8 @@ function useNearViewport(priority) {
 
 function ProductThumb({ product, compact = false, priority = false }) {
   const imageSources = useMemo(
-    () => productImageSources(product, compact ? 72 : 96),
-    [compact, product],
+    () => productImageSources(product, 96),
+    [product],
   );
   const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedImageUrl, setLoadedImageUrl] = useState("");
