@@ -170,6 +170,7 @@ const INITIAL_SHARED_BASKET = INITIAL_APP_ROUTE !== APP_ROUTES.home
   ? null
   : readSharedBasketUrl(window.location.href);
 const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
+const IMAGE_PROXY_RETRY_DELAYS = [2500, 12000];
 const loadPriceChangesPage = () => import("./PriceChangesPage.jsx");
 const LazyPriceChangesPage = lazy(loadPriceChangesPage);
 const SHOPPING_PRIORITY_OPTIONS = [
@@ -5118,12 +5119,7 @@ function ProductPreviewImage({ product, size = 640, className = "" }) {
     ),
     [product, size],
   );
-  const [sourceIndex, setSourceIndex] = useState(0);
-  const imageUrl = imageSources[sourceIndex] || "";
-
-  useEffect(() => {
-    setSourceIndex(0);
-  }, [imageSources]);
+  const { imageUrl, onImageError } = useRetryingImageSource(imageSources);
 
   return (
     <div
@@ -5137,7 +5133,7 @@ function ProductPreviewImage({ product, size = 640, className = "" }) {
           decoding="async"
           loading="eager"
           fetchPriority="high"
-          onError={() => setSourceIndex((index) => index + 1)}
+          onError={onImageError}
         />
       ) : (
         <span style={{ "--thumb": product.tint }} aria-hidden="true">
@@ -5180,16 +5176,14 @@ function ProductThumb({ product, compact = false, priority = false }) {
     () => productImageSources(product, 96),
     [product],
   );
-  const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedImageUrl, setLoadedImageUrl] = useState("");
   const imageRef = useRef(null);
   const { elementRef, shouldLoad } = useNearViewport(priority);
-  const imageUrl = imageSources[sourceIndex] || "";
+  const { imageUrl, onImageError } = useRetryingImageSource(imageSources, shouldLoad);
   // Price refreshes replace product objects; reset only when an image URL changes.
   const imageSourceKey = imageSources.join("\n");
 
   useEffect(() => {
-    setSourceIndex(0);
     setLoadedImageUrl("");
   }, [imageSourceKey]);
 
@@ -5226,7 +5220,7 @@ function ProductThumb({ product, compact = false, priority = false }) {
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "low"}
             onLoad={() => setLoadedImageUrl(imageUrl)}
-            onError={() => setSourceIndex((index) => index + 1)}
+            onError={onImageError}
           />
         ) : null}
       </span>
@@ -5241,6 +5235,65 @@ function ProductThumb({ product, compact = false, priority = false }) {
       {product.tile}
     </span>
   );
+}
+
+function useRetryingImageSource(imageSources, retryEnabled = true) {
+  const sourceKey = imageSources.join("\n");
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const proxyStartIndex = firstSameOriginImageSourceIndex(imageSources);
+  const exhausted = imageSources.length > 0 && sourceIndex >= imageSources.length;
+
+  useEffect(() => {
+    setSourceIndex(0);
+    setRetryAttempt(0);
+  }, [sourceKey]);
+
+  useEffect(() => {
+    if (
+      !retryEnabled
+      || !exhausted
+      || proxyStartIndex < 0
+      || retryAttempt >= IMAGE_PROXY_RETRY_DELAYS.length
+    ) {
+      return undefined;
+    }
+    const retryTimer = window.setTimeout(() => {
+      setRetryAttempt((attempt) => attempt + 1);
+      setSourceIndex(proxyStartIndex);
+    }, IMAGE_PROXY_RETRY_DELAYS[retryAttempt]);
+    return () => window.clearTimeout(retryTimer);
+  }, [exhausted, proxyStartIndex, retryAttempt, retryEnabled]);
+
+  const source = imageSources[sourceIndex] || "";
+  return {
+    imageUrl: addImageRetryToken(source, retryAttempt),
+    onImageError: useCallback(() => {
+      setSourceIndex((index) => index + 1);
+    }, []),
+  };
+}
+
+function firstSameOriginImageSourceIndex(imageSources) {
+  return imageSources.findIndex((source) => {
+    try {
+      return new URL(source, window.location.href).origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  });
+}
+
+function addImageRetryToken(source, retryAttempt) {
+  if (!source || retryAttempt <= 0) return source;
+  try {
+    const retryUrl = new URL(source, window.location.href);
+    if (retryUrl.origin !== window.location.origin) return source;
+    retryUrl.searchParams.set("retry", String(retryAttempt));
+    return retryUrl.toString();
+  } catch {
+    return source;
+  }
 }
 
 function productImageSources(

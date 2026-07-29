@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.33.3`
+**Τρέχουσα έκδοση:** `v0.33.4`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -133,6 +133,8 @@
 Η έκδοση `v0.33.2` καλύπτει και τις περιπτώσεις όπου η επίσημη εικόνα υπάρχει, αλλά τόσο το hosting όσο και η δημόσια image cache μπλοκάρονται προσωρινά από την upstream υπηρεσία. Σε κάθε ωριαίο συγχρονισμό, ένας έμπιστος runner ελέγχει πάντα την αρχική προβολή και τις νεότερες μεταβολές, έως 600 επιπλέον προϊόντα από ολόκληρο το επταήμερο ιστορικό και 160 προϊόντα από διαφορετικό τμήμα του πλήρους καταλόγου. Οι δύο κυκλικοί έλεγχοι κρατούν ανεξάρτητη πρόοδο, ώστε οι βαθύτερες εγγραφές της σελίδας αλλαγών να μη χάνονται πίσω από τις πρώτες 80. Κάθε προϊόν ελέγχεται ανεξάρτητα ως μικρογραφία 96px και ως μεγάλη εικόνα 960px, ώστε μια διαθέσιμη μικρογραφία να μην κρύβει αποτυχία στη μεγέθυνση. Μόνο όταν λείπει κάποια από τις δύο εκδόσεις, ο runner λαμβάνει το αρχικό αρχείο απευθείας από το PosoKanei, επαληθεύει ότι είναι πραγματική raster εικόνα και το δημοσιεύει ως versioned τοπικό fallback και στα δύο domains. Έτσι διορθώνονται αυτόματα μικρογραφίες και μεγάλες εικόνες χωρίς τρίτες φωτογραφίες ή AI ανακατασκευή. Πολύ μεγάλα αρχεία βελτιστοποιούνται στο ζητούμενο μέγεθος από την υπάρχουσα image cache, με το πλήρες επίσημο αρχείο ως ασφαλές fallback, ώστε η διόρθωση να μην επιβαρύνει την πρώτη φόρτωση. Το προσωρινό placeholder αποτυχίας δεν αποθηκεύεται πλέον από τον browser, ώστε ένα νέο fallback να εμφανίζεται στην αμέσως επόμενη προσπάθεια. Για έκτακτη αποκατάσταση ήδη επαληθευμένων εικόνων, το `npm run live:publish-images` δημοσιεύει μόνο τα image fallbacks, χωρίς να αλλάζει τον κατάλογο ή την εφαρμογή.
 
 Η έκδοση `v0.33.3` διορθώνει τις μικρογραφίες στη συμπαγή λίστα των πρόσφατων αλλαγών τιμών. Οι γραμμές της λίστας ζητούσαν ξεχωριστή εικόνα `72px`, ενώ ο αυτόματος έλεγχος και τα επαληθευμένα τοπικά fallbacks καλύπτουν την κανονική μικρογραφία `96px`. Πλέον όλες οι μικρογραφίες χρησιμοποιούν την ίδια ελεγμένη έκδοση `96px`, οπότε ένα προϊόν που εμφανίζεται σωστά στο ιστορικό και στη μεγέθυνση εμφανίζεται σωστά και στην αρχική λίστα, χωρίς αισθητή επιβάρυνση στη φόρτωση.
+
+Η έκδοση `v0.33.4` επεκτείνει την ίδια προστασία στην κύρια λίστα προϊόντων και στην προβολή λεπτομερειών. Αν μια επίσημη εικόνα αποτύχει πριν προλάβει να δημοσιευτεί το τοπικό fallback, η ανοιχτή σελίδα επανελέγχει δύο φορές μόνο το same-origin image proxy, με μικρή καθυστέρηση και cache-busting token. Οι επαναλήψεις είναι αυστηρά περιορισμένες, ώστε να εμφανίζεται μια εικόνα που μόλις αποκαταστάθηκε χωρίς συνεχή δικτυακή επιβάρυνση. Ο background scanner δοκιμάζει επίσης το επίσημο αρχείο χωρίς revision token όταν το versioned URL απορρίπτεται, όπως ήδη κάνει η εφαρμογή. Πολύ μεγάλα επίσημα αρχεία μπορούν πλέον να ληφθούν από τον έμπιστο runner, αλλά σμικρύνονται και επανελέγχονται τοπικά πριν από τη δημοσίευση, διατηρώντας αυστηρό όριο 6 MB για το τελικό fallback. Ο ωριαίος runner ελέγχει πλέον 480 διαδοχικά προϊόντα του πλήρους καταλόγου αντί για 160, καλύπτοντας έναν κατάλογο περίπου 10.000 προϊόντων μέσα σε λιγότερο από μία ημέρα, επιπλέον των προϊόντων προτεραιότητας και των πρόσφατων αλλαγών. Οι εικόνες παραμένουν αποκλειστικά οι επίσημες εικόνες του PosoKanei, επαληθευμένες ως πραγματικά raster αρχεία.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -280,7 +282,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.33.3`
+**Current version:** `v0.33.4`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -434,6 +436,8 @@ Version `v0.33.1` fixes products whose catalogue metadata advertises an image wh
 Version `v0.33.2` also handles cases where the official image exists but both the hosting server and the public image cache are temporarily blocked by the upstream service. During every hourly synchronization, a trusted runner always checks the startup view and newest changes, up to 600 additional products from the complete seven-day history, and 160 products from a different part of the full catalogue. The two rotating windows retain independent progress, so deeper entries on the changes page are not hidden behind its first 80 records. Every product is checked independently at the 96px thumbnail size and the 960px expanded size, preventing a cached thumbnail from hiding a broken large preview. If either size is unavailable, the runner downloads the original PosoKanei file, validates that it is a real raster image, and publishes an immutable versioned local fallback to both domains. This automatically repairs thumbnails and expanded images without third-party photos or AI reconstruction. Very large files are optimized to the requested dimensions through the existing image cache, with the complete official file retained as a safe fallback, so the repair does not add unnecessary first-load weight. Temporary failure placeholders are no longer browser-cacheable, allowing a newly published fallback to appear on the next request.
 
 Version `v0.33.3` fixes thumbnails in the compact recent-price-changes list. Those rows requested a separate `72px` image even though the automated checks and verified local fallbacks cover the canonical `96px` thumbnail. All thumbnail layouts now use the same validated `96px` source, so a product that displays correctly in its history and expanded view also displays correctly in the list, with no meaningful loading penalty.
+
+Version `v0.33.4` extends the same protection to the main product list and product details. If an official image fails before its local fallback has finished publishing, the open page retries only the same-origin image proxy twice, using short delays and a cache-busting token. Retries are strictly bounded, allowing a newly repaired image to appear without sustained network traffic. The background scanner also retries the official asset without its revision token when the versioned URL is rejected, matching the browser fallback sequence. Oversized official files can now be downloaded by the trusted runner, but they are resized and revalidated locally before publication, retaining a strict 6 MB cap for the final fallback. The hourly runner now checks 480 sequential full-catalogue products instead of 160, covering a catalogue of roughly 10,000 products in less than one day in addition to priority products and recent price changes. Images remain exclusively official PosoKanei assets validated as genuine raster files.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

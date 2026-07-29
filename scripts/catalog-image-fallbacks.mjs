@@ -5,10 +5,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const API_HOST = "api.posokanei.gov.gr";
-const DEFAULT_ROTATION_LIMIT = 160;
+const DEFAULT_ROTATION_LIMIT = 480;
 const DEFAULT_RECENT_ROTATION_LIMIT = 600;
 const DEFAULT_CONCURRENCY = 8;
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_SOURCE_IMAGE_BYTES = 32 * 1024 * 1024;
 const PUBLIC_PROXY_CHECK_SIZES = [96, 960];
 
 export function selectImageFallbackCandidates({
@@ -156,6 +156,21 @@ export function imageFallbackFileName(candidate, format) {
   return `${candidate.id}${suffix}.${format.extension}`;
 }
 
+export function officialImageCandidateUrls(candidate) {
+  const urls = [candidate.imageUrl];
+  if (!candidate.version) return urls;
+  try {
+    const unversionedUrl = new URL(candidate.imageUrl);
+    unversionedUrl.searchParams.delete("v");
+    if (unversionedUrl.toString() !== candidate.imageUrl) {
+      urls.push(unversionedUrl.toString());
+    }
+  } catch {
+    // The normalized candidate URL is already validated before this point.
+  }
+  return urls;
+}
+
 export async function cacheMissingCatalogImages({
   candidates,
   proxyUrls,
@@ -186,7 +201,7 @@ export async function cacheMissingCatalogImages({
           continue;
         }
 
-        const source = await fetchValidatedImage(candidate.imageUrl, fetcher, {
+        const source = await fetchFirstValidatedImage(officialImageCandidateUrls(candidate), fetcher, {
           "Accept-Language": "el-GR,el;q=0.9,en;q=0.8",
           Origin: "https://posokanei.gov.gr",
           Referer: "https://posokanei.gov.gr/",
@@ -211,6 +226,18 @@ export async function cacheMissingCatalogImages({
 
   await Promise.all(Array.from({ length: workerCount }, () => worker()));
   return { files, failures, available };
+}
+
+async function fetchFirstValidatedImage(urls, fetcher, headers) {
+  let lastError;
+  for (const url of urls) {
+    try {
+      return await fetchValidatedImage(url, fetcher, headers);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("No official image URL was available.");
 }
 
 async function publicProxyHasImage(candidate, proxyBase, fetcher) {
@@ -250,9 +277,9 @@ async function fetchValidatedImage(url, fetcher, headers = {}) {
   });
   if (!response.ok) throw new Error(`Image returned HTTP ${response.status}.`);
   const declaredLength = Number(response.headers.get("content-length") || 0);
-  if (declaredLength > MAX_IMAGE_BYTES) throw new Error("Image exceeds the size limit.");
+  if (declaredLength > MAX_SOURCE_IMAGE_BYTES) throw new Error("Image exceeds the source size limit.");
   const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length < 100 || buffer.length > MAX_IMAGE_BYTES) {
+  if (buffer.length < 100 || buffer.length > MAX_SOURCE_IMAGE_BYTES) {
     throw new Error("Image response has an invalid size.");
   }
   const format = detectImageFormat(buffer);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, open, readFile, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
@@ -78,6 +78,7 @@ const imageFallbackStatePath = resolve(
   process.env.POSOKANEI_IMAGE_FALLBACK_STATE
     || ".cache/catalog-image-fallback-state.json",
 );
+const maximumPublishedImageFallbackBytes = 6 * 1024 * 1024;
 let detailVerificationProductId = "";
 let compressedPublicationFiles = [];
 let imageFallbackPublicationFiles = [];
@@ -103,6 +104,9 @@ async function publishCurrentImageFallbacks() {
   imageFallbackPublicationFiles = normalizeImageFallbackFiles(
     summary.files,
     imageFallbackOutputDir,
+  );
+  imageFallbackPublicationFiles = await optimizeLargeImageFallbacks(
+    imageFallbackPublicationFiles,
   );
   if (!imageFallbackPublicationFiles.length) {
     throw new Error("No validated image fallbacks are staged for publication.");
@@ -446,6 +450,9 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       imageFallbackPublicationFiles = normalizeImageFallbackFiles(
         imageSummary.files,
         imageFallbackOutputDir,
+      );
+      imageFallbackPublicationFiles = await optimizeLargeImageFallbacks(
+        imageFallbackPublicationFiles,
       );
       await writeImageFallbackState({
         catalogCursor: imageSummary.next_cursor,
@@ -1149,6 +1156,60 @@ function normalizeImageFallbackFiles(files, outputDirectory) {
       filePath: resolve(outputDirectory, fileName),
     };
   });
+}
+
+async function optimizeLargeImageFallbacks(files) {
+  const publishable = [];
+  for (const file of files) {
+    const sourceStat = await stat(file.filePath);
+    if (sourceStat.size <= maximumPublishedImageFallbackBytes) {
+      publishable.push(file);
+      continue;
+    }
+
+    let optimized = false;
+    const extension = file.fileName.split(".").at(-1) || "img";
+    for (const maximumDimension of [1600, 1280, 960]) {
+      const temporaryPath = `${file.filePath}.resized-${process.pid}-${maximumDimension}.${extension}`;
+      try {
+        await run("sips", [
+          "--resampleHeightWidthMax",
+          String(maximumDimension),
+          file.filePath,
+          "--out",
+          temporaryPath,
+        ], { quiet: true });
+        const resizedStat = await stat(temporaryPath);
+        if (
+          resizedStat.size > 100
+          && resizedStat.size <= maximumPublishedImageFallbackBytes
+        ) {
+          await rename(temporaryPath, file.filePath);
+          console.log(
+            `Optimized oversized image fallback ${file.id} from ${sourceStat.size} `
+            + `to ${resizedStat.size} bytes.`,
+          );
+          optimized = true;
+          break;
+        }
+      } catch (error) {
+        console.error(
+          `Could not resize image fallback ${file.id} at ${maximumDimension}px: `
+          + describeRefreshError(error),
+        );
+      } finally {
+        await rm(temporaryPath, { force: true });
+      }
+    }
+
+    if (optimized) publishable.push(file);
+    else {
+      console.error(
+        `Image fallback ${file.id} remains above the publication size limit and was skipped.`,
+      );
+    }
+  }
+  return publishable;
 }
 
 function run(command, args, options = {}) {

@@ -9,6 +9,7 @@ import {
   detectImageFormat,
   imageFallbackFileName,
   normalizeImageCandidate,
+  officialImageCandidateUrls,
   selectImageFallbackCandidates,
 } from "../scripts/catalog-image-fallbacks.mjs";
 
@@ -105,6 +106,48 @@ test("image fallback files use validated raster formats and immutable versions",
     ),
     "product-1-revision-2.jpg",
   );
+});
+
+test("official fallback downloads retry without an inconsistent image revision", () => {
+  const candidate = normalizeImageCandidate(product("product-1", "revision-2"));
+  assert.deepEqual(officialImageCandidateUrls(candidate), [
+    "https://api.posokanei.gov.gr/images/product/product-1?v=revision-2",
+    "https://api.posokanei.gov.gr/images/product/product-1",
+  ]);
+});
+
+test("image fallback download uses the unversioned official image after a versioned failure", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "kalathi-unversioned-image-fallback-"));
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, ...Array(150).fill(3)]);
+  const candidate = normalizeImageCandidate(product("product-3", "revision-4"));
+  const sourceCalls = [];
+  const fetcher = async (url) => {
+    const requestUrl = new URL(String(url));
+    if (requestUrl.hostname === "kalathitimon.com") {
+      return new Response("missing", { status: 502, headers: { "content-type": "text/plain" } });
+    }
+    sourceCalls.push(requestUrl.toString());
+    if (requestUrl.searchParams.has("v")) {
+      return new Response("blocked revision", { status: 403 });
+    }
+    return new Response(jpeg, { status: 200, headers: { "content-type": "image/jpeg" } });
+  };
+
+  try {
+    const result = await cacheMissingCatalogImages({
+      candidates: [candidate],
+      proxyUrls: ["https://kalathitimon.com/api/posokanei.php"],
+      outputDirectory: directory,
+      concurrency: 1,
+      fetcher,
+    });
+
+    assert.equal(result.files.length, 1);
+    assert.equal(result.failures.length, 0);
+    assert.deepEqual(sourceCalls, officialImageCandidateUrls(candidate));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("a missing public image is cached from the official source", async () => {
