@@ -345,6 +345,22 @@ const messages = {
     applyRecommendation: "Χρήση πρότασης",
     recommendationSelected: "Το πλάνο είναι επιλεγμένο",
     recommendationNeedsBasket: "Φτιάξε καλάθι για να συγκρίνεις τις στάσεις.",
+    fewerStopsEyebrow: "Λιγότερες στάσεις",
+    fewerStopsTitle: ({ count, stops }) =>
+      count === 1
+        ? `1 προϊόν δεν καλύπτεται από το καλύτερο πλάνο με ${stops}`
+        : `${count} προϊόντα δεν καλύπτονται από το καλύτερο πλάνο με ${stops}`,
+    fewerStopsHelp:
+      "Άνοιξε κάθε προϊόν για αυστηρά ισοδύναμες επιλογές που πωλούνται στις αλυσίδες του μικρότερου πλάνου.",
+    fewerStopsCoverage: ({ available, total, stops }) =>
+      `${available}/${total} προϊόντα καλύπτονται στο κοντινότερο πλάνο με ${stops}.`,
+    findEquivalent: "Βρες ισοδύναμο",
+    findFewerStopsAlternativeFor: ({ name }) =>
+      `Εύρεση ισοδύναμου για λιγότερες στάσεις: ${name}`,
+    fewerStopsMoreProducts: ({ count }) =>
+      `και ${count} ακόμη ${count === 1 ? "προϊόν" : "προϊόντα"}`,
+    fewerStopsNote:
+      "Μετά από κάθε αντικατάσταση, η κάλυψη και το φθηνότερο πλάνο υπολογίζονται ξανά αυτόματα.",
     savingsBreakdownEyebrow: "Ανάλυση εξοικονόμησης",
     savingsBreakdownTitle: ({ amount }) => `${amount} λιγότερα από μία στάση`,
     savingsComparedWith: ({ retailer }) =>
@@ -431,6 +447,9 @@ const messages = {
     similarProductsTitle: "Παρόμοιες επιλογές",
     similarProductsDescription:
       "Ίδιος τύπος προϊόντος, συγκρίσιμο μέγεθος και διαθέσιμη τιμή στις ενεργές αλυσίδες.",
+    fewerStopsAlternativesTitle: ({ stops }) => `Προτάσεις για ${stops}`,
+    fewerStopsAlternativesHelp: ({ retailers }) =>
+      `Εμφανίζονται μόνο αυστηρά αντίστοιχα προϊόντα που πωλούνται σε: ${retailers}.`,
     similarProductsCount: ({ count }) => `${count} προτάσεις`,
     loadingSimilarProducts: "Αναζήτηση κοντινών ισοδύναμων προϊόντων",
     noSimilarProducts: "Δεν βρέθηκε αρκετά κοντινή επιλογή",
@@ -868,6 +887,22 @@ const messages = {
     applyRecommendation: "Use recommendation",
     recommendationSelected: "Plan selected",
     recommendationNeedsBasket: "Build a basket to compare stop limits.",
+    fewerStopsEyebrow: "Fewer stops",
+    fewerStopsTitle: ({ count, stops }) =>
+      count === 1
+        ? `1 product is not covered by the best ${stops} plan`
+        : `${count} products are not covered by the best ${stops} plan`,
+    fewerStopsHelp:
+      "Open each product for strictly equivalent options sold by the chains in the smaller plan.",
+    fewerStopsCoverage: ({ available, total, stops }) =>
+      `${available}/${total} products are covered by the closest ${stops} plan.`,
+    findEquivalent: "Find equivalent",
+    findFewerStopsAlternativeFor: ({ name }) =>
+      `Find an equivalent for fewer stops: ${name}`,
+    fewerStopsMoreProducts: ({ count }) =>
+      `and ${count} more ${count === 1 ? "product" : "products"}`,
+    fewerStopsNote:
+      "After every replacement, coverage and the cheapest plan are recalculated automatically.",
     savingsBreakdownEyebrow: "Savings breakdown",
     savingsBreakdownTitle: ({ amount }) => `${amount} below one stop`,
     savingsComparedWith: ({ retailer }) =>
@@ -951,6 +986,9 @@ const messages = {
     similarProductsTitle: "Similar options",
     similarProductsDescription:
       "The same product type, a comparable pack size, and an available price at active chains.",
+    fewerStopsAlternativesTitle: ({ stops }) => `Options for ${stops}`,
+    fewerStopsAlternativesHelp: ({ retailers }) =>
+      `Only strict equivalents sold by these chains are shown: ${retailers}.`,
     similarProductsCount: ({ count }) => `${count} suggestions`,
     loadingSimilarProducts: "Finding close equivalent products",
     noSimilarProducts: "No sufficiently close option was found",

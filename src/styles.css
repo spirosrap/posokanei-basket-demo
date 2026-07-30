@@ -3150,6 +3150,181 @@ select:focus-visible {
   font-weight: 850;
 }
 
+.stop-reduction {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  border: 1px solid rgba(47, 111, 206, 0.25);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #f8fbff 0, var(--surface) 100%);
+  padding: 10px;
+  box-shadow: 0 8px 20px rgba(35, 75, 135, 0.05);
+}
+
+.stop-reduction-heading {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.stop-reduction-heading > span:last-child,
+.stop-reduction-heading small,
+.stop-reduction-heading strong,
+.stop-reduction-heading span span {
+  display: block;
+}
+
+.stop-reduction-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.stop-reduction-heading small {
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.stop-reduction-heading strong {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.stop-reduction-heading span span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.stop-reduction-target {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 9px 0;
+}
+
+.stop-reduction-target > span:last-child,
+.stop-reduction-target strong,
+.stop-reduction-target small {
+  display: block;
+  min-width: 0;
+}
+
+.stop-reduction-target strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stop-reduction-target small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.stop-reduction-list {
+  display: grid;
+}
+
+.stop-reduction-list > button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  padding: 7px 0;
+  text-align: left;
+}
+
+.stop-reduction-list > button:first-child {
+  padding-top: 0;
+}
+
+.stop-reduction-list > button:hover,
+.stop-reduction-list > button:focus-visible {
+  background: var(--blue-soft);
+}
+
+.stop-reduction-list .product-thumb,
+.stop-reduction-list .product-thumb.compact {
+  width: 38px;
+  height: 38px;
+}
+
+.stop-reduction-list > button > span:nth-child(2),
+.stop-reduction-list > button strong,
+.stop-reduction-list > button small {
+  display: block;
+  min-width: 0;
+}
+
+.stop-reduction-list > button strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.stop-reduction-list > button small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stop-reduction-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.stop-reduction-more {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.stop-reduction > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .savings-breakdown {
   display: grid;
   gap: 9px;
@@ -5040,6 +5215,40 @@ select:focus-visible {
   padding: 12px 0;
 }
 
+.alternative-plan-context {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  border-left: 3px solid var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+  padding: 8px;
+}
+
+.alternative-plan-context > svg {
+  margin-top: 1px;
+}
+
+.alternative-plan-context strong,
+.alternative-plan-context small {
+  display: block;
+}
+
+.alternative-plan-context strong {
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.alternative-plan-context small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
 .product-alternatives-heading {
   display: flex;
   justify-content: space-between;
@@ -5555,6 +5764,16 @@ select:focus-visible {
 
 [data-theme="dark"] .savings-breakdown {
   background: linear-gradient(180deg, var(--surface) 0, var(--surface-strong) 100%);
+}
+
+[data-theme="dark"] .stop-reduction {
+  border-color: rgba(117, 167, 255, 0.26);
+  border-left-color: var(--blue);
+  background: linear-gradient(180deg, var(--surface-strong) 0, var(--surface) 100%);
+}
+
+[data-theme="dark"] .alternative-plan-context {
+  background: var(--blue-soft);
 }
 
 [data-theme="dark"] .savings-breakdown-tradeoff {
@@ -6437,6 +6656,15 @@ select:focus-visible {
   .recommendation-total {
     width: 100%;
     text-align: left;
+  }
+
+  .stop-reduction-list > button {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .stop-reduction-action {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .drawer-panel {

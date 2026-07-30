@@ -3,6 +3,17 @@ import { APP_BASE_URL } from "./appConfig.js";
 export function registerAppServiceWorker() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
 
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloadingForUpdate = false;
+
+  if (hadController) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      window.location.reload();
+    });
+  }
+
   const register = () => {
     navigator.serviceWorker.register(`${APP_BASE_URL}sw.js`, {
       scope: APP_BASE_URL,

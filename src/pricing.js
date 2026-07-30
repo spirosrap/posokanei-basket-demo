@@ -205,6 +205,7 @@ function evaluateRetailerCombo(basket, productMap, retailers) {
 
   return {
     maxChains: retailers.length,
+    retailers,
     chainCount: sortedGroups.length,
     groups: sortedGroups,
     total,
@@ -236,6 +237,7 @@ function getCombinations(items, size, start = 0, prefix = []) {
 function createEmptyVisitPlan(maxChains) {
   return {
     maxChains,
+    retailers: [],
     chainCount: 0,
     groups: [],
     total: 0,

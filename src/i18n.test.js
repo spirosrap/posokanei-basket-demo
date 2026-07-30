@@ -33,6 +33,14 @@ test("core interface text and dynamic values are translated", () => {
   assert.equal(translate("el", "priorityBalanced"), "Ισορροπία");
   assert.equal(translate("en", "priorityFewerStops"), "Fewer stops");
   assert.equal(
+    translate("el", "fewerStopsTitle", { count: 1, stops: "έως 2 στάσεις" }),
+    "1 προϊόν δεν καλύπτεται από το καλύτερο πλάνο με έως 2 στάσεις",
+  );
+  assert.equal(
+    translate("en", "fewerStopsAlternativesTitle", { stops: "up to 2 stops" }),
+    "Options for up to 2 stops",
+  );
+  assert.equal(
     translate("el", "priceDropped", { percent: "10", previous: "2,00 €" }),
     "10% κάτω · πριν 2,00 €",
   );

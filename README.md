@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.33.5`
+**Τρέχουσα έκδοση:** `v0.34.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -26,6 +26,7 @@
 - Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
 - Μπορείς να παρακολουθείς προϊόντα και να ορίζεις προαιρετική τιμή-στόχο, ώστε να βλέπεις ποια έφτασαν το ποσό που σε ενδιαφέρει.
 - Από τις λεπτομέρειες οποιουδήποτε προϊόντος μπορείς να δεις λίγες, αυστηρά ταιριασμένες εναλλακτικές και να συγκρίνεις τιμή μονάδας, χαρακτηριστικά και μέγεθος συσκευασίας.
+- Όταν ένα μικρότερο όριο στάσεων δεν καλύπτει το καλάθι, βλέπεις ακριβώς ποια προϊόντα το εμποδίζουν και ανοίγεις ισοδύναμες επιλογές που πωλούνται στις αλυσίδες του μικρότερου πλάνου.
 - Τα κρίσιμα αρχεία παραδίδονται προ-συμπιεσμένα και οι επόμενες μεταβάσεις μεταξύ αρχικής, ευκαιριών και αλλαγών τιμών χρησιμοποιούν ένα ασφαλές cached app shell.
 
 Για παράδειγμα, αν θέλεις να πας μόνο σε ένα supermarket, η εφαρμογή ταξινομεί τις αλυσίδες από τη φθηνότερη έως την ακριβότερη για ολόκληρο το καλάθι. Αν αντέχεις δύο ή τρεις στάσεις, υπολογίζει αν συμφέρει να χωριστεί η λίστα σε περισσότερες αλυσίδες.
@@ -137,6 +138,8 @@
 Η έκδοση `v0.33.4` επεκτείνει την ίδια προστασία στην κύρια λίστα προϊόντων και στην προβολή λεπτομερειών. Αν μια επίσημη εικόνα αποτύχει πριν προλάβει να δημοσιευτεί το τοπικό fallback, η ανοιχτή σελίδα επανελέγχει δύο φορές μόνο το same-origin image proxy, με μικρή καθυστέρηση και cache-busting token. Οι επαναλήψεις είναι αυστηρά περιορισμένες, ώστε να εμφανίζεται μια εικόνα που μόλις αποκαταστάθηκε χωρίς συνεχή δικτυακή επιβάρυνση. Ο background scanner δοκιμάζει επίσης το επίσημο αρχείο χωρίς revision token όταν το versioned URL απορρίπτεται, όπως ήδη κάνει η εφαρμογή. Πολύ μεγάλα επίσημα αρχεία μπορούν πλέον να ληφθούν από τον έμπιστο runner, αλλά σμικρύνονται και επανελέγχονται τοπικά πριν από τη δημοσίευση, διατηρώντας αυστηρό όριο 6 MB για το τελικό fallback. Ο ωριαίος runner ελέγχει πλέον 480 διαδοχικά προϊόντα του πλήρους καταλόγου αντί για 160, καλύπτοντας έναν κατάλογο περίπου 10.000 προϊόντων μέσα σε λιγότερο από μία ημέρα, επιπλέον των προϊόντων προτεραιότητας και των πρόσφατων αλλαγών. Οι εικόνες παραμένουν αποκλειστικά οι επίσημες εικόνες του PosoKanei, επαληθευμένες ως πραγματικά raster αρχεία.
 
 Η έκδοση `v0.33.5` κλείνει το κενό ανάμεσα στην κυκλική σάρωση του καταλόγου και στα προϊόντα που συναντά πραγματικά ο χρήστης. Όταν ο δημόσιος image proxy εξαντλήσει όλες τις επίσημες πηγές για ένα προϊόν, καταγράφει αυτόματα μόνο το δημόσιο αναγνωριστικό προϊόντος και την έκδοση εικόνας σε μία βραχύβια ουρά. Η ουρά δεν αποθηκεύει διεύθυνση IP, τοποθεσία, καλάθι ή άλλα στοιχεία χρήστη. Ο επόμενος ωριαίος συγχρονισμός συγχωνεύει και αποδιπλοποιεί αυτές τις αναφορές και τις ελέγχει πριν από την κανονική κυκλική παρτίδα. Έτσι μια εικόνα που εμφανίστηκε ως πλακίδιο με αρχικά δεν χρειάζεται πλέον να περιμένει έως ότου τη φτάσει η πλήρης διαδρομή του scanner. Η κυκλοφορία συνοδεύεται επίσης από εφάπαξ πλήρη έλεγχο του τρέχοντος καταλόγου για την αποκατάσταση του ήδη συσσωρευμένου backlog. Διορθώθηκε επίσης ένα race condition στην εναλλαγή του ωριαίου lock, ώστε δύο διαδοχικοί συγχρονισμοί να μην μπορούν να μεταβάλλουν τα ίδια προσωρινά αρχεία ταυτόχρονα.
+
+Η έκδοση `v0.34.0` προσθέτει οδηγό μείωσης στάσεων. Όταν η πρώτη πλήρης λύση χρειάζεται περισσότερες από μία αλυσίδες, η εφαρμογή συγκρίνει το αμέσως μικρότερο όριο και εμφανίζει μόνο τα προϊόντα που μένουν πραγματικά ακάλυπτα στο καλύτερο πλάνο του. Για κάθε τέτοιο προϊόν ανοίγει απευθείας τις υπάρχουσες αυστηρά ισοδύναμες επιλογές, φιλτραρισμένες μόνο στις αλυσίδες του μικρότερου πλάνου. Μετά από αντικατάσταση διατηρείται η ποσότητα και επανυπολογίζονται αυτόματα κάλυψη, σύνολα και στάσεις. Ο οδηγός δεν υπόσχεται ότι υπάρχει υποκατάστατο και δεν χαλαρώνει τους κανόνες αντιστοίχισης: αν δεν υπάρχει αρκετά κοντινή επιλογή, προτιμά να μη δείξει πρόταση. Όλος ο υπολογισμός γίνεται τοπικά πάνω στον συγχρονισμένο κατάλογο, χωρίς προσωπικά δεδομένα. Η ίδια έκδοση ανανεώνει επίσης αυτόματα μια ήδη ανοιγμένη παλιά έκδοση μόλις ενεργοποιηθεί το νέο service worker, ώστε τα releases να μη χρειάζονται χειροκίνητο refresh.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -284,7 +287,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.33.5`
+**Current version:** `v0.34.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -329,6 +332,7 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - Separate partial baskets from chains where you can buy everything.
 - Open product detail with barcode, unit, description, a large product photo, and per-chain prices.
 - Open up to six carefully matched alternatives for any catalogue or basket product, compare unit value and useful traits, and replace a basket item without losing its quantity.
+- When a smaller stop limit cannot cover the basket, see the exact products preventing it and open equivalent options sold by the chains in that smaller plan.
 - Receive critical app and catalogue files as precompressed assets, with a safe cached app shell for subsequent navigation between the basket, bargains, and price-change views.
 - Load optimized, cacheable WebP product thumbnails directly from an edge image cache, with a same-origin proxy fallback and a separate high-resolution detail image.
 - Show supermarket chain logos in rankings, multi-stop plans, and product price rows.
@@ -442,6 +446,8 @@ Version `v0.33.3` fixes thumbnails in the compact recent-price-changes list. Tho
 Version `v0.33.4` extends the same protection to the main product list and product details. If an official image fails before its local fallback has finished publishing, the open page retries only the same-origin image proxy twice, using short delays and a cache-busting token. Retries are strictly bounded, allowing a newly repaired image to appear without sustained network traffic. The background scanner also retries the official asset without its revision token when the versioned URL is rejected, matching the browser fallback sequence. Oversized official files can now be downloaded by the trusted runner, but they are resized and revalidated locally before publication, retaining a strict 6 MB cap for the final fallback. The hourly runner now checks 480 sequential full-catalogue products instead of 160, covering a catalogue of roughly 10,000 products in less than one day in addition to priority products and recent price changes. Images remain exclusively official PosoKanei assets validated as genuine raster files.
 
 Version `v0.33.5` closes the gap between the rotating catalogue scan and the products users actually encounter. When the public image proxy exhausts every official source for a product, it automatically records only the public product identifier and image revision in a short-lived queue. The queue stores no IP address, location, basket contents, or other user data. The next hourly synchronization merges and deduplicates those reports and checks them before the normal rotating batch. An image that appeared as an initials tile therefore no longer has to wait until the scanner reaches it in the full catalogue rotation. This release is also accompanied by a one-time complete audit of the current catalogue to repair the existing backlog. A race condition in the hourly lock handoff was also fixed, preventing consecutive synchronizations from modifying the same staging files at the same time.
+
+Version `v0.34.0` adds a fewer-stops guide. When the first complete solution needs more than one chain, the app compares it with the immediately smaller limit and shows only the products genuinely left uncovered by that best lower-stop plan. Each product opens the existing strict-equivalence suggestions already filtered to the chains in the smaller plan. Replacing an item preserves its quantity and immediately recalculates coverage, totals, and stop requirements. The guide does not promise a substitute and does not relax matching rules: when no sufficiently close equivalent exists, it shows no suggestion. The analysis runs locally against the synchronized catalogue and sends no personal data. This release also reloads an already open older build automatically as soon as the new service worker takes control, so future releases do not require a manual refresh.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

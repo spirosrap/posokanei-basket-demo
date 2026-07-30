@@ -125,6 +125,7 @@ import {
   getStopOptionDetailKind,
   saveExtraStopCost,
 } from "./stopComparison";
+import { buildStopReductionInsight } from "./stopReduction";
 import {
   buildRemainingShoppingPlan,
   buildShoppingPlanId,
@@ -581,6 +582,7 @@ function AppContent({ route }) {
   const [liveState, setLiveState] = useState("idle");
   const [catalogBootstrapped, setCatalogBootstrapped] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [alternativeGuide, setAlternativeGuide] = useState(null);
   const [maxChains, setMaxChains] = useState(() =>
     INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.maxChains
@@ -1023,6 +1025,10 @@ function AppContent({ route }) {
     () => calculateStopComparison(basket, allProducts, activeRetailers, extraStopCost),
     [activeRetailers, allProducts, basket, extraStopCost],
   );
+  const stopReductionInsight = useMemo(
+    () => buildStopReductionInsight(stopComparison),
+    [stopComparison],
+  );
   const visitPlan =
     stopComparison.options.find((option) => option.limit === maxChains)?.plan ?? null;
   const firstCompleteStopOption =
@@ -1031,6 +1037,26 @@ function AppContent({ route }) {
   const textExportPlanLimit = visitPlan?.isComplete
     ? maxChains
     : firstCompleteStopOption?.limit ?? null;
+
+  const selectProduct = (product) => {
+    setAlternativeGuide(null);
+    setSelectedProduct(product);
+  };
+
+  const closeProduct = () => {
+    setAlternativeGuide(null);
+    setSelectedProduct(null);
+  };
+
+  const findFewerStopAlternative = (product, insight) => {
+    setAlternativeGuide({
+      productId: product.id,
+      targetLimit: insight.targetLimit,
+      retailerIds: insight.targetRetailerIds,
+      retailerNames: insight.targetRetailers.map((retailer) => retailer.name),
+    });
+    setSelectedProduct(product);
+  };
 
   const addToBasket = (product) => {
     setSavedBasketNotice(null);
@@ -1077,6 +1103,7 @@ function AppContent({ route }) {
         { productId: replacementProduct.id, quantity: sourceEntry.quantity },
       ];
     });
+    setAlternativeGuide(null);
     setSelectedProduct(replacementProduct);
   };
 
@@ -1185,7 +1212,7 @@ function AppContent({ route }) {
     setRetailerFilterIds(saved.retailerIds);
     setExtraStopCost(saved.extraStopCost);
     setSharedBasketStatus(null);
-    setSelectedProduct(null);
+    closeProduct();
     setMobileView("plan");
     setSavedBasketNotice({
       status: "loaded",
@@ -1209,7 +1236,7 @@ function AppContent({ route }) {
     setRetailerFilterIds(data.retailerIds);
     setExtraStopCost(data.extraStopCost);
     setSharedBasketStatus(null);
-    setSelectedProduct(null);
+    closeProduct();
     setMobileView("plan");
     setBasketExportOpen(false);
     setSavedBasketNotice({
@@ -1331,17 +1358,17 @@ function AppContent({ route }) {
           pick={dailyBargain}
           state={dailyBargainState}
           retailers={liveRetailers}
-          onSelect={setSelectedProduct}
+          onSelect={selectProduct}
           onAdd={addToBasket}
         />
         {selectedProduct ? (
           <ProductDrawer
             product={selectedProduct}
             retailers={liveRetailers}
-            onClose={() => setSelectedProduct(null)}
+            onClose={closeProduct}
             onAdd={() => addToBasket(selectedProduct)}
             basketQuantity={basketQuantities.get(selectedProduct.id) || 0}
-            onSelectAlternative={setSelectedProduct}
+            onSelectAlternative={selectProduct}
             onAddAlternative={addToBasket}
             onReplaceAlternative={(replacement) =>
               replaceBasketProduct(selectedProduct, replacement)}
@@ -1361,7 +1388,7 @@ function AppContent({ route }) {
             onRemove={deleteProductWatch}
             onSelect={(product) => {
               setPriceWatchOpen(false);
-              setSelectedProduct(product);
+              selectProduct(product);
             }}
             onAdd={addToBasket}
             onClose={() => setPriceWatchOpen(false)}
@@ -1387,7 +1414,7 @@ function AppContent({ route }) {
         <DailyBargain
           pick={displayedDailyBargain}
           retailers={locationEligibleRetailers}
-          onSelect={() => setSelectedProduct(displayedDailyBargain.product)}
+          onSelect={() => selectProduct(displayedDailyBargain.product)}
           onAdd={() => {
             addToBasket(displayedDailyBargain.product);
             setMobileView("basket");
@@ -1425,7 +1452,7 @@ function AppContent({ route }) {
           liveMeta={liveMeta}
           selectedProduct={selectedProduct}
           onSearchFocus={() => warmCatalogSearch(health.snapshotGeneratedAt)}
-          onSelect={setSelectedProduct}
+          onSelect={selectProduct}
           onAdd={addToBasket}
           onLoadMore={loadMoreLiveProducts}
         />
@@ -1446,7 +1473,7 @@ function AppContent({ route }) {
           onShare={openShareBasket}
           onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
           onLoadDemo={loadDemoBasket}
-          onSelect={setSelectedProduct}
+          onSelect={selectProduct}
           sharedBasketStatus={sharedBasketStatus}
           savedBasketCount={savedBaskets.length}
           savedBasketNotice={savedBasketNotice}
@@ -1461,6 +1488,7 @@ function AppContent({ route }) {
           maxChains={maxChains}
           setMaxChains={setMaxChains}
           stopComparison={stopComparison}
+          stopReductionInsight={stopReductionInsight}
           extraStopCost={extraStopCost}
           setExtraStopCost={setExtraStopCost}
           basketSize={basket.length}
@@ -1475,6 +1503,7 @@ function AppContent({ route }) {
           onClearLocation={clearLocation}
           onToggleRetailer={toggleRetailerFilter}
           onSelectAllRetailers={() => setRetailerFilterIds(null)}
+          onFindFewerStopAlternative={findFewerStopAlternative}
         />
       </main>
 
@@ -1482,10 +1511,13 @@ function AppContent({ route }) {
         <ProductDrawer
           product={selectedProduct}
           retailers={activeRetailers}
-          onClose={() => setSelectedProduct(null)}
+          alternativeContext={
+            alternativeGuide?.productId === selectedProduct.id ? alternativeGuide : null
+          }
+          onClose={closeProduct}
           onAdd={() => addToBasket(selectedProduct)}
           basketQuantity={basketQuantities.get(selectedProduct.id) || 0}
-          onSelectAlternative={setSelectedProduct}
+          onSelectAlternative={selectProduct}
           onAddAlternative={addToBasket}
           onReplaceAlternative={(replacement) =>
             replaceBasketProduct(selectedProduct, replacement)}
@@ -1545,7 +1577,7 @@ function AppContent({ route }) {
           onRemove={deleteProductWatch}
           onSelect={(product) => {
             setPriceWatchOpen(false);
-            setSelectedProduct(product);
+            selectProduct(product);
           }}
           onAdd={addToBasket}
           onClose={() => setPriceWatchOpen(false)}
@@ -3230,6 +3262,7 @@ function RankingsPanel({
   maxChains,
   setMaxChains,
   stopComparison,
+  stopReductionInsight,
   extraStopCost,
   setExtraStopCost,
   basketSize,
@@ -3244,6 +3277,7 @@ function RankingsPanel({
   onClearLocation,
   onToggleRetailer,
   onSelectAllRetailers,
+  onFindFewerStopAlternative,
 }) {
   const { language, t } = usePreferences();
   const showDeferredDetails = useIdleReveal();
@@ -3313,6 +3347,11 @@ function RankingsPanel({
         basketSize={basketSize}
         maxChains={maxChains}
         oneStopTotal={oneStopTotal}
+      />
+
+      <StopReductionCard
+        insight={stopReductionInsight}
+        onFindAlternative={onFindFewerStopAlternative}
       />
 
       <SavingsBreakdownCard breakdown={savingsBreakdown} />
@@ -3805,6 +3844,78 @@ function RecommendationCard({ plan, basketSize, maxChains, oneStopTotal }) {
         {savings > 0 ? <span>{t("belowOneStop", { amount: money(savings) })}</span> : null}
       </div>
     </div>
+  );
+}
+
+function StopReductionCard({ insight, onFindAlternative }) {
+  const { number, t } = usePreferences();
+  if (!insight) return null;
+
+  const visibleItems = insight.missingItems.slice(0, 4);
+  const remainingCount = insight.missingItems.length - visibleItems.length;
+  const targetStops = formatStopLimit(insight.targetLimit, t);
+  const targetGroups = insight.targetRetailers.map((retailer) => ({ retailer }));
+
+  return (
+    <section className="stop-reduction" aria-labelledby="stop-reduction-title">
+      <div className="stop-reduction-heading">
+        <span className="stop-reduction-icon" aria-hidden="true">
+          <Route size={17} />
+        </span>
+        <span>
+          <small>{t("fewerStopsEyebrow")}</small>
+          <strong id="stop-reduction-title">
+            {t("fewerStopsTitle", {
+              count: insight.missingItems.length,
+              stops: targetStops,
+            })}
+          </strong>
+          <span>{t("fewerStopsHelp")}</span>
+        </span>
+      </div>
+
+      <div className="stop-reduction-target">
+        <RetailerStack groups={targetGroups} />
+        <span>
+          <strong>{insight.targetRetailers.map((retailer) => retailer.name).join(" + ")}</strong>
+          <small>
+            {t("fewerStopsCoverage", {
+              available: number(insight.coveredCount),
+              total: number(insight.totalCount),
+              stops: targetStops,
+            })}
+          </small>
+        </span>
+      </div>
+
+      <div className="stop-reduction-list">
+        {visibleItems.map((item) => (
+          <button
+            key={item.product.id}
+            type="button"
+            onClick={() => onFindAlternative(item.product, insight)}
+            aria-label={t("findFewerStopsAlternativeFor", { name: item.product.name })}
+          >
+            <ProductThumb product={item.product} compact />
+            <span>
+              <strong>{item.product.name}</strong>
+              <small>{item.product.brand || item.product.unitQuantity || t("noBrand")}</small>
+            </span>
+            <span className="stop-reduction-action">
+              <ArrowRightLeft size={15} aria-hidden="true" />
+              {t("findEquivalent")}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {remainingCount > 0 ? (
+        <small className="stop-reduction-more">
+          {t("fewerStopsMoreProducts", { count: remainingCount })}
+        </small>
+      ) : null}
+      <p>{t("fewerStopsNote")}</p>
+    </section>
   );
 }
 
@@ -4675,6 +4786,7 @@ function PriceWatchRow({
 function ProductDrawer({
   product,
   retailers: retailerList,
+  alternativeContext = null,
   onClose,
   onAdd,
   basketQuantity = 0,
@@ -4690,14 +4802,18 @@ function ProductDrawer({
     watch?.targetPrice == null ? "" : String(watch.targetPrice),
   );
   const [watchActionState, setWatchActionState] = useState("");
-  const [alternativesOpen, setAlternativesOpen] = useState(false);
+  const [alternativesOpen, setAlternativesOpen] = useState(
+    () => alternativeContext?.productId === product.id,
+  );
   const [alternativesState, setAlternativesState] = useState({
     status: "idle",
     suggestions: [],
   });
   const alternativeRetailerIds = useMemo(
-    () => retailerList.map((retailer) => retailer.id),
-    [retailerList],
+    () => alternativeContext?.retailerIds?.length
+      ? alternativeContext.retailerIds
+      : retailerList.map((retailer) => retailer.id),
+    [alternativeContext?.retailerIds, retailerList],
   );
   const best = getBestProductPrice(
     product,
@@ -4708,6 +4824,12 @@ function ProductDrawer({
     setTargetDraft(watch?.targetPrice == null ? "" : String(watch.targetPrice));
     setWatchActionState("");
   }, [product.id, watch?.targetPrice]);
+
+  useEffect(() => {
+    if (alternativeContext?.productId === product.id) {
+      setAlternativesOpen(true);
+    }
+  }, [alternativeContext?.productId, product.id]);
 
   useEffect(() => {
     if (!alternativesOpen) return undefined;
@@ -4810,6 +4932,7 @@ function ProductDrawer({
             suggestions={alternativesState.suggestions}
             state={alternativesState.status}
             retailers={retailerList}
+            context={alternativeContext}
             canReplace={basketQuantity > 0}
             onSelect={onSelectAlternative}
             onAdd={onAddAlternative}
@@ -4896,6 +5019,7 @@ function ProductAlternatives({
   suggestions,
   state,
   retailers,
+  context,
   canReplace,
   onSelect,
   onAdd,
@@ -4913,6 +5037,23 @@ function ProductAlternatives({
 
   return (
     <section id={id} className="product-alternatives" aria-live="polite">
+      {context ? (
+        <div className="alternative-plan-context">
+          <Route size={16} aria-hidden="true" />
+          <span>
+            <strong>
+              {t("fewerStopsAlternativesTitle", {
+                stops: formatStopLimit(context.targetLimit, t),
+              })}
+            </strong>
+            <small>
+              {t("fewerStopsAlternativesHelp", {
+                retailers: context.retailerNames.join(" + "),
+              })}
+            </small>
+          </span>
+        </div>
+      ) : null}
       <div className="product-alternatives-heading">
         <div>
           <strong>{t("similarProductsTitle")}</strong>
