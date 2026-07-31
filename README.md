@@ -265,7 +265,7 @@
 
 Η «Ευκαιρία της ημέρας» προτείνει καθημερινά ένα προϊόν που μπορεί να αξίζει την προσοχή του χρήστη. Η κάρτα δείχνει το συγκεκριμένο προϊόν και τη φωτογραφία του, τη φθηνότερη αλυσίδα, την τρέχουσα τιμή, πόσο χαμηλότερη είναι από την υψηλότερη τρέχουσα τιμή στις υπόλοιπες αλυσίδες, σύνδεσμο λεπτομερειών και κουμπί προσθήκης στο καλάθι. Το νέο κουμπί «Περισσότερες ευκαιρίες» ανοίγει ξεχωριστή σελίδα με εννέα συνολικά καθημερινές επιλογές: την κεντρική πρόταση και οκτώ επιπλέον προϊόντα, όλα με λεπτομέρειες και άμεση προσθήκη στο ίδιο αποθηκευμένο καλάθι. Το ποσοστό είναι σύγκριση τιμών του ίδιου προϊόντος μεταξύ αλυσίδων την ίδια χρονική περίοδο, όχι ιστορική έκπτωση ή σύγκριση με προηγούμενη τιμή.
 
-Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το `gpt-5.6-sol`, με `high` reasoning και standard service speed, επιλέγει εννέα διαφορετικά προϊόντα από την ήδη επαληθευμένη λίστα και γράφει σύντομο ελληνικό editorial κείμενο. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών. Πριν εμφανιστεί μια αποθηκευμένη επιλογή, ο browser ζητά ξανά τα επιλεγμένα IDs από τον τελευταίο συγχρονισμένο κατάλογο και επανυπολογίζει όλα τα αριθμητικά στοιχεία και την ορατή αιτιολόγηση τιμής, ώστε να μπορεί να διατηρηθεί η επιλογή χωρίς να διατηρούνται παλιές τιμές.
+Ο κώδικας υπολογίζει πρώτα τις πραγματικές τιμές του ίδιου προϊόντος ανά αλυσίδα, τη διαφορά από τη φθηνότερη έως την ακριβότερη επιλογή και πόσες αλυσίδες συμμετέχουν. Στη συνέχεια το οικονομικότερο `gpt-5.6-luna`, με `high` reasoning και standard service speed, επιλέγει εννέα διαφορετικά προϊόντα από την ήδη επαληθευμένη λίστα και γράφει σύντομο ελληνικό editorial κείμενο. Το AI δεν υπολογίζει και δεν αλλάζει τιμές, δεν εφευρίσκει ιστορικό έκπτωσης και δεν λαμβάνει δεδομένα χρηστών. Πριν εμφανιστεί μια αποθηκευμένη επιλογή, ο browser ζητά ξανά τα επιλεγμένα IDs από τον τελευταίο συγχρονισμένο κατάλογο και επανυπολογίζει όλα τα αριθμητικά στοιχεία και την ορατή αιτιολόγηση τιμής, ώστε να μπορεί να διατηρηθεί η επιλογή χωρίς να διατηρούνται παλιές τιμές.
 
 Η παραγωγή γίνεται μία φορά την ημέρα στο Mac που εκτελεί ήδη τον συγχρονισμό του καταλόγου. Στον Plesk ανεβαίνει μόνο το δημόσιο `data/daily-bargain.json`, μαζί με το όνομα, την εικόνα, τις επαληθευμένες τιμές και το κείμενο της πρότασης. Το `OPENAI_API_KEY` μένει στο ιδιωτικό περιβάλλον του Mac, δεν περιλαμβάνεται στο repository ή στο build και δεν στέλνεται ποτέ στον browser ή στον web server.
 
@@ -666,7 +666,7 @@ a small editorial AI step:
 - Code filters products with images and prices from at least five chains, rejects
   implausible extremes, calculates the cheapest, median, and highest current price,
   and sends only 30 compact public candidates to the model.
-- `gpt-5.6-sol` with `high` reasoning and the default/standard service tier selects
+- The lower-cost `gpt-5.6-luna` model with `high` reasoning and the default/standard service tier selects
   nine unique, category-diverse candidates in one daily request and writes a short
   Greek headline and editorial note for each using Structured Outputs. The visible
   current-price explanation remains deterministic. The request uses `store: false`.
@@ -1138,7 +1138,7 @@ npm run live:refresh
 The refresh script reads deployment settings from environment variables or `.env.local`. Use either `FTP_PASS` or `FTP_KEYCHAIN_SERVICE` for FTP authentication.
 
 Daily bargain generation additionally reads `OPENAI_API_KEY` from the private local
-shell/LaunchAgent environment. It defaults to `OPENAI_BARGAIN_MODEL=gpt-5.6-sol`,
+shell/LaunchAgent environment. It defaults to `OPENAI_BARGAIN_MODEL=gpt-5.6-luna`,
 `OPENAI_BARGAIN_REASONING=high`, and `POSOKANEI_BARGAIN_TIME_ZONE=Europe/Athens`.
 Do not put the key in Plesk, `public/`, `dist/`, committed files, or browser code.
 

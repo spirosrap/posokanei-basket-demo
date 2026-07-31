@@ -23,7 +23,7 @@ const attemptStatePath = resolve(
   projectRoot,
   process.env.POSOKANEI_BARGAIN_ATTEMPT_STATE || ".cache/daily-bargain-attempt.json",
 );
-const model = process.env.OPENAI_BARGAIN_MODEL || "gpt-5.6-sol";
+const model = process.env.OPENAI_BARGAIN_MODEL || "gpt-5.6-luna";
 const reasoningEffort = process.env.OPENAI_BARGAIN_REASONING || "high";
 const timeZone = process.env.POSOKANEI_BARGAIN_TIME_ZONE || "Europe/Athens";
 const bargainCount = 9;
