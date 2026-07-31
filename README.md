@@ -8,13 +8,15 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.34.0`
+**Τρέχουσα έκδοση:** `v0.35.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η ταχύτερη έκδοση 0.22.0 στο kalathitimon.com](screenshots/performance-v0.22.0.jpg)
+![Η ταχύτερη έκδοση 0.35.0 στο kalathitimon.com](screenshots/performance-v0.35.0.png)
+
+![Η mobile προβολή της έκδοσης 0.35.0](screenshots/performance-mobile-v0.35.0.png)
 
 Η βασική ιδέα είναι απλή:
 
@@ -140,6 +142,8 @@
 Η έκδοση `v0.33.5` κλείνει το κενό ανάμεσα στην κυκλική σάρωση του καταλόγου και στα προϊόντα που συναντά πραγματικά ο χρήστης. Όταν ο δημόσιος image proxy εξαντλήσει όλες τις επίσημες πηγές για ένα προϊόν, καταγράφει αυτόματα μόνο το δημόσιο αναγνωριστικό προϊόντος και την έκδοση εικόνας σε μία βραχύβια ουρά. Η ουρά δεν αποθηκεύει διεύθυνση IP, τοποθεσία, καλάθι ή άλλα στοιχεία χρήστη. Ο επόμενος ωριαίος συγχρονισμός συγχωνεύει και αποδιπλοποιεί αυτές τις αναφορές και τις ελέγχει πριν από την κανονική κυκλική παρτίδα. Έτσι μια εικόνα που εμφανίστηκε ως πλακίδιο με αρχικά δεν χρειάζεται πλέον να περιμένει έως ότου τη φτάσει η πλήρης διαδρομή του scanner. Η κυκλοφορία συνοδεύεται επίσης από εφάπαξ πλήρη έλεγχο του τρέχοντος καταλόγου για την αποκατάσταση του ήδη συσσωρευμένου backlog. Διορθώθηκε επίσης ένα race condition στην εναλλαγή του ωριαίου lock, ώστε δύο διαδοχικοί συγχρονισμοί να μην μπορούν να μεταβάλλουν τα ίδια προσωρινά αρχεία ταυτόχρονα.
 
 Η έκδοση `v0.34.0` προσθέτει οδηγό μείωσης στάσεων. Όταν η πρώτη πλήρης λύση χρειάζεται περισσότερες από μία αλυσίδες, η εφαρμογή συγκρίνει το αμέσως μικρότερο όριο και εμφανίζει μόνο τα προϊόντα που μένουν πραγματικά ακάλυπτα στο καλύτερο πλάνο του. Για κάθε τέτοιο προϊόν ανοίγει απευθείας τις υπάρχουσες αυστηρά ισοδύναμες επιλογές, φιλτραρισμένες μόνο στις αλυσίδες του μικρότερου πλάνου. Μετά από αντικατάσταση διατηρείται η ποσότητα και επανυπολογίζονται αυτόματα κάλυψη, σύνολα και στάσεις. Ο οδηγός δεν υπόσχεται ότι υπάρχει υποκατάστατο και δεν χαλαρώνει τους κανόνες αντιστοίχισης: αν δεν υπάρχει αρκετά κοντινή επιλογή, προτιμά να μη δείξει πρόταση. Όλος ο υπολογισμός γίνεται τοπικά πάνω στον συγχρονισμένο κατάλογο, χωρίς προσωπικά δεδομένα. Η ίδια έκδοση ανανεώνει επίσης αυτόματα μια ήδη ανοιγμένη παλιά έκδοση μόλις ενεργοποιηθεί το νέο service worker, ώστε τα releases να μη χρειάζονται χειροκίνητο refresh.
+
+Η έκδοση `v0.35.0` επιταχύνει την πρώτη αναζήτηση και την αρχική εμπειρία σε κινητό. Όσο το πλήρες τοπικό index του καταλόγου κατεβαίνει στο παρασκήνιο, η πρώτη αναζήτηση δεν το περιμένει πλέον έως `1,4` δευτερόλεπτα: χρησιμοποιεί αμέσως το μικρό server-side snapshot endpoint και περνά αυτόματα στο τοπικό Web Worker μόλις αυτό ετοιμαστεί. Το index ξεκινά νωρίτερα σε idle χρόνο, ως αίτημα χαμηλής προτεραιότητας, αλλά απενεργοποιείται όταν ο browser δηλώνει Data Saver ή αργή σύνδεση. Σε οθόνες έως `900px` δημιουργείται αρχικά μόνο η ενεργή προβολή `Προϊόντα`, `Καλάθι` ή `Πλάνο`, αντί να κατασκευάζονται και οι τρεις πλήρεις λίστες ενώ οι δύο παραμένουν κρυφές. Η desktop εφαρμογή και όλοι οι υπολογισμοί παραμένουν αμετάβλητοι.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -287,7 +291,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.34.0`
+**Current version:** `v0.35.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -448,6 +452,8 @@ Version `v0.33.4` extends the same protection to the main product list and produ
 Version `v0.33.5` closes the gap between the rotating catalogue scan and the products users actually encounter. When the public image proxy exhausts every official source for a product, it automatically records only the public product identifier and image revision in a short-lived queue. The queue stores no IP address, location, basket contents, or other user data. The next hourly synchronization merges and deduplicates those reports and checks them before the normal rotating batch. An image that appeared as an initials tile therefore no longer has to wait until the scanner reaches it in the full catalogue rotation. This release is also accompanied by a one-time complete audit of the current catalogue to repair the existing backlog. A race condition in the hourly lock handoff was also fixed, preventing consecutive synchronizations from modifying the same staging files at the same time.
 
 Version `v0.34.0` adds a fewer-stops guide. When the first complete solution needs more than one chain, the app compares it with the immediately smaller limit and shows only the products genuinely left uncovered by that best lower-stop plan. Each product opens the existing strict-equivalence suggestions already filtered to the chains in the smaller plan. Replacing an item preserves its quantity and immediately recalculates coverage, totals, and stop requirements. The guide does not promise a substitute and does not relax matching rules: when no sufficiently close equivalent exists, it shows no suggestion. The analysis runs locally against the synchronized catalogue and sends no personal data. This release also reloads an already open older build automatically as soon as the new service worker takes control, so future releases do not require a manual refresh.
+
+Version `v0.35.0` speeds up the first search and the initial mobile experience. While the complete local catalogue index downloads in the background, a cold search no longer waits up to `1.4` seconds for it: the app immediately uses the small server-side snapshot endpoint, then automatically switches to the local Web Worker once it is ready. The index starts earlier during idle time as a low-priority request, but remains disabled when the browser reports Data Saver or a slow connection. On screens up to `900px`, only the active `Products`, `Basket`, or `Plan` view is initially mounted instead of constructing all three full lists while two remain hidden. The desktop workspace and all price calculations are unchanged.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

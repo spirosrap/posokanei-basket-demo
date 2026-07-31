@@ -381,6 +381,29 @@ const allowsBackgroundPrefetch = () => {
   return !connection?.saveData && !["slow-2g", "2g"].includes(connection?.effectiveType);
 };
 
+function useMediaQuery(query) {
+  const getMatches = () =>
+    typeof window.matchMedia === "function" && window.matchMedia(query).matches;
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const mediaQuery = window.matchMedia(query);
+    const updateMatches = () => setMatches(mediaQuery.matches);
+    updateMatches();
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateMatches);
+      return () => mediaQuery.removeEventListener("change", updateMatches);
+    }
+
+    mediaQuery.addListener?.(updateMatches);
+    return () => mediaQuery.removeListener?.(updateMatches);
+  }, [query]);
+
+  return matches;
+}
+
 const prefetchPriceChangesData = () => {
   if (!window.__priceChangesPreviewPromise) {
     window.__priceChangesPreviewPromise = fetch(
@@ -561,6 +584,7 @@ function AppContent({ route }) {
       : savedBasket(),
   );
   const [mobileView, setMobileView] = useState(() => (basket.length ? "plan" : "products"));
+  const isCompactWorkspace = useMediaQuery("(max-width: 900px)");
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -760,10 +784,10 @@ function AppContent({ route }) {
   }, []);
 
   useEffect(() => {
-    if (isBargainsPage || !catalogBootstrapped) return undefined;
+    if (isBargainsPage || !catalogBootstrapped || !allowsBackgroundPrefetch()) return undefined;
     return scheduleIdleWork(() => {
       void warmCatalogSearch(health.snapshotGeneratedAt);
-    }, { delay: 8000, timeout: 12000 });
+    }, { delay: 3500, timeout: 7000 });
   }, [catalogBootstrapped, health.snapshotGeneratedAt, isBargainsPage]);
 
   useEffect(() => {
@@ -1435,76 +1459,88 @@ function AppContent({ route }) {
       />
 
       <main className="workspace" aria-label={t("workspace")}>
-        <SearchPanel
-          mobileActive={mobileView === "products"}
-          query={query}
-          setQuery={setQuery}
-          categoryId={categoryId}
-          setCategoryId={setCategoryId}
-          productSort={productSort}
-          setProductSort={setProductSort}
-          categories={categories}
-          products={displayProducts}
-          basketQuantities={basketQuantities}
-          retailers={activeRetailers}
-          catalogSource={liveMeta.source || health.source}
-          liveState={liveState}
-          liveMeta={liveMeta}
-          selectedProduct={selectedProduct}
-          onSearchFocus={() => warmCatalogSearch(health.snapshotGeneratedAt)}
-          onSelect={selectProduct}
-          onAdd={addToBasket}
-          onLoadMore={loadMoreLiveProducts}
-        />
+        {!isCompactWorkspace || mobileView === "products" ? (
+          <SearchPanel
+            mobileActive={mobileView === "products"}
+            query={query}
+            setQuery={setQuery}
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            productSort={productSort}
+            setProductSort={setProductSort}
+            categories={categories}
+            products={displayProducts}
+            basketQuantities={basketQuantities}
+            retailers={activeRetailers}
+            catalogSource={liveMeta.source || health.source}
+            liveState={liveState}
+            liveMeta={liveMeta}
+            selectedProduct={selectedProduct}
+            onSearchFocus={() => warmCatalogSearch(health.snapshotGeneratedAt)}
+            onSelect={selectProduct}
+            onAdd={addToBasket}
+            onLoadMore={loadMoreLiveProducts}
+          />
+        ) : (
+          <div id="products-panel" hidden aria-hidden="true" />
+        )}
 
-        <BasketPanel
-          mobileActive={mobileView === "basket"}
-          basket={basket}
-          productMap={productMap}
-          rankings={rankings}
-          bestCompleteRanking={bestCompleteRanking}
-          visitPlan={visitPlan}
-          stopComparison={stopComparison}
-          maxChains={maxChains}
-          isDemoBasket={isDemoBasket}
-          onQuantity={updateQuantity}
-          onClear={clearBasket}
-          onExport={openBasketExport}
-          onShare={openShareBasket}
-          onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
-          onLoadDemo={loadDemoBasket}
-          onSelect={selectProduct}
-          sharedBasketStatus={sharedBasketStatus}
-          savedBasketCount={savedBaskets.length}
-          savedBasketNotice={savedBasketNotice}
-          onDismissSavedBasketNotice={() => setSavedBasketNotice(null)}
-        />
+        {!isCompactWorkspace || mobileView === "basket" ? (
+          <BasketPanel
+            mobileActive={mobileView === "basket"}
+            basket={basket}
+            productMap={productMap}
+            rankings={rankings}
+            bestCompleteRanking={bestCompleteRanking}
+            visitPlan={visitPlan}
+            stopComparison={stopComparison}
+            maxChains={maxChains}
+            isDemoBasket={isDemoBasket}
+            onQuantity={updateQuantity}
+            onClear={clearBasket}
+            onExport={openBasketExport}
+            onShare={openShareBasket}
+            onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
+            onLoadDemo={loadDemoBasket}
+            onSelect={selectProduct}
+            sharedBasketStatus={sharedBasketStatus}
+            savedBasketCount={savedBaskets.length}
+            savedBasketNotice={savedBasketNotice}
+            onDismissSavedBasketNotice={() => setSavedBasketNotice(null)}
+          />
+        ) : (
+          <div id="basket-panel" hidden aria-hidden="true" />
+        )}
 
-        <RankingsPanel
-          mobileActive={mobileView === "plan"}
-          rankings={rankings}
-          bestCompleteRanking={bestCompleteRanking}
-          visitPlan={visitPlan}
-          maxChains={maxChains}
-          setMaxChains={setMaxChains}
-          stopComparison={stopComparison}
-          stopReductionInsight={stopReductionInsight}
-          extraStopCost={extraStopCost}
-          setExtraStopCost={setExtraStopCost}
-          basketSize={basket.length}
-          locationState={locationState}
-          locationRadiusKm={locationRadiusKm}
-          retailerProximity={retailerProximity}
-          retailers={locationEligibleRetailers}
-          retailerFilterIds={retailerFilterIds}
-          nearbyRetailerCount={nearbyRetailerIds.length}
-          onRequestLocation={() => loadNearbyStores()}
-          onChangeLocationRadius={changeLocationRadius}
-          onClearLocation={clearLocation}
-          onToggleRetailer={toggleRetailerFilter}
-          onSelectAllRetailers={() => setRetailerFilterIds(null)}
-          onFindFewerStopAlternative={findFewerStopAlternative}
-        />
+        {!isCompactWorkspace || mobileView === "plan" ? (
+          <RankingsPanel
+            mobileActive={mobileView === "plan"}
+            rankings={rankings}
+            bestCompleteRanking={bestCompleteRanking}
+            visitPlan={visitPlan}
+            maxChains={maxChains}
+            setMaxChains={setMaxChains}
+            stopComparison={stopComparison}
+            stopReductionInsight={stopReductionInsight}
+            extraStopCost={extraStopCost}
+            setExtraStopCost={setExtraStopCost}
+            basketSize={basket.length}
+            locationState={locationState}
+            locationRadiusKm={locationRadiusKm}
+            retailerProximity={retailerProximity}
+            retailers={locationEligibleRetailers}
+            retailerFilterIds={retailerFilterIds}
+            nearbyRetailerCount={nearbyRetailerIds.length}
+            onRequestLocation={() => loadNearbyStores()}
+            onChangeLocationRadius={changeLocationRadius}
+            onClearLocation={clearLocation}
+            onToggleRetailer={toggleRetailerFilter}
+            onSelectAllRetailers={() => setRetailerFilterIds(null)}
+            onFindFewerStopAlternative={findFewerStopAlternative}
+          />
+        ) : (
+          <div id="plan-panel" hidden aria-hidden="true" />
+        )}
       </main>
 
       {selectedProduct ? (

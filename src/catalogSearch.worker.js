@@ -14,6 +14,7 @@ self.addEventListener("message", async (event) => {
       const response = await fetch(message.url, {
         cache: message.cacheMode === "force-cache" ? "force-cache" : "default",
         headers: { Accept: "application/json" },
+        priority: "low",
       });
       if (!response.ok) throw new Error(`catalog_runtime_${response.status}`);
       const catalog = await response.json();
