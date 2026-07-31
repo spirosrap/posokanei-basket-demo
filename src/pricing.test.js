@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  formatEuro,
+  formatNumber,
   getBestProductPrice,
   getBestProductUnitPrice,
   getProductPriceChange,
@@ -15,6 +17,13 @@ const product = {
     sklavenitis: 2.5,
   },
 };
+
+test("formats repeated currency and number values consistently", () => {
+  assert.match(formatEuro(12.5, "en-GB"), /12\.50/);
+  assert.equal(formatEuro(Number.NaN), "-");
+  assert.equal(formatNumber(1234, "en-GB"), "1,234");
+  assert.equal(formatNumber(Number.NaN, "en-GB"), "0");
+});
 
 test("best product price can be limited to location-eligible retailers", () => {
   assert.deepEqual(getBestProductPrice(product), {

@@ -1,13 +1,31 @@
+const currencyFormatters = new Map();
+const numberFormatters = new Map();
+
+function cachedFormatter(cache, locale, options) {
+  if (!cache.has(locale)) cache.set(locale, new Intl.NumberFormat(locale, options));
+  return cache.get(locale);
+}
+
 export function formatEuro(value, locale = "el-GR") {
   if (!Number.isFinite(value)) return "-";
   try {
-    return new Intl.NumberFormat(locale, {
+    return cachedFormatter(currencyFormatters, locale, {
       style: "currency",
       currency: "EUR",
       minimumFractionDigits: 2,
     }).format(value);
   } catch {
     return `${value.toFixed(2).replace(".", ",")} €`;
+  }
+}
+
+export function formatNumber(value, locale = "el-GR") {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "0";
+  try {
+    return cachedFormatter(numberFormatters, locale).format(number);
+  } catch {
+    return String(number);
   }
 }
 

@@ -6,6 +6,31 @@ import {
 
 let preparedCatalog = null;
 let preparedAlternatives = null;
+const queryCache = new Map();
+const QUERY_CACHE_LIMIT = 48;
+
+function cachedCatalogQuery(params) {
+  const key = JSON.stringify([
+    params?.query || "",
+    params?.categoryId || "all",
+    Number(params?.page) || 1,
+    Number(params?.pageSize) || 30,
+    params?.sortMode || "price",
+  ]);
+  const cached = queryCache.get(key);
+  if (cached) {
+    queryCache.delete(key);
+    queryCache.set(key, cached);
+    return cached;
+  }
+
+  const result = queryCatalogSearch(preparedCatalog, params);
+  queryCache.set(key, result);
+  if (queryCache.size > QUERY_CACHE_LIMIT) {
+    queryCache.delete(queryCache.keys().next().value);
+  }
+  return result;
+}
 
 self.addEventListener("message", async (event) => {
   const message = event.data || {};
@@ -21,6 +46,7 @@ self.addEventListener("message", async (event) => {
       const products = catalog.products || [];
       preparedCatalog = prepareCatalogSearch(products);
       preparedAlternatives = prepareProductAlternatives(products);
+      queryCache.clear();
       self.postMessage({
         type: "ready",
         generatedAt: catalog.generated_at || "",
@@ -34,7 +60,7 @@ self.addEventListener("message", async (event) => {
 
   if (message.type === "query" && preparedCatalog) {
     const startedAt = performance.now();
-    const result = queryCatalogSearch(preparedCatalog, message.params);
+    const result = cachedCatalogQuery(message.params);
     self.postMessage({
       type: "result",
       requestId: message.requestId,

@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import {
   lazy,
+  memo,
   startTransition,
   Suspense,
   useCallback,
@@ -78,6 +79,7 @@ import {
 import {
   calculateRankings,
   formatEuro,
+  formatNumber,
   getBestProductPrice,
   getBestProductUnitPrice,
   getProductPrice,
@@ -95,11 +97,8 @@ import {
   mapsSearchUrl,
 } from "./locationStores";
 import { formatPlanText } from "./planText";
-import { formatBasketText, formatPortableTextFile } from "./basketText";
-import { formatBasketData, parseBasketData } from "./basketData";
 import { calculateSavingsBreakdown } from "./savingsBreakdown";
 import { buildSharedBasketUrl, readSharedBasketUrl, SHARED_BASKET_PARAM } from "./shareBasket";
-import { shortenBasketUrl } from "./shortLinks";
 import { runtimeAppUrl } from "./appConfig";
 import {
   getInitialProductSort,
@@ -156,6 +155,17 @@ import {
   usePreferences,
 } from "./appContexts";
 import { resolveCatalogUpdatedAt } from "./updateStatus";
+import {
+  addRecentSearch,
+  loadRecentSearches,
+  persistRecentSearches,
+} from "./recentSearches";
+import {
+  loadShoppingBudget,
+  normalizeShoppingBudget,
+  persistShoppingBudget,
+  shoppingBudgetStatus,
+} from "./shoppingBudget";
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -173,6 +183,8 @@ const INITIAL_SHARED_BASKET = INITIAL_APP_ROUTE !== APP_ROUTES.home
 const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
 const IMAGE_PROXY_RETRY_DELAYS = [2500, 12000];
 const loadPriceChangesPage = () => import("./PriceChangesPage.jsx");
+const loadBasketExportRuntime = () => import("./basketExportRuntime.js");
+const loadShortLinks = () => import("./shortLinks.js");
 const LazyPriceChangesPage = lazy(loadPriceChangesPage);
 const SHOPPING_PRIORITY_OPTIONS = [
   { value: 0, labelKey: "priorityLowestPrice" },
@@ -343,8 +355,7 @@ const downloadBlob = (blob, filename) => {
 };
 
 const downloadTextFile = (value, filename) => {
-  const windowsCompatibleText = formatPortableTextFile(value);
-  const blob = new Blob([windowsCompatibleText], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([value], { type: "text/plain;charset=utf-8" });
   downloadBlob(blob, filename);
 };
 
@@ -448,7 +459,8 @@ function useShortBasketLink(longUrl) {
     }
     let active = true;
     setState({ status: "loading", url: longUrl });
-    shortenBasketUrl(longUrl)
+    loadShortLinks()
+      .then(({ shortenBasketUrl }) => shortenBasketUrl(longUrl))
       .then((url) => {
         if (active) setState({ status: "ready", url });
       })
@@ -478,7 +490,7 @@ function App() {
       setTheme,
       theme,
       t,
-      number: (value) => Number(value || 0).toLocaleString(locale),
+      number: (value) => formatNumber(value, locale),
       money: (value) => formatEuro(value, locale),
     };
   }, [language, locale, theme]);
@@ -587,6 +599,7 @@ function AppContent({ route }) {
   const isCompactWorkspace = useMediaQuery("(max-width: 900px)");
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
   const [query, setQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState(loadRecentSearches);
   const [categoryId, setCategoryId] = useState("all");
   const [productSort, setProductSort] = useState(getInitialProductSort);
   const [health, setHealth] = useState({ state: "checking", activeProducts: 0 });
@@ -613,6 +626,7 @@ function AppContent({ route }) {
       : savedMaxChains() ?? (shouldStartWithDemoBasket() ? 4 : 1),
   );
   const [extraStopCost, setExtraStopCost] = useState(getInitialExtraStopCost);
+  const [shoppingBudget, setShoppingBudget] = useState(loadShoppingBudget);
   const [sharedBasketHydrating, setSharedBasketHydrating] = useState(
     INITIAL_SHARED_BASKET?.status === "valid",
   );
@@ -658,6 +672,19 @@ function AppContent({ route }) {
   const catalogRequestId = useRef(0);
   const mobileWorkspaceNav = useRef(null);
 
+  const rememberSuccessfulSearch = useCallback((value) => {
+    setRecentSearches((current) => {
+      const next = addRecentSearch(current, value);
+      const unchanged = next.length === current.length
+        && next.every((entry, index) => entry === current[index]);
+      return unchanged ? current : persistRecentSearches(next);
+    });
+  }, []);
+
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches(persistRecentSearches([]));
+  }, []);
+
   useEffect(() => {
     if (!sharedBasketHydrating) saveLocalJson(BASKET_KEY, basket);
   }, [basket, sharedBasketHydrating]);
@@ -677,6 +704,10 @@ function AppContent({ route }) {
   useEffect(() => {
     saveExtraStopCost(extraStopCost);
   }, [extraStopCost]);
+
+  useEffect(() => {
+    persistShoppingBudget(shoppingBudget);
+  }, [shoppingBudget]);
 
   useEffect(() => {
     if (!INITIAL_SHARED_BASKET) return undefined;
@@ -857,6 +888,9 @@ function AppContent({ route }) {
     fetchProducts({ query, categoryId, page: 1, sortMode: productSort })
       .then((result) => {
         if (cancelled || requestId !== catalogRequestId.current) return;
+        if (query.trim().length >= 2 && result.total > 0) {
+          rememberSuccessfulSearch(query);
+        }
         startTransition(() => {
           setLiveProducts(result.products);
           setLiveMeta((current) => ({
@@ -880,7 +914,7 @@ function AppContent({ route }) {
     return () => {
       cancelled = true;
     };
-  }, [catalogBootstrapped, categoryId, productSort, query]);
+  }, [catalogBootstrapped, categoryId, productSort, query, rememberSuccessfulSearch]);
 
   useEffect(() => {
     saveProductSort(productSort);
@@ -1062,15 +1096,15 @@ function AppContent({ route }) {
     ? maxChains
     : firstCompleteStopOption?.limit ?? null;
 
-  const selectProduct = (product) => {
+  const selectProduct = useCallback((product) => {
     setAlternativeGuide(null);
     setSelectedProduct(product);
-  };
+  }, []);
 
-  const closeProduct = () => {
+  const closeProduct = useCallback(() => {
     setAlternativeGuide(null);
     setSelectedProduct(null);
-  };
+  }, []);
 
   const findFewerStopAlternative = (product, insight) => {
     setAlternativeGuide({
@@ -1082,7 +1116,7 @@ function AppContent({ route }) {
     setSelectedProduct(product);
   };
 
-  const addToBasket = (product) => {
+  const addToBasket = useCallback((product) => {
     setSavedBasketNotice(null);
     rememberCatalogProduct(product, setLiveBasketProducts);
     setBasket((current) => {
@@ -1096,7 +1130,7 @@ function AppContent({ route }) {
       }
       return [...current, { productId: product.id, quantity: quantityStep() }];
     });
-  };
+  }, []);
 
   const replaceBasketProduct = (sourceProduct, replacementProduct) => {
     if (!sourceProduct || !replacementProduct || sourceProduct.id === replacementProduct.id) return;
@@ -1168,12 +1202,14 @@ function AppContent({ route }) {
 
   const openShareBasket = () => {
     if (!basket.length) return;
+    void loadShortLinks();
     setBasketExportOpen(false);
     setShareUrl(currentBasketUrl());
   };
 
   const openBasketExport = () => {
     if (!basket.length) return;
+    void loadBasketExportRuntime();
     setShareUrl("");
     setBasketExportOpen(true);
   };
@@ -1464,6 +1500,12 @@ function AppContent({ route }) {
             mobileActive={mobileView === "products"}
             query={query}
             setQuery={setQuery}
+            recentSearches={recentSearches}
+            onUseRecentSearch={(value) => {
+              setCategoryId("all");
+              setQuery(value);
+            }}
+            onClearRecentSearches={clearRecentSearches}
             categoryId={categoryId}
             setCategoryId={setCategoryId}
             productSort={productSort}
@@ -1524,6 +1566,8 @@ function AppContent({ route }) {
             stopReductionInsight={stopReductionInsight}
             extraStopCost={extraStopCost}
             setExtraStopCost={setExtraStopCost}
+            shoppingBudget={shoppingBudget}
+            setShoppingBudget={setShoppingBudget}
             basketSize={basket.length}
             locationState={locationState}
             locationRadiusKm={locationRadiusKm}
@@ -2080,6 +2124,9 @@ function SearchPanel({
   mobileActive,
   query,
   setQuery,
+  recentSearches,
+  onUseRecentSearch,
+  onClearRecentSearches,
   categoryId,
   setCategoryId,
   productSort,
@@ -2122,6 +2169,29 @@ function SearchPanel({
         onFocus={onSearchFocus}
         placeholder={t("searchPlaceholder")}
       />
+
+      {!query && recentSearches.length ? (
+        <div className="recent-searches" aria-label={t("recentSearches")}>
+          <span>{t("recentSearches")}</span>
+          <div className="recent-search-chips">
+            {recentSearches.map((entry) => (
+              <button key={entry} type="button" onClick={() => onUseRecentSearch(entry)}>
+                <Search size={13} aria-hidden="true" />
+                {entry}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="icon-button recent-search-clear"
+            onClick={onClearRecentSearches}
+            title={t("clearRecentSearches")}
+            aria-label={t("clearRecentSearches")}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ) : null}
 
       <div className="chips" aria-label={t("categories")}>
         {categories.map((item) => (
@@ -2173,8 +2243,8 @@ function SearchPanel({
               basketQuantity={basketQuantities.get(product.id) || 0}
               imagePriority={index < 4}
               selected={selectedProduct?.id === product.id}
-              onSelect={() => onSelect(product)}
-              onAdd={() => onAdd(product)}
+              onSelect={onSelect}
+              onAdd={onAdd}
             />
           ))}
         </div>
@@ -2290,7 +2360,7 @@ function LiveNotice({ state, total, visible, catalogSource, sortMode }) {
   );
 }
 
-function ProductRow({
+const ProductRow = memo(function ProductRow({
   product,
   retailers,
   basketQuantity,
@@ -2311,7 +2381,7 @@ function ProductRow({
     : t("addProduct", { name: product.name });
   return (
     <article className={`${selected ? "product-row selected" : "product-row"}${basketQuantity ? " in-basket" : ""}`}>
-      <button type="button" className="product-main" onClick={onSelect}>
+      <button type="button" className="product-main" onClick={() => onSelect(product)}>
         <ProductThumb product={product} priority={imagePriority} />
         <span className="product-copy">
           <strong>{product.name}</strong>
@@ -2334,7 +2404,7 @@ function ProductRow({
       <button
         type="button"
         className={`icon-button add${basketQuantity ? " in-basket" : ""}`}
-        onClick={onAdd}
+        onClick={() => onAdd(product)}
         aria-label={addLabel}
         title={addLabel}
       >
@@ -2346,7 +2416,7 @@ function ProductRow({
       </button>
     </article>
   );
-}
+});
 
 function BasketPanel({
   mobileActive,
@@ -2610,14 +2680,30 @@ function BasketExportDialog({
   const { language, t } = usePreferences();
   const [format, setFormat] = useState("text");
   const [actionState, setActionState] = useState("idle");
+  const [exportRuntime, setExportRuntime] = useState(null);
   const [exportedAt] = useState(() => new Date().toISOString());
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const supportsNativeShare = typeof navigator.share === "function";
   const basketLink = useShortBasketLink(shareUrl);
+
+  useEffect(() => {
+    let active = true;
+    loadBasketExportRuntime()
+      .then((runtime) => {
+        if (active) setExportRuntime(runtime);
+      })
+      .catch(() => {
+        if (active) setActionState("runtime-error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const text = useMemo(
     () =>
-      formatBasketText({
+      exportRuntime?.formatBasketText({
         basket,
         productMap,
         selectedStopLimit,
@@ -2626,9 +2712,10 @@ function BasketExportDialog({
         planStopLimit,
         shareUrl: basketLink.url,
         language,
-      }),
+      }) || "",
     [
       basket,
+      exportRuntime,
       language,
       plan,
       planStopLimit,
@@ -2640,17 +2727,17 @@ function BasketExportDialog({
   );
   const json = useMemo(
     () =>
-      formatBasketData({
+      exportRuntime?.formatBasketData({
         basket,
         productMap,
         maxChains,
         retailerIds,
         extraStopCost,
         exportedAt,
-      }),
-    [basket, exportedAt, extraStopCost, maxChains, productMap, retailerIds],
+      }) || "",
+    [basket, exportRuntime, exportedAt, extraStopCost, maxChains, productMap, retailerIds],
   );
-  const preview = format === "json" ? json : text;
+  const preview = exportRuntime ? (format === "json" ? json : text) : t("loading");
 
   useEffect(() => {
     setActionState("idle");
@@ -2670,6 +2757,7 @@ function BasketExportDialog({
   };
 
   const copyExport = async () => {
+    if (!exportRuntime) return;
     try {
       await copyText(preview);
       setActionState("copied");
@@ -2680,6 +2768,7 @@ function BasketExportDialog({
   };
 
   const shareExport = async () => {
+    if (!exportRuntime) return;
     try {
       await navigator.share({ title: t("shoppingPlanTitle"), text });
       setActionState("shared");
@@ -2689,11 +2778,12 @@ function BasketExportDialog({
   };
 
   const downloadExport = () => {
+    if (!exportRuntime) return;
     if (format === "json") {
       downloadJsonFile(json, "posokanei-basket.json");
     } else {
       const filename = language === "el" ? "kalathi-timon.txt" : "supermarket-basket.txt";
-      downloadTextFile(text, filename);
+      downloadTextFile(exportRuntime.formatPortableTextFile(text), filename);
     }
     setActionState("downloaded");
   };
@@ -2704,8 +2794,9 @@ function BasketExportDialog({
     if (!file) return;
     setActionState("importing");
     try {
+      if (!exportRuntime) throw new Error("export_runtime_unavailable");
       if (file.size > 256 * 1024) throw new Error("invalid_file_size");
-      const data = parseBasketData(await file.text());
+      const data = exportRuntime.parseBasketData(await file.text());
       await onImport(data);
     } catch {
       setActionState("import-error");
@@ -2719,8 +2810,9 @@ function BasketExportDialog({
     manual: format === "json" ? t("jsonExportManual") : t("textExportManual"),
     importing: t("jsonImporting"),
     "import-error": t("jsonImportError"),
+    "runtime-error": t("basketExportRuntimeError"),
   }[actionState];
-  const feedbackIsError = actionState === "import-error";
+  const feedbackIsError = actionState === "import-error" || actionState === "runtime-error";
 
   return (
     <aside
@@ -2788,7 +2880,7 @@ function BasketExportDialog({
         </label>
 
         <div className="share-dialog-actions text-export-actions">
-          <button type="button" className="primary-action" onClick={copyExport}>
+          <button type="button" className="primary-action" onClick={copyExport} disabled={!exportRuntime}>
             {actionState === "copied" ? <Check size={18} /> : <Copy size={18} />}
             {actionState === "copied"
               ? format === "json"
@@ -2799,12 +2891,12 @@ function BasketExportDialog({
                 : t("copyTextExport")}
           </button>
           {format === "text" && supportsNativeShare ? (
-            <button type="button" className="text-button" onClick={shareExport}>
+            <button type="button" className="text-button" onClick={shareExport} disabled={!exportRuntime}>
               <Share2 size={17} />
               {t("share")}
             </button>
           ) : null}
-          <button type="button" className="text-button" onClick={downloadExport}>
+          <button type="button" className="text-button" onClick={downloadExport} disabled={!exportRuntime}>
             <Download size={17} />
             {format === "json" ? t("downloadJsonExport") : t("downloadTextExport")}
           </button>
@@ -2813,7 +2905,7 @@ function BasketExportDialog({
               type="button"
               className="text-button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={actionState === "importing"}
+              disabled={!exportRuntime || actionState === "importing"}
             >
               {actionState === "importing" ? (
                 <RefreshCw size={17} className="spin" />
@@ -3301,6 +3393,8 @@ function RankingsPanel({
   stopReductionInsight,
   extraStopCost,
   setExtraStopCost,
+  shoppingBudget,
+  setShoppingBudget,
   basketSize,
   locationState,
   locationRadiusKm,
@@ -3383,6 +3477,12 @@ function RankingsPanel({
         basketSize={basketSize}
         maxChains={maxChains}
         oneStopTotal={oneStopTotal}
+      />
+
+      <ShoppingBudgetControl
+        budget={shoppingBudget}
+        total={visitPlan?.isComplete ? visitPlan.total : null}
+        onChange={setShoppingBudget}
       />
 
       <StopReductionCard
@@ -3510,6 +3610,77 @@ function useIdleReveal(delay = 450) {
   }, [delay]);
 
   return revealed;
+}
+
+function ShoppingBudgetControl({ budget, total, onChange }) {
+  const { money, t } = usePreferences();
+  const [draft, setDraft] = useState(() => budget == null ? "" : String(budget));
+  const status = shoppingBudgetStatus(total, budget);
+
+  useEffect(() => {
+    setDraft(budget == null ? "" : String(budget));
+  }, [budget]);
+
+  const commit = () => {
+    const next = normalizeShoppingBudget(draft);
+    setDraft(next == null ? "" : String(next));
+    onChange(next);
+  };
+
+  return (
+    <section className={`shopping-budget ${status.state}`} aria-labelledby="shopping-budget-title">
+      <div className="shopping-budget-head">
+        <span className="shopping-budget-icon" aria-hidden="true">
+          <Target size={16} />
+        </span>
+        <label htmlFor="shopping-budget-input" id="shopping-budget-title">
+          {t("shoppingBudget")}
+        </label>
+        <div className="shopping-budget-input-wrap">
+          <input
+            id="shopping-budget-input"
+            type="text"
+            inputMode="decimal"
+            value={draft}
+            placeholder={t("shoppingBudgetPlaceholder")}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={commit}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+            }}
+            aria-label={t("shoppingBudgetAmount")}
+          />
+          <span aria-hidden="true">€</span>
+          {budget != null ? (
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => onChange(null)}
+              title={t("clearShoppingBudget")}
+              aria-label={t("clearShoppingBudget")}
+            >
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {status.state !== "unset" ? (
+        <div className="shopping-budget-status" role="status">
+          <div className="shopping-budget-bar" aria-hidden="true">
+            <span style={{ width: `${status.progress}%` }} />
+          </div>
+          <strong>
+            {status.difference < 0
+              ? t("shoppingBudgetOver", { amount: money(Math.abs(status.difference)) })
+              : status.difference === 0
+                ? t("shoppingBudgetExact")
+                : t("shoppingBudgetRemaining", { amount: money(status.difference) })}
+          </strong>
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function LocationControl({

@@ -34,6 +34,15 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name]-v${packageJson.version}-[hash].js`,
+        manualChunks(id) {
+          if (
+            id.includes("/node_modules/preact/")
+            || id.includes("/node_modules/lucide-react/")
+          ) {
+            return "ui-vendor";
+          }
+          return undefined;
+        },
       },
     },
   },

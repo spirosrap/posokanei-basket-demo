@@ -8,15 +8,15 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.35.0`
+**Τρέχουσα έκδοση:** `v0.36.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Η ταχύτερη έκδοση 0.35.0 στο kalathitimon.com](screenshots/performance-v0.35.0.png)
+![Πρόσφατες αναζητήσεις και προσωπικό όριο αγορών στην έκδοση 0.36.0](screenshots/performance-v0.36.0.png)
 
-![Η mobile προβολή της έκδοσης 0.35.0](screenshots/performance-mobile-v0.35.0.png)
+![Η mobile προβολή της έκδοσης 0.36.0](screenshots/performance-mobile-v0.36.0.png)
 
 Η βασική ιδέα είναι απλή:
 
@@ -28,6 +28,8 @@
 - Όταν μια τιμή έχει αλλάξει αισθητά σε πρόσφατο συγχρονισμό, δείχνει το ποσοστό και την προηγούμενη τιμή για τη συγκεκριμένη αλυσίδα.
 - Μπορείς να παρακολουθείς προϊόντα και να ορίζεις προαιρετική τιμή-στόχο, ώστε να βλέπεις ποια έφτασαν το ποσό που σε ενδιαφέρει.
 - Από τις λεπτομέρειες οποιουδήποτε προϊόντος μπορείς να δεις λίγες, αυστηρά ταιριασμένες εναλλακτικές και να συγκρίνεις τιμή μονάδας, χαρακτηριστικά και μέγεθος συσκευασίας.
+- Οι έξι τελευταίες επιτυχημένες αναζητήσεις παραμένουν μόνο στον browser και ανοίγουν ξανά με ένα πάτημα.
+- Μπορείς να ορίσεις προσωπικό όριο αγορών και να δεις άμεσα πόσο περιθώριο απομένει ή πόσο το ξεπερνά το επιλεγμένο πλήρες πλάνο.
 - Όταν ένα μικρότερο όριο στάσεων δεν καλύπτει το καλάθι, βλέπεις ακριβώς ποια προϊόντα το εμποδίζουν και ανοίγεις ισοδύναμες επιλογές που πωλούνται στις αλυσίδες του μικρότερου πλάνου.
 - Τα κρίσιμα αρχεία παραδίδονται προ-συμπιεσμένα και οι επόμενες μεταβάσεις μεταξύ αρχικής, ευκαιριών και αλλαγών τιμών χρησιμοποιούν ένα ασφαλές cached app shell.
 
@@ -144,6 +146,10 @@
 Η έκδοση `v0.34.0` προσθέτει οδηγό μείωσης στάσεων. Όταν η πρώτη πλήρης λύση χρειάζεται περισσότερες από μία αλυσίδες, η εφαρμογή συγκρίνει το αμέσως μικρότερο όριο και εμφανίζει μόνο τα προϊόντα που μένουν πραγματικά ακάλυπτα στο καλύτερο πλάνο του. Για κάθε τέτοιο προϊόν ανοίγει απευθείας τις υπάρχουσες αυστηρά ισοδύναμες επιλογές, φιλτραρισμένες μόνο στις αλυσίδες του μικρότερου πλάνου. Μετά από αντικατάσταση διατηρείται η ποσότητα και επανυπολογίζονται αυτόματα κάλυψη, σύνολα και στάσεις. Ο οδηγός δεν υπόσχεται ότι υπάρχει υποκατάστατο και δεν χαλαρώνει τους κανόνες αντιστοίχισης: αν δεν υπάρχει αρκετά κοντινή επιλογή, προτιμά να μη δείξει πρόταση. Όλος ο υπολογισμός γίνεται τοπικά πάνω στον συγχρονισμένο κατάλογο, χωρίς προσωπικά δεδομένα. Η ίδια έκδοση ανανεώνει επίσης αυτόματα μια ήδη ανοιγμένη παλιά έκδοση μόλις ενεργοποιηθεί το νέο service worker, ώστε τα releases να μη χρειάζονται χειροκίνητο refresh.
 
 Η έκδοση `v0.35.0` επιταχύνει την πρώτη αναζήτηση και την αρχική εμπειρία σε κινητό. Όσο το πλήρες τοπικό index του καταλόγου κατεβαίνει στο παρασκήνιο, η πρώτη αναζήτηση δεν το περιμένει πλέον έως `1,4` δευτερόλεπτα: χρησιμοποιεί αμέσως το μικρό server-side snapshot endpoint και περνά αυτόματα στο τοπικό Web Worker μόλις αυτό ετοιμαστεί. Το index ξεκινά νωρίτερα σε idle χρόνο, ως αίτημα χαμηλής προτεραιότητας, αλλά απενεργοποιείται όταν ο browser δηλώνει Data Saver ή αργή σύνδεση. Σε οθόνες έως `900px` δημιουργείται αρχικά μόνο η ενεργή προβολή `Προϊόντα`, `Καλάθι` ή `Πλάνο`, αντί να κατασκευάζονται και οι τρεις πλήρεις λίστες ενώ οι δύο παραμένουν κρυφές. Η desktop εφαρμογή και όλοι οι υπολογισμοί παραμένουν αμετάβλητοι.
+
+Η έκδοση `v0.36.0` προσθέτει δύο τοπικά εργαλεία για πιο γρήγορες επαναλαμβανόμενες αγορές. Οι έως έξι τελευταίες επιτυχημένες αναζητήσεις εμφανίζονται ως συντομεύσεις όταν το πεδίο είναι κενό, αποδιπλοποιούνται χωρίς να επηρεάζονται από τόνους ή πεζά/κεφαλαία και καθαρίζονται με μία ενέργεια. Στο πλάνο μπορεί επίσης να οριστεί προσωπικό όριο αγορών: η εφαρμογή το συγκρίνει με το τρέχον πλήρες σύνολο και δείχνει διαθέσιμο περιθώριο, εγγύτητα στο όριο ή υπέρβαση. Αναζητήσεις και όριο μένουν αποκλειστικά στον συγκεκριμένο browser και δεν περιλαμβάνονται σε κοινόχρηστους συνδέσμους.
+
+Η ίδια έκδοση μειώνει την εργασία στην κύρια ροή: οι γραμμές προϊόντων δεν ξανασχεδιάζονται όταν τα δεδομένα τους δεν αλλάζουν, οι μορφοποιητές τιμών επαναχρησιμοποιούνται και ο Web Worker κρατά μικρή LRU cache για επαναλαμβανόμενα queries. Ο κώδικας εξαγωγής καλαθιού και σύντομων συνδέσμων φορτώνεται μόνο όταν ζητηθεί. Το σταθερό, προφορτωμένο UI vendor chunk μπορεί να παραμένει στην cache ανάμεσα σε releases, ενώ το μεταβαλλόμενο main bundle μειώθηκε σε περίπου `51,7 KiB` Brotli. Ο συνολικός startup κώδικας παραμένει κάτω από αυστηρό όριο `64 KiB` Brotli, το οποίο ελέγχεται σε κάθε production build.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -291,7 +297,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.35.0`
+**Current version:** `v0.36.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -306,6 +312,8 @@ The app is inspired by [posokanei.gov.gr](https://posokanei.gov.gr/), which comp
 - See the best available unit price on each product row and the current basket quantity directly on its quick-add button.
 - See notable recent price drops or increases for the exact supermarket behind a displayed price, including the percentage and previous value.
 - Watch products with an optional target price and see which targets have been reached using current catalogue prices.
+- Reopen any of the six most recent successful searches with one click; this history stays only in the current browser.
+- Set a local shopping budget and immediately see how far the selected complete plan is below or above it.
 - Switch the complete interface between Greek and English, including dates, currency, accessibility labels, and copied shopping plans.
 - Choose System, Light, or Dark appearance, with persistent preferences and live operating-system theme tracking.
 - Start with a realistic weekly Greek-family basket that keeps several complete one-stop options and can be cleared in one click.
@@ -454,6 +462,10 @@ Version `v0.33.5` closes the gap between the rotating catalogue scan and the pro
 Version `v0.34.0` adds a fewer-stops guide. When the first complete solution needs more than one chain, the app compares it with the immediately smaller limit and shows only the products genuinely left uncovered by that best lower-stop plan. Each product opens the existing strict-equivalence suggestions already filtered to the chains in the smaller plan. Replacing an item preserves its quantity and immediately recalculates coverage, totals, and stop requirements. The guide does not promise a substitute and does not relax matching rules: when no sufficiently close equivalent exists, it shows no suggestion. The analysis runs locally against the synchronized catalogue and sends no personal data. This release also reloads an already open older build automatically as soon as the new service worker takes control, so future releases do not require a manual refresh.
 
 Version `v0.35.0` speeds up the first search and the initial mobile experience. While the complete local catalogue index downloads in the background, a cold search no longer waits up to `1.4` seconds for it: the app immediately uses the small server-side snapshot endpoint, then automatically switches to the local Web Worker once it is ready. The index starts earlier during idle time as a low-priority request, but remains disabled when the browser reports Data Saver or a slow connection. On screens up to `900px`, only the active `Products`, `Basket`, or `Plan` view is initially mounted instead of constructing all three full lists while two remain hidden. The desktop workspace and all price calculations are unchanged.
+
+Version `v0.36.0` adds two local tools for faster repeat shopping. Up to six recent successful searches appear as shortcuts whenever the search field is empty, with accent- and case-insensitive deduplication and a one-action clear control. The Plan view also accepts a personal shopping budget, compares it with the current complete total, and reports remaining headroom, proximity to the limit, or overspend. Search history and budget stay only in the current browser and are never included in shared basket links.
+
+The same release reduces work on the main interaction path. Unchanged product rows no longer rerender, currency and number formatters are reused, and the catalogue Web Worker keeps a small LRU cache for repeated queries. Basket-export and compact-link code loads only when its dialog is requested. A stable module-preloaded UI vendor chunk can remain cached between releases, while the frequently changing main bundle is reduced to about `51.7 KiB` Brotli. Combined startup JavaScript remains below a strict `64 KiB` Brotli budget enforced by every production build.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

@@ -10,16 +10,23 @@ const mainAsset = html.match(/(?:src|href)="[^"]*assets\/(index-[^"]+\.js)"/u)?.
 
 if (!mainAsset) throw new Error("Performance budget could not identify the main application bundle.");
 
-const routeAssets = (await readdir(assetsRoot))
-  .filter((name) => /^PriceChangesPage-.*\.js$/u.test(name));
+const assetNames = await readdir(assetsRoot);
+const routeAssets = assetNames.filter((name) => /^PriceChangesPage-.*\.js$/u.test(name));
 if (routeAssets.length !== 1) {
   throw new Error(`Expected one lazy price-changes bundle, found ${routeAssets.length}.`);
 }
+const vendorAssets = assetNames.filter((name) => /^ui-vendor-.*\.js$/u.test(name));
+if (vendorAssets.length !== 1) {
+  throw new Error(`Expected one stable UI vendor bundle, found ${vendorAssets.length}.`);
+}
 
 const budgets = [
-  { name: mainAsset, maxRaw: 250 * 1024, maxBrotli: 64 * 1024 },
+  { name: mainAsset, maxRaw: 225 * 1024, maxBrotli: 54 * 1024 },
+  { name: vendorAssets[0], maxRaw: 40 * 1024, maxBrotli: 13 * 1024 },
   { name: routeAssets[0], maxRaw: 32 * 1024, maxBrotli: 11 * 1024 },
 ];
+
+let startupBrotli = 0;
 
 for (const budget of budgets) {
   const rawPath = resolve(assetsRoot, budget.name);
@@ -31,10 +38,20 @@ for (const budget of budgets) {
   if (brotli.size > budget.maxBrotli) {
     throw new Error(`${budget.name} is ${formatBytes(brotli.size)} Brotli; budget is ${formatBytes(budget.maxBrotli)}.`);
   }
+  if (budget.name === mainAsset || budget.name === vendorAssets[0]) {
+    startupBrotli += brotli.size;
+  }
   console.log(
     `${basename(budget.name)}: ${formatBytes(raw.size)} raw, ${formatBytes(brotli.size)} Brotli`,
   );
 }
+
+if (startupBrotli > 64 * 1024) {
+  throw new Error(
+    `Combined startup JavaScript is ${formatBytes(startupBrotli)} Brotli; budget is 64.0 KiB.`,
+  );
+}
+console.log(`Combined startup JavaScript: ${formatBytes(startupBrotli)} Brotli`);
 
 function formatBytes(value) {
   return `${(value / 1024).toFixed(1)} KiB`;
