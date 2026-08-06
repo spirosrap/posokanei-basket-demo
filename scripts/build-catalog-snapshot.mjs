@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { dirname, resolve } from "node:path";
+import { promisify } from "node:util";
 import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
 import {
@@ -15,10 +17,12 @@ const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
 const FETCH_ATTEMPTS = Number(process.env.POSOKANEI_FETCH_ATTEMPTS || 4);
 const RETRY_BASE_DELAY_MS = Number(process.env.POSOKANEI_RETRY_BASE_DELAY_MS || 1200);
-const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+const RETRYABLE_STATUSES = new Set([403, 408, 429, 500, 502, 503, 504]);
 const USER_AGENT =
   process.env.POSOKANEI_USER_AGENT ||
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+const REQUEST_TIMEOUT_SECONDS = Number(process.env.POSOKANEI_REQUEST_TIMEOUT_SECONDS || 30);
+const execFileAsync = promisify(execFile);
 const outputPath = resolve(process.env.POSOKANEI_SNAPSHOT_OUT || "public/data/catalog.json");
 const metaOutputPath = resolve(
   process.env.POSOKANEI_META_OUT ||
@@ -53,23 +57,7 @@ async function fetchJson(path, options = {}) {
 
   for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt += 1) {
     try {
-      const response = await fetch(`${API_ORIGIN}${path}`, {
-        ...options,
-        headers: {
-          Accept: "application/json",
-          "Accept-Language": "el-GR,el;q=0.9,en;q=0.8",
-          "User-Agent": USER_AGENT,
-          ...options.headers,
-        },
-      });
-
-      if (!response.ok) {
-        const error = new Error(`${path} returned HTTP ${response.status}`);
-        error.status = response.status;
-        throw error;
-      }
-
-      return response.json();
+      return await fetchJsonWithCurl(path, options);
     } catch (error) {
       lastError = error;
       const status = Number(error?.status || 0);
@@ -87,6 +75,47 @@ async function fetchJson(path, options = {}) {
   }
 
   throw lastError || new Error(`${path} failed`);
+}
+
+async function fetchJsonWithCurl(path, options = {}) {
+  const statusMarker = "\n__POSOKANEI_HTTP_STATUS__:";
+  const headers = {
+    Accept: "application/json",
+    "Accept-Language": "el-GR,el;q=0.9,en;q=0.8",
+    "User-Agent": USER_AGENT,
+    ...options.headers,
+  };
+  const args = [
+    "--silent",
+    "--show-error",
+    "--location",
+    "--compressed",
+    "--max-time",
+    String(REQUEST_TIMEOUT_SECONDS),
+  ];
+  for (const [name, value] of Object.entries(headers)) {
+    args.push("--header", `${name}: ${value}`);
+  }
+  if (options.method) args.push("--request", options.method);
+  if (options.body) args.push("--data-binary", String(options.body));
+  args.push("--write-out", `${statusMarker}%{http_code}`, `${API_ORIGIN}${path}`);
+
+  const { stdout } = await execFileAsync("curl", args, {
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const markerIndex = stdout.lastIndexOf(statusMarker);
+  if (markerIndex < 0) throw new Error(`${path} returned an unreadable response`);
+
+  const body = stdout.slice(0, markerIndex);
+  const status = Number(stdout.slice(markerIndex + statusMarker.length).trim());
+  if (status < 200 || status >= 300) {
+    const error = new Error(`${path} returned HTTP ${status}`);
+    error.status = status;
+    throw error;
+  }
+
+  return JSON.parse(body);
 }
 
 function sleep(ms) {
@@ -119,12 +148,12 @@ async function fetchProducts() {
   return products;
 }
 
-const [stats, categoriesRaw, retailersRaw, products] = await Promise.all([
-  fetchJson("/meta/stats"),
-  fetchJson("/meta/categories"),
-  fetchJson("/meta/retailers?countries=GR"),
-  fetchProducts(),
-]);
+// The upstream edge intermittently rejects concurrent startup requests with 403.
+// Keep the catalogue crawl serial so each request remains independently retryable.
+const stats = await fetchJson("/meta/stats");
+const categoriesRaw = await fetchJson("/meta/categories");
+const retailersRaw = await fetchJson("/meta/retailers?countries=GR");
+const products = await fetchProducts();
 
 const rawSnapshot = {
   generated_at: new Date().toISOString(),
