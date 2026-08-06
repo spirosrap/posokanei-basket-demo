@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.36.0`
+**Τρέχουσα έκδοση:** `v0.36.1`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -151,6 +151,8 @@
 
 Η ίδια έκδοση μειώνει την εργασία στην κύρια ροή: οι γραμμές προϊόντων δεν ξανασχεδιάζονται όταν τα δεδομένα τους δεν αλλάζουν, οι μορφοποιητές τιμών επαναχρησιμοποιούνται και ο Web Worker κρατά μικρή LRU cache για επαναλαμβανόμενα queries. Ο κώδικας εξαγωγής καλαθιού και σύντομων συνδέσμων φορτώνεται μόνο όταν ζητηθεί. Το σταθερό, προφορτωμένο UI vendor chunk μπορεί να παραμένει στην cache ανάμεσα σε releases, ενώ το μεταβαλλόμενο main bundle μειώθηκε σε περίπου `51,7 KiB` Brotli. Ο συνολικός startup κώδικας παραμένει κάτω από αυστηρό όριο `64 KiB` Brotli, το οποίο ελέγχεται σε κάθε production build.
 
+Η έκδοση `v0.36.1` διορθώνει την τεχνητή εμφάνιση ακριβώς `10.000` προϊόντων. Το γενικό endpoint `/products` του PosoKanei περιορίζει το αποτέλεσμα στις 100 σελίδες των 100 προϊόντων, ακόμη και όταν ο ελληνικός κατάλογος είναι μεγαλύτερος. Ο συγχρονισμός συλλέγει πλέον χωριστά τις έξι επίσημες βασικές κατηγορίες μέσω `/products/search`, αποδιπλοποιεί τα προϊόντα με το σταθερό δημόσιο ID τους και επαληθεύει το δηλωμένο σύνολο κάθε κατηγορίας πριν από οποιαδήποτε δημοσίευση. Στον live έλεγχο της 6/8/2026 συγκεντρώθηκαν `10.558` μοναδικά ελληνικά προϊόντα, ακριβώς όσα ανέφεραν συνολικά οι κατηγορίες. Το πολυεθνικό `/meta/stats` ανέφερε `10.854` προϊόντα και 23 αλυσίδες από 11 χώρες, γι' αυτό δεν χρησιμοποιείται πλέον λανθασμένα ως αναμενόμενο μέγεθος του ελληνικού καταλόγου. Αν λείψει έστω μία σελίδα ή κατηγορία, ο νέος κατάλογος απορρίπτεται και παραμένει live ο προηγούμενος πλήρης.
+
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
 ![Ιστορικό επτά ημερών σε κινητό](screenshots/price-history-mobile-v0.33.0.png)
@@ -283,7 +285,9 @@
 
 Σημαντική λεπτομέρεια: το block δεν φαίνεται να είναι θέμα συσκευής ή MAC address. Ένας δημόσιος API server συνήθως δεν βλέπει MAC addresses. Ακόμα και συσκευές στο ίδιο τοπικό δίκτυο μπορούν να φαίνονται διαφορετικές προς το upstream λόγω διαφορετικού public egress IP, VPN/split tunnel, IPv4/IPv6 διαδρομής, CDN/WAF κανόνων ή TLS/client fingerprint. Γι' αυτό το refresh script υποστηρίζει trusted SSH runner: το κατέβασμα γίνεται από περιβάλλον που επιτρέπεται, ενώ τα deployment credentials μένουν τοπικά.
 
-Στις 2026-08-06 εντοπίστηκε πιο συγκεκριμένη αλλαγή στο upstream edge: αιτήματα από το ενσωματωμένο HTTP client του Node.js επέστρεφαν `403` ακόμη και από trusted runner όπου το ίδιο ακριβώς public endpoint απαντούσε `200` μέσω `curl`. Ο snapshot builder χρησιμοποιεί πλέον `curl` για τη μεταφορά, ξεκινά σειριακά τα αρχικά metadata/product requests και επαναλαμβάνει με καθυστέρηση ένα προσωρινό `403`. Η πηγή παραμένει το δημόσιο API του PosoKanei και ένας συγχρονισμός δημοσιεύεται μόνο αφού ληφθούν και επαληθευτούν και τα `10.000` προϊόντα.
+Στις 2026-08-06 εντοπίστηκε πιο συγκεκριμένη αλλαγή στο upstream edge: αιτήματα από το ενσωματωμένο HTTP client του Node.js επέστρεφαν `403` ακόμη και από trusted runner όπου το ίδιο ακριβώς public endpoint απαντούσε `200` μέσω `curl`. Ο snapshot builder χρησιμοποιεί πλέον `curl` για τη μεταφορά, ξεκινά σειριακά τα αρχικά metadata/product requests και επαναλαμβάνει με καθυστέρηση ένα προσωρινό `403`. Η πηγή παραμένει το δημόσιο API του PosoKanei.
+
+Την ίδια ημέρα επιβεβαιώθηκε ότι το γενικό `/products` επιβάλλει παράθυρο έως `10.000` αποτελέσματα, ενώ οι έξι βασικές ελληνικές κατηγορίες ανέφεραν συνολικά `10.558` προϊόντα. Ο builder χρησιμοποιεί πλέον category-segmented λήψη, ελέγχει το σύνολο κάθε τμήματος και δημοσιεύει μόνο όταν τα αποδιπλοποιημένα IDs συμφωνούν με το πλήρες ελληνικό σύνολο. Το `10.854` του `/meta/stats` αφορά ευρύτερο πολυεθνικό metadata και δεν αποτελεί μέγεθος του ελληνικού καταλόγου.
 
 Ο συγχρονισμός του καταλόγου είναι πλέον ανθεκτικός σε διακοπές κατά το ανέβασμα. Το νέο μεγάλο αρχείο ανεβαίνει πρώτα με προσωρινό όνομα και αντικαθιστά τον προηγούμενο κατάλογο μόνο όταν έχει ολοκληρωθεί ολόκληρη η μεταφορά. Έτσι, όσο γίνεται η ωριαία ενημέρωση, οι επισκέπτες συνεχίζουν να βλέπουν τον τελευταίο πλήρη κατάλογο αντί για άδειο ή μισογραμμένο JSON. Αν υπάρξει προσωρινό σφάλμα δικτύου ή server, ο browser επαναλαμβάνει αυτόματα το request και μπορεί να ανακτήσει ξανά το snapshot μέσα στην ίδια συνεδρία, κάτι που καλύπτει και τα περιστασιακά blank/empty states του Safari.
 
@@ -299,7 +303,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.36.0`
+**Current version:** `v0.36.1`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -468,6 +472,8 @@ Version `v0.35.0` speeds up the first search and the initial mobile experience. 
 Version `v0.36.0` adds two local tools for faster repeat shopping. Up to six recent successful searches appear as shortcuts whenever the search field is empty, with accent- and case-insensitive deduplication and a one-action clear control. The Plan view also accepts a personal shopping budget, compares it with the current complete total, and reports remaining headroom, proximity to the limit, or overspend. Search history and budget stay only in the current browser and are never included in shared basket links.
 
 The same release reduces work on the main interaction path. Unchanged product rows no longer rerender, currency and number formatters are reused, and the catalogue Web Worker keeps a small LRU cache for repeated queries. Basket-export and compact-link code loads only when its dialog is requested. A stable module-preloaded UI vendor chunk can remain cached between releases, while the frequently changing main bundle is reduced to about `51.7 KiB` Brotli. Combined startup JavaScript remains below a strict `64 KiB` Brotli budget enforced by every production build.
+
+Version `v0.36.1` fixes the artificial appearance of exactly `10,000` products. PosoKanei's general `/products` endpoint limits the result window to 100 pages of 100 products even when the Greek catalogue is larger. Synchronization now fetches the six official root categories separately through `/products/search`, deduplicates products by their stable public ID, and verifies every category's reported total before publication. The live check on 6 August 2026 collected `10,558` unique Greek products, exactly matching the combined category totals. The multinational `/meta/stats` response reported `10,854` products and 23 chains across 11 countries, so it is no longer incorrectly treated as the expected size of the Greek catalogue. If any page or category is incomplete, the new snapshot is rejected and the previous complete catalogue remains live.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -973,7 +979,8 @@ Why this can happen even on the same local network:
 - Internet APIs generally cannot see a device MAC address; they see public egress, protocol, and request/client characteristics.
 - Two machines on the same LAN can still use different public egress routes because of VPNs, split tunneling, IPv4 vs IPv6 routing, gateway rules, or ISP/CDN routing.
 - WAF/CDN rules can also react differently to TLS/client fingerprints, for example macOS SecureTransport/LibreSSL versus Linux OpenSSL, even when the request path is the same.
-- On 2026-08-06, the upstream edge began returning `403` to Node.js HTTP requests even on a trusted runner where the same public endpoint returned `200` through `curl`. The snapshot builder now uses `curl` transport, serializes its initial metadata/product requests, and retries a temporary `403` with backoff. The source remains the public PosoKanei API, and publication still requires a complete verified 10,000-product snapshot.
+- On 2026-08-06, the upstream edge began returning `403` to Node.js HTTP requests even on a trusted runner where the same public endpoint returned `200` through `curl`. The snapshot builder now uses `curl` transport, serializes its initial metadata/product requests, and retries a temporary `403` with backoff. The source remains the public PosoKanei API.
+- The same investigation confirmed that the general `/products` endpoint exposes at most `10,000` results. The publisher now crawls the six Greek root categories through `/products/search`, merges stable product IDs, and validates every segment before publishing. That check collected `10,558` unique Greek products on 2026-08-06. The `10,854` value from multinational `/meta/stats` is not used as the Greek catalogue total.
 - The workaround intentionally keeps upload credentials local: the SSH runner only builds the catalogue JSON, then the local refresh script pulls those files back and uploads them.
 
 ### Data Model

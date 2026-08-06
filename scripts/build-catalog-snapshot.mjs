@@ -7,6 +7,11 @@ import { promisify } from "node:util";
 import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
 import {
+  finalizeCatalogProducts,
+  getCatalogRootSegments,
+  mergeCatalogProducts,
+} from "./catalog-snapshot-coverage.mjs";
+import {
   writePriceChangesCsv,
   writePriceChangesJson,
   writePriceChangesPreviewJson,
@@ -124,28 +129,61 @@ function sleep(ms) {
   });
 }
 
-async function fetchProducts() {
-  const products = [];
+async function fetchProductSegment(productsById, segment) {
+  const segmentProducts = new Map();
   let page = 1;
   let totalPages = 1;
+  let reportedTotal = 0;
 
   do {
-    const params = new URLSearchParams({
-      page: String(page),
-      page_size: String(PAGE_SIZE),
-      countries: "GR",
+    const body = JSON.stringify({
+      category_id: segment.id,
+      page,
+      page_size: PAGE_SIZE,
+      countries: ["GR"],
       sort_by: "name",
       sort_order: "asc",
     });
-    const raw = await fetchJson(`/products?${params}`);
+    const raw = await fetchJson("/products/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
     const rows = Array.isArray(raw.products) ? raw.products : [];
-    products.push(...rows);
+    mergeCatalogProducts(segmentProducts, rows);
+    const added = mergeCatalogProducts(productsById, rows);
+    reportedTotal = Number(raw.total || reportedTotal || segment.expectedCount || 0);
     totalPages = Number(raw.total_pages || page) || page;
-    process.stdout.write(`Fetched products page ${page}/${totalPages} (${products.length})\n`);
+    process.stdout.write(
+      `Fetched ${segment.name} page ${page}/${totalPages} `
+      + `(${productsById.size} unique, ${added} new)\n`,
+    );
     page += 1;
   } while (page <= totalPages);
 
-  return products;
+  if (reportedTotal > 0 && segmentProducts.size < reportedTotal) {
+    throw new Error(
+      `Incomplete category ${segment.name}: collected `
+      + `${segmentProducts.size} of ${reportedTotal} products`,
+    );
+  }
+
+  return reportedTotal || segmentProducts.size;
+}
+
+async function fetchProducts(categories) {
+  const segments = getCatalogRootSegments(categories);
+  if (!segments.length) {
+    throw new Error("No root catalogue categories were returned by PosoKanei");
+  }
+
+  const productsById = new Map();
+  let expectedTotal = 0;
+  for (const segment of segments) {
+    expectedTotal += await fetchProductSegment(productsById, segment);
+  }
+
+  return finalizeCatalogProducts(productsById, expectedTotal);
 }
 
 // The upstream edge intermittently rejects concurrent startup requests with 403.
@@ -153,13 +191,14 @@ async function fetchProducts() {
 const stats = await fetchJson("/meta/stats");
 const categoriesRaw = await fetchJson("/meta/categories");
 const retailersRaw = await fetchJson("/meta/retailers?countries=GR");
-const products = await fetchProducts();
+const categories = categoriesRaw.categories || categoriesRaw;
+const products = await fetchProducts(categories);
 
 const rawSnapshot = {
   generated_at: new Date().toISOString(),
   source: API_ORIGIN,
   stats,
-  categories: categoriesRaw.categories || categoriesRaw,
+  categories,
   retailers: retailersRaw.retailers || retailersRaw,
   products,
 };

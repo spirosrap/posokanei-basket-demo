@@ -282,6 +282,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteScriptsDir = `${remoteDir}/scripts`;
   const remoteSrcDir = `${remoteDir}/src`;
   const remoteScript = `${remoteScriptsDir}/build-catalog-snapshot.mjs`;
+  const remoteCoverageModule = `${remoteScriptsDir}/catalog-snapshot-coverage.mjs`;
   const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
   const remotePriceExportModule = `${remoteScriptsDir}/price-change-export.mjs`;
@@ -319,6 +320,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       ...sshOptions,
       resolve(projectRoot, "scripts/build-catalog-snapshot.mjs"),
       `${host}:${remoteScript}`,
+    ]);
+    await run("scp", [
+      ...sshOptions,
+      resolve(projectRoot, "scripts/catalog-snapshot-coverage.mjs"),
+      `${host}:${remoteCoverageModule}`,
     ]);
     await run("scp", [
       ...sshOptions,
