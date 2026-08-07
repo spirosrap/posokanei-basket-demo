@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: public, max-age=300, stale-while-revalidate=900');
+header('Cache-Control: no-store, max-age=0');
 header('Access-Control-Allow-Origin: *');
 
 const POSOKANEI_API = 'https://api.posokanei.gov.gr';

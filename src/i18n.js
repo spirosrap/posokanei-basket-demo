@@ -32,12 +32,12 @@ const messages = {
     introDescription:
       "Διάλεξε προϊόντα και έως 4 στάσεις. Δες το φθηνότερο πλήρες πλάνο για ολόκληρο το καλάθι.",
     dataStatus: "Κατάσταση δεδομένων",
-    lastAttemptFailed: "Η τελευταία προσπάθεια απέτυχε",
+    lastAttemptFailed: "Το PosoKanei δεν απάντησε",
     hourlyUpdates: "Ενημέρωση κάθε ώρα",
     liveProductPrices: "Live τιμές προϊόντων",
     waitingLivePrices: "Αναμονή live τιμών",
     freshnessWarning: "Προειδοποίηση φρεσκάδας δεδομένων",
-    refreshFailedTitle: "Η τελευταία αυτόματη ενημέρωση απέτυχε.",
+    refreshFailedTitle: "Το PosoKanei δεν απάντησε στην τελευταία ενημέρωση.",
     refreshAutomaticTitle: "Οι τιμές ενημερώνονται αυτόματα κάθε ώρα από το PosoKanei.",
     refreshLatestTitle: "Οι τιμές εμφανίζονται από τον πιο πρόσφατο κατάλογο.",
     lastCatalogueUpdate: ({ time }) => `Τελευταία ενημέρωση: ${time}`,
@@ -45,7 +45,8 @@ const messages = {
       "Η εφαρμογή δεν ρωτά το PosoKanei σε κάθε άνοιγμα. Χρησιμοποιεί τον πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο.",
     refreshSnapshotBody: ({ time }) =>
       `Η εφαρμογή δεν ρωτά το PosoKanei σε κάθε άνοιγμα σελίδας. Χρησιμοποιεί τον πιο πρόσφατο αυτόματα συγχρονισμένο κατάλογο. Τελευταία ενημέρωση καταλόγου: ${time}.`,
-    refreshAttempt: ({ time, error }) => ` Τελευταία προσπάθεια: ${time} (${error}).`,
+    refreshAttempt: ({ time, error }) =>
+      ` Τελευταία προσπάθεια: ${time} (${error}). Η εφαρμογή θα ξαναδοκιμάσει αυτόματα μέσα στην επόμενη ώρα.`,
     downloadPriceChanges: "Λήψη όλων των πρόσφατων αλλαγών (.csv)",
     priceChangesExportDescription:
       "Ένα αρχείο για όλες τις αλυσίδες, με προηγούμενη και τρέχουσα τιμή.",
@@ -530,7 +531,7 @@ const messages = {
     lastPriceCheck: ({ time }) => `Τελευταίος έλεγχος τιμών: ${time}`,
     unknown: "άγνωστη",
     checkIncomplete: "ο έλεγχος δεν ολοκληρώθηκε",
-    upstreamBlocked: "μπλοκαρίστηκε από το upstream API",
+    upstreamBlocked: "η δημόσια υπηρεσία PosoKanei επέστρεψε προσωρινά HTTP 403",
     publicationTimedOut: "καθυστέρησε η δημοσίευση στον server",
     dailyBargain: "Η ευκαιρία της ημέρας",
     bargainHeadline: "Αξίζει να συγκρίνεις αυτή την τιμή",
@@ -591,12 +592,12 @@ const messages = {
     introDescription:
       "Choose products and up to 4 stops. See the cheapest complete plan for the whole basket.",
     dataStatus: "Data status",
-    lastAttemptFailed: "The latest attempt failed",
+    lastAttemptFailed: "PosoKanei did not respond",
     hourlyUpdates: "Updated every hour",
     liveProductPrices: "Live product prices",
     waitingLivePrices: "Waiting for live prices",
     freshnessWarning: "Data freshness notice",
-    refreshFailedTitle: "The latest automatic update failed.",
+    refreshFailedTitle: "PosoKanei did not respond to the latest update.",
     refreshAutomaticTitle: "Prices are updated automatically every hour from PosoKanei.",
     refreshLatestTitle: "Prices are shown from the latest catalogue.",
     lastCatalogueUpdate: ({ time }) => `Last updated: ${time}`,
@@ -604,7 +605,8 @@ const messages = {
       "The app does not contact PosoKanei on every page load. It uses the latest automatically synchronized catalogue.",
     refreshSnapshotBody: ({ time }) =>
       `The app does not contact PosoKanei on every page load. It uses the latest automatically synchronized catalogue. Latest catalogue update: ${time}.`,
-    refreshAttempt: ({ time, error }) => ` Latest attempt: ${time} (${error}).`,
+    refreshAttempt: ({ time, error }) =>
+      ` Latest attempt: ${time} (${error}). The app will retry automatically within the next hour.`,
     downloadPriceChanges: "Download all recent changes (.csv)",
     priceChangesExportDescription:
       "One file for every chain, with previous and current prices.",
@@ -1079,7 +1081,7 @@ const messages = {
     lastPriceCheck: ({ time }) => `Last price check: ${time}`,
     unknown: "unknown",
     checkIncomplete: "the check did not complete",
-    upstreamBlocked: "blocked by the upstream API",
+    upstreamBlocked: "the public PosoKanei service temporarily returned HTTP 403",
     publicationTimedOut: "publication to the server timed out",
     dailyBargain: "Today's bargain",
     bargainHeadline: "This price is worth comparing",

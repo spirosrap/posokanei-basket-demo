@@ -243,6 +243,7 @@ async function refreshCatalog() {
     checked_at: new Date().toISOString(),
     generated_at: snapshot.generated_at,
     product_count: productCount,
+    retry_after_seconds: 3600,
   });
 
   if (uploadEnabled) {
@@ -516,16 +517,22 @@ async function recordRefreshFailure(error) {
     generated_at: previous.generated_at || "",
     product_count: previous.product_count || 0,
     error: describeRefreshError(error),
+    retry_after_seconds: 3600,
   };
   await writeRefreshStatus(status);
 
   if (!uploadEnabled) return;
 
-  try {
-    const password = await readTargetPassword(primaryTarget);
-    await publishDataFile(refreshStatusPath, "refresh-status.json", primaryTarget, password);
-  } catch (uploadError) {
-    console.error(`Could not upload refresh failure status: ${describeRefreshError(uploadError)}`);
+  for (const target of ftpTargets) {
+    try {
+      const password = await readTargetPassword(target);
+      await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
+    } catch (uploadError) {
+      console.error(
+        `Could not upload refresh failure status to ${target.name}: `
+        + describeRefreshError(uploadError),
+      );
+    }
   }
 }
 

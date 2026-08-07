@@ -182,6 +182,7 @@ const INITIAL_SHARED_BASKET = INITIAL_APP_ROUTE !== APP_ROUTES.home
   : readSharedBasketUrl(window.location.href);
 const IMAGE_PROXY_BASE = runtimeAppUrl("api/posokanei.php");
 const IMAGE_PROXY_RETRY_DELAYS = [2500, 12000];
+const UPDATE_STATUS_POLL_INTERVAL_MS = 5 * 60 * 1000;
 const loadPriceChangesPage = () => import("./PriceChangesPage.jsx");
 const loadBasketExportRuntime = () => import("./basketExportRuntime.js");
 const loadShortLinks = () => import("./shortLinks.js");
@@ -831,16 +832,30 @@ function AppContent({ route }) {
   useEffect(() => {
     if (isBargainsPage || !catalogBootstrapped) return undefined;
     let cancelled = false;
-    const cancelScheduledWork = scheduleIdleWork(() => {
+    const refreshUpdateStatus = () => {
       fetchUpdateStatus()
         .then((status) => {
           if (!cancelled) setUpdateStatus(status);
         })
         .catch(() => {});
-    }, { delay: 2200, timeout: 5000 });
+    };
+    const cancelScheduledWork = scheduleIdleWork(refreshUpdateStatus, {
+      delay: 2200,
+      timeout: 5000,
+    });
+    const pollId = window.setInterval(
+      refreshUpdateStatus,
+      UPDATE_STATUS_POLL_INTERVAL_MS,
+    );
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshUpdateStatus();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       cancelled = true;
       cancelScheduledWork();
+      window.clearInterval(pollId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [catalogBootstrapped, isBargainsPage]);
 

@@ -22,7 +22,7 @@ const API_ORIGIN = "https://api.posokanei.gov.gr";
 const PAGE_SIZE = Number(process.env.POSOKANEI_SNAPSHOT_PAGE_SIZE || 100);
 const FETCH_ATTEMPTS = Number(process.env.POSOKANEI_FETCH_ATTEMPTS || 4);
 const RETRY_BASE_DELAY_MS = Number(process.env.POSOKANEI_RETRY_BASE_DELAY_MS || 1200);
-const RETRYABLE_STATUSES = new Set([403, 408, 429, 500, 502, 503, 504]);
+const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const USER_AGENT =
   process.env.POSOKANEI_USER_AGENT ||
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -186,8 +186,8 @@ async function fetchProducts(categories) {
   return finalizeCatalogProducts(productsById, expectedTotal);
 }
 
-// The upstream edge intermittently rejects concurrent startup requests with 403.
-// Keep the catalogue crawl serial so each request remains independently retryable.
+// Keep the catalogue crawl serial. A 403 is not retried inside one run because
+// the same request will remain denied; the scheduled refresh is the retry boundary.
 const stats = await fetchJson("/meta/stats");
 const categoriesRaw = await fetchJson("/meta/categories");
 const retailersRaw = await fetchJson("/meta/retailers?countries=GR");
