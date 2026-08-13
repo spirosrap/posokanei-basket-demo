@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { userInfo } from "node:os";
 import { promisify } from "node:util";
+import { sanitizeBargainHeadline } from "../src/dailyBargain.js";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -28,31 +29,39 @@ const reasoningEffort = process.env.OPENAI_BARGAIN_REASONING || "high";
 const timeZone = process.env.POSOKANEI_BARGAIN_TIME_ZONE || "Europe/Athens";
 const bargainCount = 9;
 const force = process.argv.includes("--force");
-const apiKey = await resolveOpenAiApiKey();
 
 const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
 const existingPick = await readJsonIfPresent(outputPath);
 const previousAttempt = await readJsonIfPresent(attemptStatePath);
 const today = dateKey(new Date(), timeZone);
+const eligibleCandidates = buildEligibleCandidates(catalog.products || []);
+const candidates = selectDiverseCandidates(eligibleCandidates);
+
+if (candidates.length < bargainCount) {
+  throw new Error(`Daily bargain guard failed: only ${candidates.length} suitable candidates.`);
+}
 
 if (
   !force &&
   existingPick?.date === today &&
-  Array.isArray(existingPick.bargains) &&
-  existingPick.bargains.length >= bargainCount
+  Array.isArray(existingPick.bargains)
 ) {
-  console.log(`Daily bargain already generated for ${today}: ${existingPick.product_id}`);
+  const refreshedPick = refreshExistingBargains(
+    existingPick,
+    eligibleCandidates,
+    candidates,
+    catalog.products || [],
+  );
+  await writeJson(outputPath, refreshedPick);
+  console.log(
+    `Daily bargains refreshed from current prices for ${today}: ${refreshedPick.product_id}`,
+  );
   process.exit(0);
 }
 
 if (!force && previousAttempt?.date === today) {
   console.log(`Daily bargain AI attempt already made for ${today}; keeping the previous set.`);
   process.exit(0);
-}
-
-const candidates = buildCandidates(catalog.products || []);
-if (candidates.length < bargainCount) {
-  throw new Error(`Daily bargain guard failed: only ${candidates.length} suitable candidates.`);
 }
 
 const previousProductIds = Array.isArray(existingPick?.bargains)
@@ -63,7 +72,8 @@ await writeJson(attemptStatePath, {
   attempted_at: new Date().toISOString(),
   status: "started",
 });
-const choices = await chooseWithOpenAI(candidates, previousProductIds);
+const apiKey = await resolveOpenAiApiKey();
+const choices = await chooseWithOpenAI(candidates, previousProductIds, apiKey);
 const bargains = buildVerifiedBargains(choices, candidates, catalog.products || []);
 const primary = bargains[0];
 
@@ -117,7 +127,7 @@ function buildVerifiedBargains(choices, candidates, products) {
 
     return {
       product_id: productId,
-      headline: cleanText(choice.headline, 80),
+      headline: metricFreeHeadline(choice.headline, sourceProduct),
       reason: cleanText(choice.reason, 240),
       evidence: {
         best_price: selected.best_price,
@@ -134,11 +144,99 @@ function buildVerifiedBargains(choices, candidates, products) {
   });
 }
 
-function buildCandidates(products) {
-  const ranked = products
+function refreshExistingBargains(existingPick, eligibleCandidates, replacementCandidates, products) {
+  const candidatesById = new Map(
+    eligibleCandidates.map((candidate) => [candidate.product_id, candidate]),
+  );
+  const productsById = new Map(products.map((product) => [String(product.id), product]));
+  const existingById = new Map(
+    (existingPick.bargains || [])
+      .map((bargain) => [String(bargain?.product_id || ""), bargain])
+      .filter(([id]) => id),
+  );
+  const selectedIds = [];
+  const seen = new Set();
+
+  for (const bargain of existingPick.bargains || []) {
+    if (selectedIds.length >= bargainCount) break;
+    const productId = String(bargain?.product_id || "");
+    if (!productId || seen.has(productId) || !candidatesById.has(productId)) continue;
+    seen.add(productId);
+    selectedIds.push(productId);
+  }
+  for (const candidate of replacementCandidates) {
+    if (selectedIds.length >= bargainCount) break;
+    if (seen.has(candidate.product_id)) continue;
+    seen.add(candidate.product_id);
+    selectedIds.push(candidate.product_id);
+  }
+
+  const bargains = selectedIds.map((productId) => {
+    const selected = candidatesById.get(productId);
+    const product = productsById.get(productId);
+    const existing = existingById.get(productId);
+    if (!selected || !product) {
+      throw new Error("A refreshed daily bargain is missing current catalogue data.");
+    }
+    return {
+      product_id: productId,
+      headline: metricFreeHeadline(existing?.headline, product),
+      reason: currentBargainReason(selected),
+      evidence: candidateEvidence(selected),
+      product,
+    };
+  });
+  if (!bargains.length) {
+    throw new Error("No current daily bargain remains after price verification.");
+  }
+
+  const primary = bargains[0];
+  return {
+    ...existingPick,
+    catalog_generated_at: catalog.generated_at || existingPick.catalog_generated_at || "",
+    product_id: primary.product_id,
+    headline: primary.headline,
+    reason: primary.reason,
+    evidence: primary.evidence,
+    product: primary.product,
+    bargains,
+  };
+}
+
+function candidateEvidence(selected) {
+  return {
+    best_price: selected.best_price,
+    best_retailer_id: selected.best_retailer_id,
+    best_retailer_name: selected.best_retailer_name,
+    median_price: selected.median_price,
+    highest_price: selected.highest_price,
+    savings_vs_highest: selected.savings_vs_highest,
+    savings_percent_vs_highest: selected.savings_percent_vs_highest,
+    retailer_count: selected.retailer_count,
+  };
+}
+
+function metricFreeHeadline(value, product) {
+  const cleaned = String(value || "").replace(/\s+/gu, " ").trim().slice(0, 80);
+  const sanitized = sanitizeBargainHeadline(cleaned, product);
+  return /[%€]|χαμηλότερ|φθηνότερ|έκπτωση|cheaper|lower|discount|\boff\b/iu.test(sanitized)
+    ? sanitizeBargainHeadline("", product)
+    : sanitized;
+}
+
+function currentBargainReason(selected) {
+  return `Η χαμηλότερη τιμή είναι ${selected.savings_percent_vs_highest}% χαμηλότερη από `
+    + `την υψηλότερη, με σύγκριση σε ${selected.retailer_count} αλυσίδες.`;
+}
+
+function buildEligibleCandidates(products) {
+  return products
     .map(toCandidate)
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
+}
+
+function selectDiverseCandidates(ranked) {
   const perCategory = new Map();
   const diverse = [];
   for (const candidate of ranked) {
@@ -213,7 +311,7 @@ function toCandidate(product) {
   };
 }
 
-async function chooseWithOpenAI(candidates, previousProductIds) {
+async function chooseWithOpenAI(candidates, previousProductIds, apiKey) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -232,7 +330,7 @@ async function chooseWithOpenAI(candidates, previousProductIds) {
         "Δώσε ποικιλία σε κατηγορίες και αλυσίδες. Προτίμησε χρήσιμα, ευρείας κατανάλωσης προϊόντα με ουσιαστική διαφορά τιμής και αρκετές διαθέσιμες αλυσίδες.",
         "Μην εφευρίσκεις έκπτωση, ποιότητα, γεύση, διαθεσιμότητα, ιστορικό τιμής ή όφελος υγείας.",
         "Κάθε αιτιολόγηση πρέπει να είναι μία σύντομη φυσική ελληνική πρόταση και να βασίζεται μόνο στα αριθμητικά στοιχεία της λίστας.",
-        "Μην επαναλαμβάνεις την τιμή στα headlines. Μην χρησιμοποιείς markdown.",
+        "Μην βάζεις τιμές, ποσοστά ή άλλα αριθμητικά claims στα headlines. Μην χρησιμοποιείς markdown.",
       ].join(" "),
       input: JSON.stringify({
         previous_product_ids: previousProductIds,

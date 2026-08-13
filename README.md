@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.36.2`
+**Τρέχουσα έκδοση:** `v0.36.3`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -154,6 +154,8 @@
 Η έκδοση `v0.36.1` διορθώνει την τεχνητή εμφάνιση ακριβώς `10.000` προϊόντων. Το γενικό endpoint `/products` του PosoKanei περιορίζει το αποτέλεσμα στις 100 σελίδες των 100 προϊόντων, ακόμη και όταν ο ελληνικός κατάλογος είναι μεγαλύτερος. Ο συγχρονισμός συλλέγει πλέον χωριστά τις έξι επίσημες βασικές κατηγορίες μέσω `/products/search`, αποδιπλοποιεί τα προϊόντα με το σταθερό δημόσιο ID τους και επαληθεύει το δηλωμένο σύνολο κάθε κατηγορίας πριν από οποιαδήποτε δημοσίευση. Στον live έλεγχο της 6/8/2026 συγκεντρώθηκαν `10.558` μοναδικά ελληνικά προϊόντα, ακριβώς όσα ανέφεραν συνολικά οι κατηγορίες. Το πολυεθνικό `/meta/stats` ανέφερε `10.854` προϊόντα και 23 αλυσίδες από 11 χώρες, γι' αυτό δεν χρησιμοποιείται πλέον λανθασμένα ως αναμενόμενο μέγεθος του ελληνικού καταλόγου. Αν λείψει έστω μία σελίδα ή κατηγορία, ο νέος κατάλογος απορρίπτεται και παραμένει live ο προηγούμενος πλήρης.
 
 Η έκδοση `v0.36.2` κάνει σαφέστερη και πιο ανθεκτική την αντιμετώπιση προσωρινής διακοπής του PosoKanei. Στις 7/8/2026 η επίσημη ιστοσελίδα και το δημόσιο API επέστρεφαν `HTTP 403` από πολλαπλά ανεξάρτητα δίκτυα, ενώ απέτυχε με το ίδιο σφάλμα και ανεξάρτητος δημόσιος συγχρονισμός που είχε ολοκληρωθεί κανονικά την προηγούμενη ημέρα. Αυτό δείχνει πρόβλημα διαθεσιμότητας ή πολιτικής πρόσβασης της upstream υπηρεσίας, όχι αποκλεισμό μίας συσκευής ή βλάβη του Καλαθιού Τιμών. Η εφαρμογή πλέον το εξηγεί ρητά, διατηρεί τον τελευταίο πλήρη κατάλογο, εμφανίζει τη νεότερη προσπάθεια χωρίς browser/CDN cache, ανανεώνει την κατάσταση ανά πέντε λεπτά και όταν ο χρήστης επιστρέφει στην καρτέλα, και συνεχίζει την αυτόματη ωριαία επανάληψη. Ένα επίμονο `403` δεν επαναλαμβάνεται άσκοπα τέσσερις φορές στον ίδιο runner, ενώ η κατάσταση αποτυχίας δημοσιεύεται και στα δύο domains. Οι τιμές δεν επινοούνται και ο κατάλογος αντικαθίσταται μόνο μετά από πλήρη επιτυχή λήψη και επαλήθευση.
+
+Η έκδοση `v0.36.3` κρατά την ημερήσια AI επιλογή συνεπή με τις νεότερες τιμές. Το editorial headline δεν περιέχει πλέον ποσοστό ή τιμή που μπορεί να παλιώσει, ενώ τιμή, αλυσίδα, διαφορά και ποσοστό υπολογίζονται αποκλειστικά από τον πιο πρόσφατο συγχρονισμένο κατάλογο. Σε κάθε ωριαίο συγχρονισμό επανελέγχονται οι ίδιες ημερήσιες επιλογές χωρίς δεύτερη κλήση AI: μια επιλογή που δεν έχει πλέον ουσιαστική διαφορά αφαιρείται και αντικαθίσταται από επαληθευμένο τρέχον υποψήφιο. Η εφαρμογή καθαρίζει επίσης αριθμητικούς ισχυρισμούς από παλαιότερα ήδη δημοσιευμένα headlines, ώστε μια αλλαγή τιμής ανάμεσα σε δύο συγχρονισμούς να μην μπορεί να εμφανίσει δύο διαφορετικά ποσοστά στην ίδια κάρτα.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -305,7 +307,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.36.2`
+**Current version:** `v0.36.3`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -478,6 +480,8 @@ The same release reduces work on the main interaction path. Unchanged product ro
 Version `v0.36.1` fixes the artificial appearance of exactly `10,000` products. PosoKanei's general `/products` endpoint limits the result window to 100 pages of 100 products even when the Greek catalogue is larger. Synchronization now fetches the six official root categories separately through `/products/search`, deduplicates products by their stable public ID, and verifies every category's reported total before publication. The live check on 6 August 2026 collected `10,558` unique Greek products, exactly matching the combined category totals. The multinational `/meta/stats` response reported `10,854` products and 23 chains across 11 countries, so it is no longer incorrectly treated as the expected size of the Greek catalogue. If any page or category is incomplete, the new snapshot is rejected and the previous complete catalogue remains live.
 
 Version `v0.36.2` makes a temporary PosoKanei outage clearer and more resilient. On 7 August 2026, the official website and public API returned `HTTP 403` from multiple unrelated networks, and an independent public synchronization job that had succeeded the previous day failed with the same response. This points to an upstream availability or access-policy incident rather than one blocked device or a Basket app failure. The interface now explains that distinction, preserves the latest complete catalogue, reads the newest attempt without browser/CDN caching, refreshes status every five minutes and whenever the user returns to the tab, and keeps the hourly automatic retry. A persistent `403` is no longer retried four times immediately on the same runner, while failure status is published consistently to both domains. Prices are never fabricated, and the public catalogue changes only after a complete, validated download.
+
+Version `v0.36.3` keeps the daily AI-assisted pick consistent with the latest prices. Editorial headlines no longer contain a price or percentage that can become stale; price, chain, difference, and percentage are derived only from the newest synchronized catalogue. Every hourly synchronization revalidates that day's picks without making a second AI request: a pick whose meaningful price gap has disappeared is removed and replaced with a currently verified candidate. The client also strips numerical bargain claims from older already-published headlines, preventing a price change between synchronizations from showing two conflicting percentages on one card.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

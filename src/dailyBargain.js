@@ -2,6 +2,42 @@ function roundMoney(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
 
+const MIN_BARGAIN_SAVINGS = 0.35;
+const MIN_BARGAIN_PERCENT = 12;
+const MAX_BARGAIN_PERCENT = 75;
+const TRAILING_BARGAIN_PERCENTAGE = new RegExp(
+  String.raw`\s*(?:[:|·–—-]\s*)?\d+(?:[.,]\d+)?\s*%\s*`
+  + String.raw`(?:(?:πιο\s+)?(?:χαμηλότερ\p{L}*|φθηνότερ\p{L}*|κάτω|έκπτωση)`
+  + String.raw`|(?:cheaper|lower|discount|off))\s*$`,
+  "iu",
+);
+
+function fallbackBargainHeadline(product) {
+  const brand = String(product?.brand || "").trim();
+  const category = String(product?.category || product?.subcategory || "").trim();
+  if (brand && category) return `${brand} · ${category}`;
+  return brand || String(product?.name || "Ευκαιρία τιμής").trim() || "Ευκαιρία τιμής";
+}
+
+export function sanitizeBargainHeadline(headline, product = {}) {
+  const cleaned = String(headline || "").replace(/\s+/gu, " ").trim();
+  const withoutStalePercentage = cleaned
+    .replace(TRAILING_BARGAIN_PERCENTAGE, "")
+    .replace(/[\s:|·–—-]+$/gu, "")
+    .trim();
+  return withoutStalePercentage || fallbackBargainHeadline(product);
+}
+
+export function isMeaningfulBargainEvidence(evidence) {
+  const savings = Number(evidence?.savingsVsHighest);
+  const percent = Number(evidence?.savingsPercentVsHighest);
+  return Number.isFinite(savings)
+    && Number.isFinite(percent)
+    && savings >= MIN_BARGAIN_SAVINGS
+    && percent >= MIN_BARGAIN_PERCENT
+    && percent <= MAX_BARGAIN_PERCENT;
+}
+
 export function currentBargainEvidence(product, previousEvidence = {}) {
   const prices = Object.entries(product?.prices || {})
     .map(([retailerId, value]) => ({
@@ -59,9 +95,10 @@ export function refreshDailyBargainProducts(
       const product = productsById.get(String(bargain?.productId || ""));
       if (!product) return null;
       const evidence = currentBargainEvidence(product, bargain.evidence);
-      if (!evidence) return null;
+      if (!evidence || !isMeaningfulBargainEvidence(evidence)) return null;
       return {
         ...bargain,
+        headline: sanitizeBargainHeadline(bargain.headline, product),
         evidence,
         product,
       };
