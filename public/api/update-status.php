@@ -130,6 +130,8 @@ function with_refresh_status(array $status): array
             'refresh_status' => '',
             'refresh_checked_at' => '',
             'refresh_error' => '',
+            'refresh_error_code' => '',
+            'refresh_diagnostics' => null,
             'last_successful_refresh_at' => $snapshotGeneratedAt,
         ];
     }
@@ -138,6 +140,10 @@ function with_refresh_status(array $status): array
         'refresh_status' => (string) ($refreshStatus['status'] ?? ''),
         'refresh_checked_at' => (string) ($refreshStatus['checked_at'] ?? ''),
         'refresh_error' => (string) ($refreshStatus['error'] ?? ''),
+        'refresh_error_code' => (string) ($refreshStatus['error_code'] ?? ''),
+        'refresh_diagnostics' => is_array($refreshStatus['diagnostics'] ?? null)
+            ? $refreshStatus['diagnostics']
+            : null,
         'last_successful_refresh_at' => (string) ($refreshStatus['generated_at'] ?? $snapshotGeneratedAt),
     ]);
 }

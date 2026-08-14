@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.36.4`
+**Τρέχουσα έκδοση:** `v0.36.5`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -158,6 +158,8 @@
 Η έκδοση `v0.36.3` κρατά την ημερήσια AI επιλογή συνεπή με τις νεότερες τιμές. Το editorial headline δεν περιέχει πλέον ποσοστό ή τιμή που μπορεί να παλιώσει, ενώ τιμή, αλυσίδα, διαφορά και ποσοστό υπολογίζονται αποκλειστικά από τον πιο πρόσφατο συγχρονισμένο κατάλογο. Σε κάθε ωριαίο συγχρονισμό επανελέγχονται οι ίδιες ημερήσιες επιλογές χωρίς δεύτερη κλήση AI: μια επιλογή που δεν έχει πλέον ουσιαστική διαφορά αφαιρείται και αντικαθίσταται από επαληθευμένο τρέχον υποψήφιο. Η εφαρμογή καθαρίζει επίσης αριθμητικούς ισχυρισμούς από παλαιότερα ήδη δημοσιευμένα headlines, ώστε μια αλλαγή τιμής ανάμεσα σε δύο συγχρονισμούς να μην μπορεί να εμφανίσει δύο διαφορετικά ποσοστά στην ίδια κάρτα.
 
 Η έκδοση `v0.36.4` προστατεύει τον δημόσιο κατάλογο από απότομες προσωρινές μειώσεις του upstream. Όλες οι σελίδες κάθε βασικής κατηγορίας εξακολουθούν να πρέπει να ολοκληρωθούν, αλλά πλέον μια μείωση προϊόντων μεγαλύτερη από 3% δεν δημοσιεύεται με την πρώτη παρατήρηση. Διατηρείται ο προηγούμενος πλήρης κατάλογος έως ότου δεύτερος ανεξάρτητος ωριαίος συγχρονισμός επιβεβαιώσει παρόμοιο αριθμό. Έτσι μια προσωρινά ελλιπής απάντηση δεν μπορεί να αφαιρέσει εκατοντάδες προϊόντα, ενώ μια πραγματική αλλαγή του επίσημου ενεργού καταλόγου εξακολουθεί να δημοσιεύεται μετά την επιβεβαίωση.
+
+Η έκδοση `v0.36.5` αυστηροποιεί αυτή την προστασία μετά την παρατήρηση επαναλαμβανόμενων upstream παρτίδων περίπου 473 προϊόντων που εμφανίζονταν και εξαφανίζονταν μέσα σε λίγες ώρες. Κάθε λήψη αποκτά πλέον προφίλ κάλυψης για τις έξι βασικές κατηγορίες, τον αριθμό προϊόντων ανά ελληνική αλυσίδα και το συνολικό πλήθος ενεργών προσφορών. Ασυνήθιστη μείωση βασικής κατηγορίας, κατάρρευση κάλυψης αλυσίδας ή μεγάλη απώλεια προσφορών απορρίπτει τη νέα λήψη ακόμη και αν επαναληφθεί σε πολλούς ωριαίους ελέγχους. Μείωση ολόκληρου του καταλόγου πάνω από 3% απαιτεί πλέον ρητή διαχειριστική έγκριση αντί να γίνεται αυτόματα αποδεκτή στη δεύτερη παρατήρηση. Ο τελευταίος επαληθευμένος κατάλογος παραμένει live με την πραγματική παλαιότερη ώρα του και το δίγλωσσο μήνυμα κατάστασης εξηγεί ότι η ελλιπής upstream λήψη απορρίφθηκε. Τα διαγνωστικά γράφονται στο `refresh-status.json`, χωρίς να παρουσιάζονται παλιές τιμές ως καινούργιες ή να δημιουργούνται προϊόντα που λείπουν από τη δημόσια πηγή.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -309,7 +311,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.36.4`
+**Current version:** `v0.36.5`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -486,6 +488,8 @@ Version `v0.36.2` makes a temporary PosoKanei outage clearer and more resilient.
 Version `v0.36.3` keeps the daily AI-assisted pick consistent with the latest prices. Editorial headlines no longer contain a price or percentage that can become stale; price, chain, difference, and percentage are derived only from the newest synchronized catalogue. Every hourly synchronization revalidates that day's picks without making a second AI request: a pick whose meaningful price gap has disappeared is removed and replaced with a currently verified candidate. The client also strips numerical bargain claims from older already-published headlines, preventing a price change between synchronizations from showing two conflicting percentages on one card.
 
 Version `v0.36.4` protects the public catalogue from sudden temporary upstream contractions. Every page of every root category must still complete, and a product-count decrease greater than 3% is no longer published on its first observation. The previous complete catalogue remains live until a second independent hourly synchronization confirms a similar count. This prevents a transient incomplete response from removing hundreds of products while still allowing a genuine change to the official active catalogue after confirmation.
+
+Version `v0.36.5` strengthens that protection after repeated upstream batches of roughly 473 products were observed appearing and disappearing within hours. Every download now receives a coverage profile for the six root categories, product coverage per Greek retailer, and the total number of active retailer offers. An abnormal root-category loss, retailer-feed collapse, or large offer loss rejects the candidate even when it repeats across multiple hourly checks. A catalogue-wide contraction above 3% now requires an explicit administrative override instead of becoming acceptable after a second observation. The last verified catalogue remains live with its real older timestamp, while the bilingual status notice explains that an incomplete upstream download was rejected. Machine-readable diagnostics are written to `refresh-status.json`; stale prices are never relabelled as fresh, and missing source products are never fabricated.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -1127,6 +1131,7 @@ The app includes a lightweight update checker:
 - Catalogue and deployment files are uploaded to unique temporary FTP names and renamed into place only after each upload completes. Visitors therefore keep receiving the previous valid JSON during a refresh instead of a partially uploaded catalogue.
 - After a successful snapshot build, `npm run live:refresh` runs the daily bargain date guard, uploads the staged `daily-bargain.json` when available, and verifies the published suggestion timestamp.
 - When `npm run live:refresh` fails because the upstream API, SSH runner, or network route returns an error, it uploads the isolated staged `refresh-status.json` with `status: "failed"` so the deployed UI can show the latest failed attempt.
+- Before publication, the refresh compares product totals, all six root-category totals, per-retailer product coverage, and the total active retailer-offer count with the last live catalogue. The default limits reject a catalogue-wide drop above 3%, a root-category drop above 5% (at least 10 products), a retailer-coverage drop above 20% (at least 50 products from a baseline of 100), or an offer-count drop above 8% (at least 100 offers). Repeated low snapshots remain blocked rather than becoming automatically trusted. Diagnostics are written to `refresh-status.json`; a supervised one-run acceptance requires the explicit `POSOKANEI_ALLOW_CATALOG_CONTRACTION=1` override.
 - `POSOKANEI_REFRESH_HOSTS` accepts a comma- or space-separated list of trusted SSH runners. The first successful runner wins, so the hourly refresh can continue if one host is asleep, offline, or temporarily blocked.
 - The snapshot builder uses `curl` HTTPS transport, a browser-like request header, and serial startup requests because the upstream edge can reject the Node.js TLS/client fingerprint or concurrent automation requests with `HTTP 403`. Temporary `403` responses are retried with backoff, and `POSOKANEI_USER_AGENT` can still override the header if the upstream rules change again.
 - `npm run live:install-refresh` optionally installs a local hourly scheduler for environments that support macOS LaunchAgents. The job starts a non-interactive login shell; the refresh script reads the ignored `.env.local` itself, and the private OpenAI key is never uploaded.

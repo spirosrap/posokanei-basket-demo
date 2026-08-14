@@ -2005,6 +2005,7 @@ function Header({
 function AppIntro({ health, updateStatus }) {
   const { locale, t } = usePreferences();
   const refreshFailed = updateStatus?.refreshStatus === "failed";
+  const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
   const showIntroTimestamp = health.source !== "snapshot";
   return (
     <section className="app-intro" aria-label={t("appPurpose")}>
@@ -2027,7 +2028,9 @@ function AppIntro({ health, updateStatus }) {
         </AppLink>
         <div className="intro-facts" aria-label={t("dataStatus")}>
           <span>
-            {refreshFailed
+            {coverageDegraded
+              ? t("catalogueProtected")
+              : refreshFailed
               ? t("lastAttemptFailed")
               : health.source === "snapshot"
               ? t("hourlyUpdates")
@@ -2052,6 +2055,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
   );
   const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt, locale, t);
   const refreshFailed = updateStatus?.refreshStatus === "failed";
+  const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
   const isAutoSnapshot = updateStatus?.status === "snapshot";
 
   return (
@@ -2066,7 +2070,9 @@ function DataFreshnessNotice({ health, updateStatus }) {
         </span>
         <span className="freshness-summary">
           <strong>
-          {refreshFailed
+          {coverageDegraded
+            ? t("refreshCoverageDegradedTitle")
+            : refreshFailed
             ? t("refreshFailedTitle")
             : isAutoSnapshot
             ? t("refreshAutomaticTitle")
@@ -2082,7 +2088,11 @@ function DataFreshnessNotice({ health, updateStatus }) {
           {refreshFailed
             ? t("refreshAttempt", {
                 time: refreshAttemptTime,
-                error: friendlyRefreshError(updateStatus?.refreshError, t),
+                error: friendlyRefreshError(
+                  updateStatus?.refreshError,
+                  t,
+                  updateStatus?.refreshErrorCode,
+                ),
               })
             : ""}
         </p>
@@ -5805,13 +5815,26 @@ function formatDateTime(date, locale) {
   }
 }
 
-function friendlyRefreshError(error, t) {
+function friendlyRefreshError(error, t, errorCode = "") {
+  if (
+    errorCode === "catalog_coverage_degraded"
+    || errorCode === "catalog_contraction_blocked"
+  ) {
+    return t("catalogueCoverageDegraded");
+  }
   if (!error) return t("checkIncomplete");
   if (String(error).includes("HTTP 403")) return t("upstreamBlocked");
   if (String(error).includes("Catalogue publication timed out")) {
     return t("publicationTimedOut");
   }
   return t("checkIncomplete");
+}
+
+function isCatalogCoverageDegraded(updateStatus) {
+  return updateStatus?.refreshStatus === "failed" && [
+    "catalog_coverage_degraded",
+    "catalog_contraction_blocked",
+  ].includes(updateStatus?.refreshErrorCode);
 }
 
 function healthStatusLabel(health, t, number) {

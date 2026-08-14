@@ -12,6 +12,8 @@ export function normalizeUpdateStatus(raw = {}) {
     refreshStatus: raw.refresh_status || raw.refreshStatus || "",
     refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
     refreshError: raw.refresh_error || raw.refreshError || "",
+    refreshErrorCode: raw.refresh_error_code || raw.refreshErrorCode || "",
+    refreshDiagnostics: raw.refresh_diagnostics || raw.refreshDiagnostics || null,
     lastSuccessfulRefreshAt:
       raw.last_successful_refresh_at
       || raw.lastSuccessfulRefreshAt

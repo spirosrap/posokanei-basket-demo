@@ -178,12 +178,22 @@ async function fetchProducts(categories) {
   }
 
   const productsById = new Map();
+  const rootCategories = [];
   let expectedTotal = 0;
   for (const segment of segments) {
-    expectedTotal += await fetchProductSegment(productsById, segment);
+    const productCount = await fetchProductSegment(productsById, segment);
+    expectedTotal += productCount;
+    rootCategories.push({
+      category_id: segment.id,
+      category_name: segment.name,
+      product_count: productCount,
+    });
   }
 
-  return finalizeCatalogProducts(productsById, expectedTotal);
+  return {
+    products: finalizeCatalogProducts(productsById, expectedTotal),
+    rootCategories,
+  };
 }
 
 // Keep the catalogue crawl serial. A 403 is not retried inside one run because
@@ -192,7 +202,7 @@ const stats = await fetchJson("/meta/stats");
 const categoriesRaw = await fetchJson("/meta/categories");
 const retailersRaw = await fetchJson("/meta/retailers?countries=GR");
 const categories = categoriesRaw.categories || categoriesRaw;
-const products = await fetchProducts(categories);
+const { products, rootCategories } = await fetchProducts(categories);
 
 const rawSnapshot = {
   generated_at: new Date().toISOString(),
@@ -200,6 +210,10 @@ const rawSnapshot = {
   stats,
   categories,
   retailers: retailersRaw.retailers || retailersRaw,
+  coverage: {
+    schema_version: 1,
+    root_categories: rootCategories,
+  },
   products,
 };
 const previousSnapshot = previousSnapshotPath
@@ -219,6 +233,7 @@ const metadata = {
   },
   categories: snapshot.categories,
   retailers: snapshot.retailers,
+  coverage: snapshot.coverage,
   price_change_stats: priceChangeStats,
 };
 

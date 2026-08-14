@@ -16,7 +16,10 @@ import {
 } from "./price-change-export.mjs";
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
-import { evaluateCatalogContraction } from "./catalog-publication-guard.mjs";
+import {
+  evaluateCatalogContraction,
+  evaluateCatalogCoverage,
+} from "./catalog-publication-guard.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -58,6 +61,15 @@ const requiredContractionConfirmations = Number(
 );
 const contractionToleranceRatio = Number(
   process.env.POSOKANEI_CATALOG_DROP_TOLERANCE_RATIO || 0.01,
+);
+const maximumRootCategoryDropRatio = Number(
+  process.env.POSOKANEI_MAX_ROOT_CATEGORY_DROP_RATIO || 0.05,
+);
+const maximumRetailerDropRatio = Number(
+  process.env.POSOKANEI_MAX_RETAILER_DROP_RATIO || 0.2,
+);
+const maximumOfferDropRatio = Number(
+  process.env.POSOKANEI_MAX_OFFER_DROP_RATIO || 0.08,
 );
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
@@ -232,7 +244,7 @@ async function refreshCatalog() {
       `Snapshot guard failed: expected at least ${minimumProducts} products, got ${productCount}.`,
     );
   }
-  await verifyCatalogContraction(previousSnapshotPath, productCount, snapshot.generated_at);
+  await verifyCatalogPublication(previousSnapshotPath, snapshot);
 
   console.log(
     `Snapshot ready: ${productCount.toLocaleString("en-US")} products generated_at=${snapshot.generated_at}`,
@@ -276,15 +288,33 @@ async function refreshCatalog() {
   }
 }
 
-async function verifyCatalogContraction(previousSnapshotPath, productCount, generatedAt) {
+async function verifyCatalogPublication(previousSnapshotPath, snapshot) {
   if (process.env.POSOKANEI_ALLOW_CATALOG_CONTRACTION === "1") {
     await rm(contractionStatePath, { force: true });
-    console.log("Catalogue contraction guard bypassed by explicit configuration.");
+    console.log("Catalogue publication guards bypassed by explicit configuration.");
     return;
   }
 
   const previous = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  const productCount = Array.isArray(snapshot?.products) ? snapshot.products.length : 0;
   const previousCount = Array.isArray(previous?.products) ? previous.products.length : 0;
+  const coverageAssessment = evaluateCatalogCoverage({
+    previousSnapshot: previous,
+    nextSnapshot: snapshot,
+    maximumRootDropRatio: maximumRootCategoryDropRatio,
+    maximumRetailerDropRatio,
+    maximumOfferDropRatio,
+  });
+  if (!coverageAssessment.allow) {
+    throw publicationGuardError(
+      "catalog_coverage_degraded",
+      coverageAssessment,
+      `Catalogue source coverage degraded: ${formatCoverageAnomalies(
+        coverageAssessment.anomalies,
+      )}. The current live catalogue was retained.`,
+    );
+  }
+
   const pendingState = await readJsonIfPresent(contractionStatePath);
   const assessment = evaluateCatalogContraction({
     previousCount,
@@ -307,7 +337,7 @@ async function verifyCatalogContraction(previousSnapshotPath, productCount, gene
           ? pendingState?.first_seen_at || now
           : now,
         last_seen_at: now,
-        generated_at: generatedAt || "",
+        generated_at: snapshot.generated_at || "",
       }, null, 2)}\n`,
       "utf8",
     );
@@ -317,9 +347,12 @@ async function verifyCatalogContraction(previousSnapshotPath, productCount, gene
 
   if (!assessment.allow) {
     const percent = Math.round(assessment.dropRatio * 1000) / 10;
-    throw new Error(
+    throw publicationGuardError(
+      "catalog_contraction_blocked",
+      assessment,
       `Catalogue contraction pending confirmation: ${productCount} products versus `
-      + `${previousCount} previously (${percent}% lower). The current live catalogue was retained.`,
+      + `${previousCount} previously (${percent}% lower). Manual approval is required; `
+      + "the current live catalogue was retained.",
     );
   }
 
@@ -329,6 +362,23 @@ async function verifyCatalogContraction(previousSnapshotPath, productCount, gene
       + `${previousCount} -> ${productCount} products.`,
     );
   }
+}
+
+function publicationGuardError(code, diagnostics, message) {
+  const error = new Error(message);
+  error.code = code;
+  error.refreshDiagnostics = diagnostics;
+  return error;
+}
+
+function formatCoverageAnomalies(anomalies) {
+  return anomalies
+    .slice(0, 4)
+    .map((anomaly) => {
+      const percent = Math.round(Number(anomaly.drop_ratio || 0) * 1000) / 10;
+      return `${anomaly.name} ${anomaly.previous_count}->${anomaly.next_count} (-${percent}%)`;
+    })
+    .join(", ");
 }
 
 async function readJsonIfPresent(filePath) {
@@ -596,6 +646,10 @@ async function recordRefreshFailure(error) {
     generated_at: previous.generated_at || "",
     product_count: previous.product_count || 0,
     error: describeRefreshError(error),
+    error_code: refreshErrorCode(error),
+    ...(error?.refreshDiagnostics
+      ? { diagnostics: compactRefreshDiagnostics(error.refreshDiagnostics) }
+      : {}),
     retry_after_seconds: 3600,
   };
   await writeRefreshStatus(status);
@@ -613,6 +667,32 @@ async function recordRefreshFailure(error) {
       );
     }
   }
+}
+
+function compactRefreshDiagnostics(diagnostics) {
+  if (Array.isArray(diagnostics?.anomalies)) {
+    return {
+      reason: diagnostics.reason || "coverage-degraded",
+      anomalies: diagnostics.anomalies.map((anomaly) => ({
+        scope: anomaly.scope,
+        id: anomaly.id,
+        name: anomaly.name,
+        previous_count: anomaly.previous_count,
+        next_count: anomaly.next_count,
+        drop: anomaly.drop,
+        drop_ratio: Math.round(Number(anomaly.drop_ratio || 0) * 10000) / 10000,
+      })),
+      previous_profile: diagnostics.previousProfile,
+      candidate_profile: diagnostics.nextProfile,
+    };
+  }
+  return {
+    reason: diagnostics?.reason || "catalog-contraction",
+    previous_product_count: diagnostics?.previousCount || 0,
+    candidate_product_count: diagnostics?.nextCount || 0,
+    drop_ratio: Math.round(Number(diagnostics?.dropRatio || 0) * 10000) / 10000,
+    confirmations: diagnostics?.confirmations || 0,
+  };
 }
 
 async function readPreviousSnapshotSummary() {
@@ -710,6 +790,12 @@ function formatBytes(value) {
 }
 
 function describeRefreshError(error) {
+  if (error?.code === "catalog_coverage_degraded") {
+    return "The upstream catalogue lost category, retailer, or offer coverage; the previous catalogue was retained.";
+  }
+  if (error?.code === "catalog_contraction_blocked") {
+    return "The upstream catalogue contracted beyond the safety limit; the previous catalogue was retained.";
+  }
   const message = String(error?.message || error || "Catalogue refresh failed.");
   const httpMatch = message.match(/returned HTTP (\d+)/);
   const endpointMatch = message.match(/Error: (\/[^\\s]+) returned HTTP \d+/);
@@ -732,6 +818,15 @@ function describeRefreshError(error) {
     return "Refresh runner fetch failed.";
   }
   return "Catalogue refresh failed.";
+}
+
+function refreshErrorCode(error) {
+  if (error?.code === "catalog_coverage_degraded") return error.code;
+  if (error?.code === "catalog_contraction_blocked") return error.code;
+  const message = String(error?.message || error || "");
+  if (/HTTP 403/u.test(message)) return "upstream_http_403";
+  if (/timed out|timeout/u.test(message)) return "timeout";
+  return "refresh_failed";
 }
 
 function loadLocalEnv(envPath) {

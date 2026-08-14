@@ -35,3 +35,17 @@ test("catalogue update time falls back through health and proxy snapshot data", 
     "2026-07-24T10:00:00.000Z",
   );
 });
+
+test("catalogue coverage diagnostics survive status normalization", () => {
+  const status = normalizeUpdateStatus({
+    refresh_status: "failed",
+    refresh_error_code: "catalog_coverage_degraded",
+    refresh_diagnostics: {
+      reason: "coverage-degraded",
+      anomalies: [{ scope: "root_category", name: "Τρόφιμα" }],
+    },
+  });
+
+  assert.equal(status.refreshErrorCode, "catalog_coverage_degraded");
+  assert.equal(status.refreshDiagnostics.anomalies[0].name, "Τρόφιμα");
+});
