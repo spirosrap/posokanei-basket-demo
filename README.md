@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.36.3`
+**Τρέχουσα έκδοση:** `v0.36.4`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -156,6 +156,8 @@
 Η έκδοση `v0.36.2` κάνει σαφέστερη και πιο ανθεκτική την αντιμετώπιση προσωρινής διακοπής του PosoKanei. Στις 7/8/2026 η επίσημη ιστοσελίδα και το δημόσιο API επέστρεφαν `HTTP 403` από πολλαπλά ανεξάρτητα δίκτυα, ενώ απέτυχε με το ίδιο σφάλμα και ανεξάρτητος δημόσιος συγχρονισμός που είχε ολοκληρωθεί κανονικά την προηγούμενη ημέρα. Αυτό δείχνει πρόβλημα διαθεσιμότητας ή πολιτικής πρόσβασης της upstream υπηρεσίας, όχι αποκλεισμό μίας συσκευής ή βλάβη του Καλαθιού Τιμών. Η εφαρμογή πλέον το εξηγεί ρητά, διατηρεί τον τελευταίο πλήρη κατάλογο, εμφανίζει τη νεότερη προσπάθεια χωρίς browser/CDN cache, ανανεώνει την κατάσταση ανά πέντε λεπτά και όταν ο χρήστης επιστρέφει στην καρτέλα, και συνεχίζει την αυτόματη ωριαία επανάληψη. Ένα επίμονο `403` δεν επαναλαμβάνεται άσκοπα τέσσερις φορές στον ίδιο runner, ενώ η κατάσταση αποτυχίας δημοσιεύεται και στα δύο domains. Οι τιμές δεν επινοούνται και ο κατάλογος αντικαθίσταται μόνο μετά από πλήρη επιτυχή λήψη και επαλήθευση.
 
 Η έκδοση `v0.36.3` κρατά την ημερήσια AI επιλογή συνεπή με τις νεότερες τιμές. Το editorial headline δεν περιέχει πλέον ποσοστό ή τιμή που μπορεί να παλιώσει, ενώ τιμή, αλυσίδα, διαφορά και ποσοστό υπολογίζονται αποκλειστικά από τον πιο πρόσφατο συγχρονισμένο κατάλογο. Σε κάθε ωριαίο συγχρονισμό επανελέγχονται οι ίδιες ημερήσιες επιλογές χωρίς δεύτερη κλήση AI: μια επιλογή που δεν έχει πλέον ουσιαστική διαφορά αφαιρείται και αντικαθίσταται από επαληθευμένο τρέχον υποψήφιο. Η εφαρμογή καθαρίζει επίσης αριθμητικούς ισχυρισμούς από παλαιότερα ήδη δημοσιευμένα headlines, ώστε μια αλλαγή τιμής ανάμεσα σε δύο συγχρονισμούς να μην μπορεί να εμφανίσει δύο διαφορετικά ποσοστά στην ίδια κάρτα.
+
+Η έκδοση `v0.36.4` προστατεύει τον δημόσιο κατάλογο από απότομες προσωρινές μειώσεις του upstream. Όλες οι σελίδες κάθε βασικής κατηγορίας εξακολουθούν να πρέπει να ολοκληρωθούν, αλλά πλέον μια μείωση προϊόντων μεγαλύτερη από 3% δεν δημοσιεύεται με την πρώτη παρατήρηση. Διατηρείται ο προηγούμενος πλήρης κατάλογος έως ότου δεύτερος ανεξάρτητος ωριαίος συγχρονισμός επιβεβαιώσει παρόμοιο αριθμό. Έτσι μια προσωρινά ελλιπής απάντηση δεν μπορεί να αφαιρέσει εκατοντάδες προϊόντα, ενώ μια πραγματική αλλαγή του επίσημου ενεργού καταλόγου εξακολουθεί να δημοσιεύεται μετά την επιβεβαίωση.
 
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
@@ -307,7 +309,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.36.3`
+**Current version:** `v0.36.4`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -482,6 +484,8 @@ Version `v0.36.1` fixes the artificial appearance of exactly `10,000` products. 
 Version `v0.36.2` makes a temporary PosoKanei outage clearer and more resilient. On 7 August 2026, the official website and public API returned `HTTP 403` from multiple unrelated networks, and an independent public synchronization job that had succeeded the previous day failed with the same response. This points to an upstream availability or access-policy incident rather than one blocked device or a Basket app failure. The interface now explains that distinction, preserves the latest complete catalogue, reads the newest attempt without browser/CDN caching, refreshes status every five minutes and whenever the user returns to the tab, and keeps the hourly automatic retry. A persistent `403` is no longer retried four times immediately on the same runner, while failure status is published consistently to both domains. Prices are never fabricated, and the public catalogue changes only after a complete, validated download.
 
 Version `v0.36.3` keeps the daily AI-assisted pick consistent with the latest prices. Editorial headlines no longer contain a price or percentage that can become stale; price, chain, difference, and percentage are derived only from the newest synchronized catalogue. Every hourly synchronization revalidates that day's picks without making a second AI request: a pick whose meaningful price gap has disappeared is removed and replaced with a currently verified candidate. The client also strips numerical bargain claims from older already-published headlines, preventing a price change between synchronizations from showing two conflicting percentages on one card.
+
+Version `v0.36.4` protects the public catalogue from sudden temporary upstream contractions. Every page of every root category must still complete, and a product-count decrease greater than 3% is no longer published on its first observation. The previous complete catalogue remains live until a second independent hourly synchronization confirms a similar count. This prevents a transient incomplete response from removing hundreds of products while still allowing a genuine change to the official active catalogue after confirmation.
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

@@ -16,6 +16,7 @@ import {
 } from "./price-change-export.mjs";
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
+import { evaluateCatalogContraction } from "./catalog-publication-guard.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnv(resolve(projectRoot, ".env.local"));
@@ -49,6 +50,15 @@ const remoteRefreshHosts = parseRefreshHosts(
   process.env.POSOKANEI_REFRESH_HOSTS || remoteRefreshHost,
 );
 const minimumProducts = Number(process.env.POSOKANEI_MIN_PRODUCTS || 1000);
+const maximumCatalogDropRatio = Number(
+  process.env.POSOKANEI_MAX_CATALOG_DROP_RATIO || 0.03,
+);
+const requiredContractionConfirmations = Number(
+  process.env.POSOKANEI_CATALOG_DROP_CONFIRMATIONS || 2,
+);
+const contractionToleranceRatio = Number(
+  process.env.POSOKANEI_CATALOG_DROP_TOLERANCE_RATIO || 0.01,
+);
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
   publicDataUrl(primaryTarget, "catalog.json");
@@ -61,6 +71,11 @@ const refreshLockPath = resolve(
 const previousSnapshotCachePath = resolve(
   projectRoot,
   process.env.POSOKANEI_PREVIOUS_SNAPSHOT_CACHE || ".cache/catalog-previous.json",
+);
+const contractionStatePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_CATALOG_CONTRACTION_STATE
+    || ".cache/catalog-contraction-state.json",
 );
 const configuredPreviousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(projectRoot, process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
@@ -217,6 +232,7 @@ async function refreshCatalog() {
       `Snapshot guard failed: expected at least ${minimumProducts} products, got ${productCount}.`,
     );
   }
+  await verifyCatalogContraction(previousSnapshotPath, productCount, snapshot.generated_at);
 
   console.log(
     `Snapshot ready: ${productCount.toLocaleString("en-US")} products generated_at=${snapshot.generated_at}`,
@@ -257,6 +273,69 @@ async function refreshCatalog() {
     }
   } else {
     console.log("Upload skipped because --no-upload was passed.");
+  }
+}
+
+async function verifyCatalogContraction(previousSnapshotPath, productCount, generatedAt) {
+  if (process.env.POSOKANEI_ALLOW_CATALOG_CONTRACTION === "1") {
+    await rm(contractionStatePath, { force: true });
+    console.log("Catalogue contraction guard bypassed by explicit configuration.");
+    return;
+  }
+
+  const previous = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  const previousCount = Array.isArray(previous?.products) ? previous.products.length : 0;
+  const pendingState = await readJsonIfPresent(contractionStatePath);
+  const assessment = evaluateCatalogContraction({
+    previousCount,
+    nextCount: productCount,
+    pendingState,
+    maximumDropRatio: maximumCatalogDropRatio,
+    requiredConfirmations: requiredContractionConfirmations,
+    toleranceRatio: contractionToleranceRatio,
+  });
+
+  if (assessment.nextState) {
+    const now = new Date().toISOString();
+    const continuesPendingContraction = assessment.confirmations > 1;
+    await mkdir(dirname(contractionStatePath), { recursive: true });
+    await writeFile(
+      contractionStatePath,
+      `${JSON.stringify({
+        ...assessment.nextState,
+        first_seen_at: continuesPendingContraction
+          ? pendingState?.first_seen_at || now
+          : now,
+        last_seen_at: now,
+        generated_at: generatedAt || "",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+  } else {
+    await rm(contractionStatePath, { force: true });
+  }
+
+  if (!assessment.allow) {
+    const percent = Math.round(assessment.dropRatio * 1000) / 10;
+    throw new Error(
+      `Catalogue contraction pending confirmation: ${productCount} products versus `
+      + `${previousCount} previously (${percent}% lower). The current live catalogue was retained.`,
+    );
+  }
+
+  if (assessment.reason === "confirmed-contraction") {
+    console.log(
+      `Catalogue contraction confirmed by ${assessment.confirmations} complete snapshots: `
+      + `${previousCount} -> ${productCount} products.`,
+    );
+  }
+}
+
+async function readJsonIfPresent(filePath) {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8"));
+  } catch {
+    return null;
   }
 }
 
