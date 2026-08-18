@@ -16,6 +16,10 @@ test("normal catalogue refresh output is isolated from application builds", () =
     paths.priceChangesPath,
     "/tmp/kalathi-project/.cache/catalog-refresh-output/price-changes.csv",
   );
+  assert.equal(
+    paths.catalogHealthPath,
+    "/tmp/kalathi-project/.cache/catalog-refresh-output/catalog-health.json",
+  );
   assert.ok(Object.values(paths).every((value) => !value.includes("/dist/")));
 });
 

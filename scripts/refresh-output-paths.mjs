@@ -13,6 +13,7 @@ const OUTPUT_FILES = Object.freeze({
   ],
   priceChangesGzipPath: ["POSOKANEI_PRICE_CHANGES_GZIP_OUT", "price-changes.json.gz"],
   productDetailsPath: ["POSOKANEI_PRODUCT_DETAILS_OUT", "catalog-details.jsonl"],
+  catalogHealthPath: ["POSOKANEI_CATALOG_HEALTH_OUT", "catalog-health.json"],
   refreshStatusPath: ["POSOKANEI_REFRESH_STATUS_OUT", "refresh-status.json"],
   dailyBargainPath: ["POSOKANEI_BARGAIN_OUT", "daily-bargain.json"],
 });

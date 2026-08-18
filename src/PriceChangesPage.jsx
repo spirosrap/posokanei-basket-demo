@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import {
   createElement,
+  lazy,
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -45,7 +47,50 @@ let priceChangesFullPromise = null;
 let priceChangesPreviewRequestedAt = 0;
 let priceChangesFullRequestedAt = 0;
 
-export default function PriceChangesPage({ appBasePath, ui }) {
+const LazyCatalogHealthPage = lazy(() => import("./CatalogHealthPage.jsx"));
+
+export default function SecondaryDataPage({ appBasePath, ui }) {
+  const { language } = usePreferences();
+  const isCatalogHealthRoute = /\/health\/?$/u.test(window.location.pathname);
+  const healthCopy = language === "en"
+    ? {
+        title: "Catalogue health · Price Basket",
+        description: "See the completeness, freshness, and coverage changes of the synchronized PosoKanei catalogue.",
+        loading: "Loading catalogue status",
+      }
+    : {
+        title: "Υγεία καταλόγου · Καλάθι Τιμών",
+        description: "Δες την πληρότητα, τη φρεσκάδα και τις μεταβολές κάλυψης του συγχρονισμένου καταλόγου PosoKanei.",
+        loading: "Φόρτωση κατάστασης καταλόγου",
+      };
+  useEffect(() => {
+    if (!isCatalogHealthRoute) return;
+    let active = true;
+    const updateMetadata = () => {
+      if (!active) return;
+      document.title = healthCopy.title;
+      document
+        .querySelector('meta[name="description"]')
+        ?.setAttribute("content", healthCopy.description);
+    };
+    updateMetadata();
+    queueMicrotask(updateMetadata);
+    return () => {
+      active = false;
+    };
+  }, [healthCopy.description, healthCopy.title, isCatalogHealthRoute]);
+
+  if (isCatalogHealthRoute) {
+    return (
+      <Suspense fallback={<div className="changes-status" role="status">{healthCopy.loading}</div>}>
+        <LazyCatalogHealthPage appBasePath={appBasePath} ui={ui} />
+      </Suspense>
+    );
+  }
+  return <PriceChangesPage appBasePath={appBasePath} ui={ui} />;
+}
+
+function PriceChangesPage({ appBasePath, ui }) {
   const {
     AppLink,
     Header,
@@ -1014,3 +1059,4 @@ function formatRelativeTime(value, locale, t, formatDateTime) {
 }
 
 PriceChangesPage.preload = prefetchPriceChangesPreview;
+SecondaryDataPage.preload = prefetchPriceChangesPreview;

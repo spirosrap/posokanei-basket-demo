@@ -14,6 +14,7 @@ export function appRouteFromPathname(pathname, basePath = "/") {
     .replace(/^\/+|\/+$/g, "");
   if (relativePath === "bargains") return APP_ROUTES.bargains;
   if (relativePath === "changes") return APP_ROUTES.changes;
+  if (relativePath === "health") return APP_ROUTES.changes;
   return APP_ROUTES.home;
 }
 

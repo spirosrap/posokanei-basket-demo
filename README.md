@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.36.5`
+**Τρέχουσα έκδοση:** `v0.37.0`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -161,6 +161,12 @@
 
 Η έκδοση `v0.36.5` αυστηροποιεί αυτή την προστασία μετά την παρατήρηση επαναλαμβανόμενων upstream παρτίδων περίπου 473 προϊόντων που εμφανίζονταν και εξαφανίζονταν μέσα σε λίγες ώρες. Κάθε λήψη αποκτά πλέον προφίλ κάλυψης για τις έξι βασικές κατηγορίες, τον αριθμό προϊόντων ανά ελληνική αλυσίδα και το συνολικό πλήθος ενεργών προσφορών. Ασυνήθιστη μείωση βασικής κατηγορίας, κατάρρευση κάλυψης αλυσίδας ή μεγάλη απώλεια προσφορών απορρίπτει τη νέα λήψη ακόμη και αν επαναληφθεί σε πολλούς ωριαίους ελέγχους. Μείωση ολόκληρου του καταλόγου πάνω από 3% απαιτεί πλέον ρητή διαχειριστική έγκριση αντί να γίνεται αυτόματα αποδεκτή στη δεύτερη παρατήρηση. Ο τελευταίος επαληθευμένος κατάλογος παραμένει live με την πραγματική παλαιότερη ώρα του και το δίγλωσσο μήνυμα κατάστασης εξηγεί ότι η ελλιπής upstream λήψη απορρίφθηκε. Τα διαγνωστικά γράφονται στο `refresh-status.json`, χωρίς να παρουσιάζονται παλιές τιμές ως καινούργιες ή να δημιουργούνται προϊόντα που λείπουν από τη δημόσια πηγή.
 
+Η έκδοση `v0.37.0` κάνει αυτούς τους ελέγχους ορατούς μέσα από τη νέα δίγλωσση σελίδα **Υγεία καταλόγου** στο `/health/`. Το badge του καταλόγου στην κεφαλίδα ανοίγει πλέον μια καθαρή σύγκριση της τελευταίας δημοσιευμένης πλήρους λήψης με τον προηγούμενο επιτυχημένο συγχρονισμό: μοναδικά προϊόντα, κατηγορίες, ενεργές τιμές προϊόντος-αλυσίδας, κάλυψη καθεμιάς από τις έξι βασικές κατηγορίες και προϊόντα με τρέχουσα τιμή ανά ελληνική αλυσίδα. Αν απορριφθεί ελλιπής λήψη, η σελίδα ξεχωρίζει τον προστατευμένο live κατάλογο από την αποτυχημένη προσπάθεια και εμφανίζει τα διαθέσιμα διαγνωστικά χωρίς να δημοσιεύει τα ελλιπή δεδομένα. Αλυσίδα ή κατηγορία που μηδενίζεται δεν εξαφανίζεται από τη σύγκριση, αλλά παραμένει ορατή με την πραγματική αρνητική μεταβολή. Η «κάλυψη αλυσίδας» σημαίνει προϊόντα με διαθέσιμη τρέχουσα τιμή στη δημόσια πηγή και όχι απογραφή φυσικού καταστήματος. Το μικρό `catalog-health.json` δημιουργείται και επαληθεύεται σε κάθε επιτυχημένο συγχρονισμό, παραδίδεται προ-συμπιεσμένο και η σελίδα φορτώνεται μόνο όταν ανοίγεται, κρατώντας τον αρχικό κώδικα στα `63,5 KiB` Brotli.
+
+![Υγεία και κάλυψη του δημοσιευμένου καταλόγου στην έκδοση 0.37.0](screenshots/catalog-health-v0.37.0.png)
+
+![Η mobile προβολή της Υγείας καταλόγου](screenshots/catalog-health-mobile-v0.37.0.png)
+
 ![Καθαρότερο ιστορικό επτά ημερών στην έκδοση 0.33.0](screenshots/price-history-v0.33.0.png)
 
 ![Ιστορικό επτά ημερών σε κινητό](screenshots/price-history-mobile-v0.33.0.png)
@@ -311,7 +317,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.36.5`
+**Current version:** `v0.37.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -490,6 +496,12 @@ Version `v0.36.3` keeps the daily AI-assisted pick consistent with the latest pr
 Version `v0.36.4` protects the public catalogue from sudden temporary upstream contractions. Every page of every root category must still complete, and a product-count decrease greater than 3% is no longer published on its first observation. The previous complete catalogue remains live until a second independent hourly synchronization confirms a similar count. This prevents a transient incomplete response from removing hundreds of products while still allowing a genuine change to the official active catalogue after confirmation.
 
 Version `v0.36.5` strengthens that protection after repeated upstream batches of roughly 473 products were observed appearing and disappearing within hours. Every download now receives a coverage profile for the six root categories, product coverage per Greek retailer, and the total number of active retailer offers. An abnormal root-category loss, retailer-feed collapse, or large offer loss rejects the candidate even when it repeats across multiple hourly checks. A catalogue-wide contraction above 3% now requires an explicit administrative override instead of becoming acceptable after a second observation. The last verified catalogue remains live with its real older timestamp, while the bilingual status notice explains that an incomplete upstream download was rejected. Machine-readable diagnostics are written to `refresh-status.json`; stale prices are never relabelled as fresh, and missing source products are never fabricated.
+
+Version `v0.37.0` makes those safeguards visible through the new bilingual **Catalogue health** page at `/health/`. The catalogue badge in the header now opens a clear comparison between the latest published complete download and the previous successful synchronization: unique products, catalogue categories, active product-chain prices, coverage of each of the six root categories, and products with a current price at every Greek chain. When an incomplete candidate is rejected, the page distinguishes the protected live catalogue from the failed attempt and exposes the available diagnostics without publishing incomplete data. A chain or category that drops to zero remains visible with its true negative delta instead of disappearing from the comparison. “Chain coverage” means products with a current price in the public source; it is not an inventory of a physical store. The compact `catalog-health.json` artifact is generated and verified during every successful refresh, served precompressed, and loaded through a lazy route, keeping startup JavaScript at `63.5 KiB` Brotli.
+
+![Published catalogue health and coverage in version 0.37.0](screenshots/catalog-health-v0.37.0.png)
+
+![Responsive Catalogue health view](screenshots/catalog-health-mobile-v0.37.0.png)
 
 ![Clearer seven-day price history in version 0.33.0](screenshots/price-history-v0.33.0.png)
 

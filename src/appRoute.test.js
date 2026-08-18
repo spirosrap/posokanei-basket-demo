@@ -6,6 +6,7 @@ test("app routes support root and scoped deployments", () => {
   assert.equal(appRouteFromPathname("/", "/"), APP_ROUTES.home);
   assert.equal(appRouteFromPathname("/bargains/", "/"), APP_ROUTES.bargains);
   assert.equal(appRouteFromPathname("/changes", "/"), APP_ROUTES.changes);
+  assert.equal(appRouteFromPathname("/health/", "/"), APP_ROUTES.changes);
   assert.equal(
     appRouteFromPathname("/demo/posokanei-basket/changes/", "/demo/posokanei-basket/"),
     APP_ROUTES.changes,
@@ -13,6 +14,10 @@ test("app routes support root and scoped deployments", () => {
   assert.equal(
     appRouteFromPathname("/demo/posokanei-basket/bargains", "/demo/posokanei-basket/"),
     APP_ROUTES.bargains,
+  );
+  assert.equal(
+    appRouteFromPathname("/demo/posokanei-basket/health", "/demo/posokanei-basket/"),
+    APP_ROUTES.changes,
   );
   assert.equal(
     appRouteFromPathname("/outside/changes/", "/demo/posokanei-basket/"),

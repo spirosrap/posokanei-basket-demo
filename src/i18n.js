@@ -9,6 +9,7 @@ const messages = {
     priceChangesDocumentTitle: "Πρόσφατες αλλαγές τιμών · Καλάθι Τιμών",
     priceChangesDocumentDescription:
       "Δες συγκεντρωμένες τις πρόσφατες αλλαγές τιμών προϊόντων ανά αλυσίδα supermarket.",
+    openCatalogHealth: "Άνοιγμα υγείας καταλόγου",
     languageSelector: "Γλώσσα εφαρμογής",
     greek: "Ελληνικά",
     english: "English",
@@ -573,6 +574,7 @@ const messages = {
     priceChangesDocumentTitle: "Recent price changes · Price Basket",
     priceChangesDocumentDescription:
       "See recent supermarket product-price changes collected by product and chain.",
+    openCatalogHealth: "Open catalogue health",
     languageSelector: "App language",
     greek: "Greek",
     english: "English",

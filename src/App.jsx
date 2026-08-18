@@ -176,6 +176,7 @@ const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
 const PRICE_CHANGES_PATH = `${APP_BASE_PATH}changes/`;
+const CATALOG_HEALTH_PATH = `${APP_BASE_PATH}health/`;
 const INITIAL_APP_ROUTE = appRouteFromPathname(window.location.pathname, APP_BASE_PATH);
 const INITIAL_SHARED_BASKET = INITIAL_APP_ROUTE !== APP_ROUTES.home
   ? null
@@ -1972,13 +1973,15 @@ function Header({
           <Tag size={14} aria-hidden="true" />
           v{APP_VERSION}
         </span>
-        <div
+        <a
           className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
-          title={t("apiStatus")}
+          href={CATALOG_HEALTH_PATH}
+          title={t("openCatalogHealth")}
+          aria-label={`${healthLabel}. ${t("openCatalogHealth")}`}
         >
           {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
           <span>{healthLabel}</span>
-        </div>
+        </a>
         {onOpenPriceWatch ? (
           <button
             type="button"

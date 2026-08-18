@@ -285,6 +285,13 @@ select:focus-visible {
 .source-status {
   gap: 7px;
   padding: 0 12px;
+  text-decoration: none;
+}
+
+.source-status:hover,
+.source-status:focus-visible {
+  border-color: currentColor;
+  box-shadow: 0 4px 12px rgba(35, 65, 51, 0.1);
 }
 
 .source-status.online {
@@ -1063,6 +1070,334 @@ select:focus-visible {
 
 .changes-status.error .text-button {
   margin-left: 8px;
+}
+
+.catalog-health-page {
+  width: min(1420px, 100%);
+  margin: 0 auto;
+  padding: 8px 0 52px;
+}
+
+.health-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 6px 0 18px;
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0 22px;
+}
+
+.health-heading h1 {
+  margin: 7px 0 0;
+  font-size: 32px;
+  line-height: 1.12;
+}
+
+.health-heading p {
+  max-width: 780px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.health-heading-time {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-heading-time strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.health-heading-time small {
+  margin-top: 3px;
+  font-weight: 750;
+}
+
+.health-status-banner {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--green);
+  background: var(--green-soft);
+  padding: 13px 16px;
+}
+
+.health-status-banner.protected,
+.health-status-banner.delayed {
+  border-left-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.health-status-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--green-dark);
+}
+
+.health-status-banner.protected .health-status-icon,
+.health-status-banner.delayed .health-status-icon {
+  color: var(--amber);
+}
+
+.health-status-banner strong,
+.health-status-banner p,
+.health-status-banner small {
+  display: block;
+}
+
+.health-status-banner strong {
+  font-size: 14px;
+}
+
+.health-status-banner p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.health-status-banner small {
+  margin-top: 4px;
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.health-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 24px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.health-metric {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 15px 16px;
+}
+
+.health-metric + .health-metric {
+  border-left: 1px solid var(--line);
+}
+
+.health-metric-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.health-metric strong,
+.health-metric small {
+  display: block;
+}
+
+.health-metric strong {
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.health-metric small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.health-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.health-delta.positive {
+  color: var(--green-dark);
+}
+
+.health-delta.negative {
+  color: var(--red);
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 28px;
+}
+
+.health-coverage-section {
+  min-width: 0;
+}
+
+.health-coverage-section > header {
+  min-height: 68px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.health-coverage-section h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.health-coverage-section header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.health-coverage-list {
+  display: grid;
+}
+
+.health-coverage-row {
+  padding: 13px 2px;
+}
+
+.health-coverage-row + .health-coverage-row {
+  border-top: 1px solid var(--faint);
+}
+
+.health-coverage-row-head,
+.health-coverage-row-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.health-coverage-row-head strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-coverage-row-head > span {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-coverage-track {
+  height: 5px;
+  margin: 8px 0 5px;
+  border-radius: 3px;
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+
+.health-coverage-track span {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
+.health-coverage-section:nth-child(2) .health-coverage-track span {
+  background: var(--green);
+}
+
+.health-coverage-row-meta > span:first-child {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.health-anomalies {
+  margin-top: 26px;
+  border: 1px solid rgba(199, 121, 3, 0.28);
+  border-left: 3px solid var(--amber);
+  background: var(--amber-soft);
+  padding: 13px 15px;
+}
+
+.health-anomalies > div {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  color: var(--amber);
+}
+
+.health-anomalies strong,
+.health-anomalies small {
+  display: block;
+}
+
+.health-anomalies small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.health-anomalies ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 18px;
+  margin: 11px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.health-anomalies li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(199, 121, 3, 0.18);
+  padding-top: 7px;
+  font-size: 11px;
+}
+
+.health-anomalies li strong {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.health-footnote {
+  margin: 24px 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: 13px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .changes-summary {
@@ -6102,6 +6437,19 @@ select:focus-visible {
 }
 
 @media (max-width: 1180px) {
+  .health-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .health-metric:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .health-metric:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
   .daily-bargain {
     grid-template-columns: minmax(300px, 1.3fr) minmax(220px, 0.8fr) auto;
   }
@@ -6148,6 +6496,23 @@ select:focus-visible {
 }
 
 @media (max-width: 900px) {
+  .health-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .health-heading-time {
+    align-items: flex-start;
+  }
+
+  .health-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .health-coverage-section > header {
+    min-height: 0;
+  }
+
   .app-intro {
     align-items: flex-start;
     flex-direction: column;
@@ -6217,6 +6582,43 @@ select:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .catalog-health-page {
+    padding-bottom: 28px;
+  }
+
+  .health-heading {
+    padding-top: 12px;
+  }
+
+  .health-heading h1 {
+    font-size: 24px;
+  }
+
+  .health-status-banner {
+    grid-template-columns: 34px minmax(0, 1fr);
+    padding: 11px;
+  }
+
+  .health-status-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .health-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .health-metric + .health-metric,
+  .health-metric:nth-child(3),
+  .health-metric:nth-child(4) {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .health-anomalies ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-shell {
     padding: 12px 10px 20px;
   }

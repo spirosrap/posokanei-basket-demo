@@ -15,6 +15,7 @@ import {
   PRICE_CHANGES_PREVIEW_LIMIT,
 } from "./price-change-export.mjs";
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
+import { writeCatalogHealthSnapshot } from "./catalog-health.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
 import {
   evaluateCatalogContraction,
@@ -39,6 +40,7 @@ const {
   priceChangesPreviewPath,
   priceChangesGzipPath,
   productDetailsPath,
+  catalogHealthPath,
   refreshStatusPath,
   dailyBargainPath,
 } = resolveRefreshOutputPaths({
@@ -173,6 +175,7 @@ async function deployCurrentCatalogueCompression() {
     bootstrapPath,
     priceChangesJsonPath,
     priceChangesPreviewPath,
+    catalogHealthPath,
   ];
   for (const filePath of timestampedFiles) {
     const data = JSON.parse(await readFile(filePath, "utf8"));
@@ -245,9 +248,19 @@ async function refreshCatalog() {
     );
   }
   await verifyCatalogPublication(previousSnapshotPath, snapshot);
+  const previousSnapshot = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  const catalogHealth = await writeCatalogHealthSnapshot(
+    snapshot,
+    previousSnapshot,
+    catalogHealthPath,
+  );
 
   console.log(
     `Snapshot ready: ${productCount.toLocaleString("en-US")} products generated_at=${snapshot.generated_at}`,
+  );
+  console.log(
+    `Catalogue health ready: ${catalogHealth.current.total_offers.toLocaleString("en-US")} `
+    + `active product-chain offers across ${catalogHealth.current.retailers.length} chains.`,
   );
   const productDetails = await writeProductDetailsJsonl(snapshot, productDetailsPath);
   detailVerificationProductId = productDetails.verificationProductId;
@@ -747,6 +760,7 @@ async function writeCatalogueCompressionVariants() {
     { filePath: priceChangesPath, remoteName: "price-changes.csv" },
     { filePath: priceChangesJsonPath, remoteName: "price-changes.json" },
     { filePath: priceChangesPreviewPath, remoteName: "price-changes-preview.json" },
+    { filePath: catalogHealthPath, remoteName: "catalog-health.json" },
     ...(existsSync(dailyBargainPath)
       ? [{ filePath: dailyBargainPath, remoteName: "daily-bargain.json" }]
       : []),
@@ -898,6 +912,7 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(priceChangesPath, "price-changes.csv", target, password);
   await publishDataFile(priceChangesJsonPath, "price-changes.json", target, password);
   await publishDataFile(priceChangesPreviewPath, "price-changes-preview.json", target, password);
+  await publishDataFile(catalogHealthPath, "catalog-health.json", target, password);
   await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
@@ -1057,6 +1072,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
     "/api/price-changes.php",
   );
   const targetStatusUrl = targetCatalogUrl.replace(/catalog\.json$/, "refresh-status.json");
+  const targetHealthUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-health.json");
   const targetBargainUrl = targetCatalogUrl.replace(/catalog\.json$/, "daily-bargain.json");
   const targetProductDetailsUrl = targetCatalogUrl.replace(
     /\/data\/catalog\.json$/,
@@ -1075,6 +1091,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         publicPriceChangesPreview,
         publicPriceChangesApi,
         publicProductDetails,
+        publicCatalogHealth,
         publicRefreshStatus,
       ] = await Promise.all([
         fetchPublicJson(targetCatalogUrl),
@@ -1086,6 +1103,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         fetchPublicJson(targetPriceChangesPreviewUrl),
         fetchPublicJson(targetPriceChangesApiUrl),
         fetchPublicJson(targetProductDetailsUrl),
+        fetchPublicJson(targetHealthUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
       const priceChanges = inspectPriceChangesCsv(publicPriceChanges);
@@ -1115,6 +1133,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChangeApiRows: priceChangesApi.rowCount,
         detailProductId: String(detailProduct?.id || ""),
         detailGeneratedAt: String(publicProductDetails?.snapshot_generated_at || ""),
+        health: String(publicCatalogHealth?.generated_at || ""),
+        healthProducts: Number(publicCatalogHealth?.current?.product_count || 0),
         activePriceChanges,
         status: publicRefreshStatus.generated_at || "",
         statusValue: publicRefreshStatus.status || "",
@@ -1124,6 +1144,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         observed.metadata,
         observed.runtime,
         observed.bootstrap,
+        observed.health,
         observed.status,
       ];
       const publishedAt = Date.parse(observed.snapshot);
@@ -1145,7 +1166,8 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         priceChangesApi.rowCount === activePriceChanges &&
         priceChangesApi.generatedAt === observed.snapshot &&
         observed.detailProductId === detailVerificationProductId &&
-        observed.detailGeneratedAt === observed.snapshot
+        observed.detailGeneratedAt === observed.snapshot &&
+        observed.healthProducts === Number(publicSnapshot?.products?.length || 0)
       ) {
         if (observed.snapshot !== expectedGeneratedAt) {
           console.log(`Accepted newer concurrent catalogue ${observed.snapshot}.`);
@@ -1173,6 +1195,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified initial price-change preview at ${targetPriceChangesPreviewUrl}`);
   console.log(`Verified compressed price-change API at ${targetPriceChangesApiUrl}`);
   console.log(`Verified product-detail sidecar through ${targetProductDetailsUrl}`);
+  console.log(`Verified catalogue health at ${targetHealthUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
     const localDailyBargain = JSON.parse(await readFile(dailyBargainPath, "utf8"));
@@ -1192,9 +1215,15 @@ async function verifyCompressedDataDelivery(target, expectedGeneratedAt) {
     /catalog\.json$/u,
     "price-changes-preview.json",
   );
+  const targetHealthUrl = targetCatalogUrl.replace(/catalog\.json$/u, "catalog-health.json");
 
   for (const encoding of ["br", "gzip"]) {
-    for (const url of [targetRuntimeUrl, targetBootstrapUrl, targetPriceChangesPreviewUrl]) {
+    for (const url of [
+      targetRuntimeUrl,
+      targetBootstrapUrl,
+      targetPriceChangesPreviewUrl,
+      targetHealthUrl,
+    ]) {
       const response = await fetch(cacheBustUrl(url), {
         method: "HEAD",
         headers: { "Accept-Encoding": encoding },

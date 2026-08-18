@@ -35,7 +35,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) return;
   const scopePath = new URL(self.registration.scope).pathname;
   const relativePath = url.pathname.slice(scopePath.length).replace(/^\/+/, "");
-  if (relativePath && !/^(?:bargains|changes)\/?$/u.test(relativePath)) return;
+  if (relativePath && !/^(?:bargains|changes|health)\/?$/u.test(relativePath)) return;
 
   const networkResponse = fetch(request)
     .then(async (response) => {
