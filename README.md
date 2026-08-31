@@ -8,7 +8,7 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.37.1`
+**Τρέχουσα έκδοση:** `v0.37.2`
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -165,6 +165,8 @@
 
 Η έκδοση `v0.37.1` διορθώνει το αδιέξοδο όπου μια πραγματική, επίμονη μεταβολή κάλυψης μίας αλυσίδας μπορούσε να απορρίπτεται για πάντα. Μια αποκλειστικά retailer-level, μη μηδενική μεταβολή μπορεί πλέον να γίνει νέο baseline μόνο αφού εμφανιστεί σε έξι συνεπείς πλήρεις λήψεις και για τουλάχιστον έξι ώρες· διαφορετικός υποψήφιος μηδενίζει την επιβεβαίωση. Απώλεια βασικής κατηγορίας, μεγάλη πτώση συνολικών προσφορών, εξαφάνιση αλυσίδας ή μείωση ολόκληρου του καταλόγου συνεχίζουν να προστατεύονται ξεχωριστά και δεν εγκρίνονται από αυτόν τον μηχανισμό. Για επιβλεπόμενη αποκατάσταση υπάρχει επίσης στενή έγκριση ακριβούς `retailer_id:count`, η οποία αποτυγχάνει κλειστά αν αλλάξει έστω ένας μη εγκεκριμένος αριθμός.
 
+Η έκδοση `v0.37.2` διορθώνει την τιμή μονάδας στις γραμμές του καλαθιού. Η εφαρμογή εμφάνιζε σωστά το σύνολο των συσκευασιών, αλλά μπορούσε να χαρακτηρίσει την τιμή μίας συσκευασίας ως τιμή ανά `kg`, `L` ή τεμάχιο. Πλέον χρησιμοποιεί τη συγκεκριμένη κανονικοποιημένη τιμή μονάδας της επιλεγμένης αλυσίδας και, όταν αυτή λείπει, την υπολογίζει μόνο από την τιμή και την ποσότητα της συσκευασίας. Για παράδειγμα, συσκευασία `0,1 kg` στα `1,25 €` εμφανίζεται ως `12,50 €/kg`, ανεξάρτητα από την ποσότητα στο καλάθι. Η επίσημη εικόνα του σχετικού προϊόντος FIN CARRE αποθηκεύτηκε επίσης ως επαληθευμένο τοπικό fallback, επειδή υπάρχει στο PosoKanei αλλά απορρίπτεται προσωρινά από τα δύο δημόσια image routes.
+
 ![Υγεία και κάλυψη του δημοσιευμένου καταλόγου στην έκδοση 0.37.0](screenshots/catalog-health-v0.37.0.png)
 
 ![Η mobile προβολή της Υγείας καταλόγου](screenshots/catalog-health-mobile-v0.37.0.png)
@@ -319,7 +321,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.37.1`
+**Current version:** `v0.37.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 
@@ -502,6 +504,8 @@ Version `v0.36.5` strengthens that protection after repeated upstream batches of
 Version `v0.37.0` makes those safeguards visible through the new bilingual **Catalogue health** page at `/health/`. The catalogue badge in the header now opens a clear comparison between the latest published complete download and the previous successful synchronization: unique products, catalogue categories, active product-chain prices, coverage of each of the six root categories, and products with a current price at every Greek chain. When an incomplete candidate is rejected, the page distinguishes the protected live catalogue from the failed attempt and exposes the available diagnostics without publishing incomplete data. A chain or category that drops to zero remains visible with its true negative delta instead of disappearing from the comparison. “Chain coverage” means products with a current price in the public source; it is not an inventory of a physical store. The compact `catalog-health.json` artifact is generated and verified during every successful refresh, served precompressed, and loaded through a lazy route, keeping startup JavaScript at `63.5 KiB` Brotli.
 
 Version `v0.37.1` fixes the deadlock where a genuine, persistent coverage change at one retailer could be rejected forever. A retailer-only, nonzero change may now become the new baseline only after six mutually consistent complete downloads observed over at least six hours; a materially different candidate restarts confirmation. Root-category loss, a large total-offer drop, a vanished retailer, and whole-catalogue contraction remain independently protected and cannot be accepted through this path. Supervised recovery also has a narrowly scoped exact `retailer_id:count` approval that fails closed if any unapproved count differs.
+
+Version `v0.37.2` corrects unit pricing in basket rows. Package totals were calculated correctly, but a single package price could be labelled as a per-`kg`, per-`L`, or per-item value. The row now uses the selected retailer's normalized unit price and falls back only to dividing the package price by its package quantity. For example, a `0.1 kg` package costing `€1.25` is shown as `€12.50/kg` regardless of the basket quantity. The affected FIN CARRE product's official PosoKanei image is also stored as a validated local fallback because the source file exists while both public image routes currently reject it.
 
 ![Published catalogue health and coverage in version 0.37.0](screenshots/catalog-health-v0.37.0.png)
 

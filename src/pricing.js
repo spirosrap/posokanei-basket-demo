@@ -34,6 +34,18 @@ export function getProductPrice(product, retailerId) {
   return Number.isFinite(value) ? value : null;
 }
 
+export function getProductUnitPrice(product, retailerId) {
+  const price = getProductPrice(product, retailerId);
+  if (price == null) return null;
+
+  const normalized = Number(product?.unitPrices?.[retailerId]);
+  if (Number.isFinite(normalized) && normalized > 0) return normalized;
+
+  const unitAmount = Number(product?.unitAmount);
+  const fallback = unitAmount > 0 ? price / unitAmount : null;
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+}
+
 export function getProductPriceChange(product, retailerId) {
   const change = product?.priceChanges?.[retailerId];
   return change && Number.isFinite(change.amount) && Number.isFinite(change.previousPrice)
@@ -56,9 +68,7 @@ export function getBestProductUnitPrice(product, retailerIds = null) {
     .filter(([retailerId, price]) =>
       Number.isFinite(price) && (!allowedRetailers || allowedRetailers.has(retailerId)))
     .map(([retailerId, price]) => {
-      const normalized = Number(product.unitPrices?.[retailerId]);
-      const fallback = Number(product.unitAmount) > 0 ? price / Number(product.unitAmount) : null;
-      const unitPrice = Number.isFinite(normalized) && normalized > 0 ? normalized : fallback;
+      const unitPrice = getProductUnitPrice(product, retailerId);
       return Number.isFinite(unitPrice) && unitPrice > 0
         ? { retailerId, price, unitPrice }
         : null;

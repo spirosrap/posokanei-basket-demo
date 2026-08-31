@@ -84,6 +84,7 @@ import {
   getBestProductUnitPrice,
   getProductPrice,
   getProductPriceChange,
+  getProductUnitPrice,
   sortProducts,
 } from "./pricing";
 import {
@@ -3342,6 +3343,9 @@ function BasketItem({
   const step = quantityStep();
   const bestPrice = planItem?.price ?? null;
   const isOutsidePlan = bestPrice == null && alternativeOffer?.price != null;
+  const bestUnitPrice = planItem
+    ? getProductUnitPrice(product, planItem.retailer.id)
+    : null;
   const displayedTotal = isOutsidePlan
     ? alternativeOffer.price * quantity
     : bestPrice == null
@@ -3360,7 +3364,7 @@ function BasketItem({
       })
     : bestPrice == null
       ? t("noPriceInSelectedChains")
-      : `${money(bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`;
+      : `${money(bestUnitPrice ?? bestPrice)} / ${product.unit} · ${planItem.retailer.shortName}`;
   const displayedRetailerId = isOutsidePlan
     ? alternativeOffer.retailer.id
     : planItem?.retailer?.id;

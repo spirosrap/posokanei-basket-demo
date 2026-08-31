@@ -6,6 +6,7 @@ import {
   getBestProductPrice,
   getBestProductUnitPrice,
   getProductPriceChange,
+  getProductUnitPrice,
   sortProducts,
   sortProductsByBestPrice,
 } from "./pricing.js";
@@ -90,4 +91,19 @@ test("unit-price sorting compares equal units instead of package totals", () => 
     sortProducts(products, "price", ["lidl"]).map((item) => item.id),
     ["unknown", "small", "large"],
   );
+});
+
+test("retailer unit price does not label a package price as a kilogram price", () => {
+  const chocolate = {
+    prices: { lidl: 1.25 },
+    unitAmount: 0.1,
+    unitPrices: { lidl: 12.5 },
+  };
+
+  assert.equal(getProductUnitPrice(chocolate, "lidl"), 12.5);
+  assert.equal(
+    getProductUnitPrice({ prices: { lidl: 1.25 }, unitAmount: 0.1 }, "lidl"),
+    12.5,
+  );
+  assert.equal(getProductUnitPrice(chocolate, "masoutis"), null);
 });
