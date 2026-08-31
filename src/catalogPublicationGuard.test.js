@@ -4,6 +4,8 @@ import {
   buildCatalogCoverageProfile,
   evaluateCatalogContraction,
   evaluateCatalogCoverage,
+  evaluateCoverageBaselineConfirmation,
+  parseRetailerBaselineApprovals,
 } from "../scripts/catalog-publication-guard.mjs";
 
 test("small catalogue movements publish immediately", () => {
@@ -181,4 +183,139 @@ test("ordinary coverage movement publishes without an anomaly", () => {
   });
 
   assert.equal(evaluateCatalogCoverage({ previousSnapshot, nextSnapshot }).allow, true);
+});
+
+function retailerOnlyCoverageAssessment(nextCount = 500) {
+  const roots = [{ id: "food", name: "Food", count: 1000 }];
+  const stableRetailers = Object.fromEntries(
+    Array.from({ length: 9 }, (_, index) => [`stable-${index}`, 900]),
+  );
+  return evaluateCatalogCoverage({
+    previousSnapshot: snapshot({
+      roots,
+      retailerCounts: { ...stableRetailers, changing: 700 },
+    }),
+    nextSnapshot: snapshot({
+      roots,
+      retailerCounts: { ...stableRetailers, changing: nextCount },
+    }),
+  });
+}
+
+test("a stable retailer baseline needs both repeated snapshots and enough elapsed time", () => {
+  const coverageAssessment = retailerOnlyCoverageAssessment();
+  const first = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    requiredConfirmations: 2,
+    minimumAgeMs: 6 * 60 * 60 * 1000,
+    observedAt: "2026-08-30T00:00:00.000Z",
+  });
+  const tooSoon = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    pendingState: first.nextState,
+    requiredConfirmations: 2,
+    minimumAgeMs: 6 * 60 * 60 * 1000,
+    observedAt: "2026-08-30T01:00:00.000Z",
+  });
+  const confirmed = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    pendingState: tooSoon.nextState,
+    requiredConfirmations: 2,
+    minimumAgeMs: 6 * 60 * 60 * 1000,
+    observedAt: "2026-08-30T06:00:00.000Z",
+  });
+
+  assert.equal(first.allow, false);
+  assert.equal(first.confirmations, 1);
+  assert.equal(tooSoon.allow, false);
+  assert.equal(tooSoon.confirmations, 2);
+  assert.equal(confirmed.allow, true);
+  assert.equal(confirmed.reason, "confirmed-retailer-baseline");
+  assert.equal(confirmed.confirmations, 3);
+});
+
+test("a materially different retailer baseline restarts confirmation", () => {
+  const first = evaluateCoverageBaselineConfirmation({
+    coverageAssessment: retailerOnlyCoverageAssessment(500),
+    observedAt: "2026-08-30T00:00:00.000Z",
+  });
+  const changed = evaluateCoverageBaselineConfirmation({
+    coverageAssessment: retailerOnlyCoverageAssessment(450),
+    pendingState: first.nextState,
+    observedAt: "2026-08-30T07:00:00.000Z",
+  });
+
+  assert.equal(changed.allow, false);
+  assert.equal(changed.confirmations, 1);
+  assert.equal(changed.nextState.anomalies[0].next_count, 450);
+});
+
+test("root-category losses can never become a confirmed baseline", () => {
+  const previousSnapshot = snapshot({
+    roots: [{ id: "food", name: "Food", count: 1000 }],
+    retailerCounts: { one: 900 },
+  });
+  const nextSnapshot = snapshot({
+    roots: [{ id: "food", name: "Food", count: 800 }],
+    retailerCounts: { one: 900 },
+  });
+  const result = evaluateCoverageBaselineConfirmation({
+    coverageAssessment: evaluateCatalogCoverage({ previousSnapshot, nextSnapshot }),
+    pendingState: { confirmations: 100, first_seen_at: "2026-08-01T00:00:00.000Z" },
+    observedAt: "2026-08-30T00:00:00.000Z",
+  });
+
+  assert.equal(result.allow, false);
+  assert.equal(result.reason, "coverage-not-confirmable");
+  assert.equal(result.nextState, null);
+});
+
+test("a vanished retailer can never become a confirmed baseline", () => {
+  const result = evaluateCoverageBaselineConfirmation({
+    coverageAssessment: retailerOnlyCoverageAssessment(0),
+    pendingState: { confirmations: 100, first_seen_at: "2026-08-01T00:00:00.000Z" },
+    observedAt: "2026-08-30T00:00:00.000Z",
+  });
+
+  assert.equal(result.allow, false);
+  assert.equal(result.reason, "coverage-not-confirmable");
+});
+
+test("a supervised retailer baseline approval must match every exact count", () => {
+  const coverageAssessment = retailerOnlyCoverageAssessment(500);
+  const approved = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    approvedRetailerBaselines: parseRetailerBaselineApprovals("changing:500"),
+  });
+  const mismatch = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    approvedRetailerBaselines: parseRetailerBaselineApprovals("changing:499"),
+  });
+
+  assert.equal(approved.allow, true);
+  assert.equal(approved.reason, "approved-retailer-baseline");
+  assert.equal(mismatch.allow, false);
+});
+
+test("an exact retailer approval cannot also approve a total-offer collapse", () => {
+  const roots = [{ id: "food", name: "Food", count: 1000 }];
+  const coverageAssessment = evaluateCatalogCoverage({
+    previousSnapshot: snapshot({ roots, retailerCounts: { one: 900, changing: 700 } }),
+    nextSnapshot: snapshot({ roots, retailerCounts: { one: 900, changing: 100 } }),
+  });
+  const result = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    approvedRetailerBaselines: parseRetailerBaselineApprovals("changing:100"),
+  });
+
+  assert.ok(coverageAssessment.anomalies.some(({ scope }) => scope === "offers"));
+  assert.equal(result.allow, false);
+  assert.equal(result.reason, "coverage-not-confirmable");
+});
+
+test("malformed retailer baseline approvals fail closed", () => {
+  assert.throws(
+    () => parseRetailerBaselineApprovals("changing=500"),
+    /expected retailer_id:positive_count/u,
+  );
 });

@@ -8,6 +8,9 @@ export const DEFAULT_MIN_ROOT_DROP = 10;
 export const DEFAULT_MIN_RETAILER_BASELINE = 100;
 export const DEFAULT_MIN_RETAILER_DROP = 50;
 export const DEFAULT_MIN_OFFER_DROP = 100;
+export const DEFAULT_COVERAGE_CONFIRMATIONS = 6;
+export const DEFAULT_COVERAGE_CONFIRMATION_MIN_AGE_MS = 6 * 60 * 60 * 1000;
+export const DEFAULT_COVERAGE_CONFIRMATION_TOLERANCE_RATIO = 0.01;
 
 export function evaluateCatalogContraction({
   previousCount,
@@ -210,6 +213,116 @@ export function evaluateCatalogCoverage({
   };
 }
 
+export function evaluateCoverageBaselineConfirmation({
+  coverageAssessment,
+  pendingState = null,
+  requiredConfirmations = DEFAULT_COVERAGE_CONFIRMATIONS,
+  minimumAgeMs = DEFAULT_COVERAGE_CONFIRMATION_MIN_AGE_MS,
+  toleranceRatio = DEFAULT_COVERAGE_CONFIRMATION_TOLERANCE_RATIO,
+  observedAt = new Date().toISOString(),
+  approvedRetailerBaselines = {},
+} = {}) {
+  const anomalies = Array.isArray(coverageAssessment?.anomalies)
+    ? coverageAssessment.anomalies
+    : [];
+  if (coverageAssessment?.allow) {
+    return coverageBaselineAllowed("coverage-healthy");
+  }
+  if (!coverageAssessment || !anomalies.length) {
+    return coverageBaselineBlocked("coverage-not-confirmable");
+  }
+
+  const retailerOnly = anomalies.every(
+    (anomaly) => anomaly?.scope === "retailer" && normalizeCount(anomaly?.next_count) > 0,
+  );
+  if (!retailerOnly) {
+    return {
+      ...coverageBaselineBlocked("coverage-not-confirmable"),
+      nextState: null,
+    };
+  }
+
+  const approvals = normalizeRetailerBaselineApprovals(approvedRetailerBaselines);
+  const explicitlyApproved = approvals.size > 0 && anomalies.every(
+    (anomaly) => approvals.get(normalizeId(anomaly?.id)) === normalizeCount(anomaly?.next_count),
+  );
+  if (explicitlyApproved) {
+    return coverageBaselineAllowed("approved-retailer-baseline");
+  }
+
+  const required = Math.max(
+    1,
+    normalizeCount(requiredConfirmations) || DEFAULT_COVERAGE_CONFIRMATIONS,
+  );
+  const minimumAge = normalizeNonNegativeNumber(
+    minimumAgeMs,
+    DEFAULT_COVERAGE_CONFIRMATION_MIN_AGE_MS,
+  );
+  const tolerance = normalizeRatio(
+    toleranceRatio,
+    DEFAULT_COVERAGE_CONFIRMATION_TOLERANCE_RATIO,
+  );
+  const observedAtMs = normalizeTimestamp(observedAt);
+  const observedAtIso = new Date(observedAtMs).toISOString();
+  const candidateState = coverageConfirmationState(coverageAssessment, anomalies);
+  const sameCandidate = matchesCoverageConfirmationState(
+    pendingState,
+    candidateState,
+    tolerance,
+  );
+  const confirmations = sameCandidate
+    ? Math.max(1, normalizeCount(pendingState?.confirmations)) + 1
+    : 1;
+  const firstSeenAt = sameCandidate && normalizeTimestamp(pendingState?.first_seen_at, 0)
+    ? new Date(normalizeTimestamp(pendingState.first_seen_at)).toISOString()
+    : observedAtIso;
+  const observedForMs = Math.max(0, observedAtMs - normalizeTimestamp(firstSeenAt));
+  const nextState = {
+    ...candidateState,
+    confirmations,
+    first_seen_at: firstSeenAt,
+    last_seen_at: observedAtIso,
+  };
+
+  if (confirmations >= required && observedForMs >= minimumAge) {
+    return {
+      ...coverageBaselineAllowed("confirmed-retailer-baseline"),
+      confirmations,
+      requiredConfirmations: required,
+      observedForMs,
+      minimumAgeMs: minimumAge,
+    };
+  }
+
+  return {
+    allow: false,
+    reason: "retailer-baseline-confirmation-required",
+    confirmations,
+    requiredConfirmations: required,
+    observedForMs,
+    minimumAgeMs: minimumAge,
+    nextState,
+  };
+}
+
+export function parseRetailerBaselineApprovals(value) {
+  const approvals = new Map();
+  const tokens = String(value || "")
+    .split(/[,\s]+/u)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  for (const token of tokens) {
+    const match = /^([^:]+):(\d+)$/u.exec(token);
+    if (!match || !normalizeId(match[1]) || !normalizeCount(match[2])) {
+      throw new Error(
+        `Invalid retailer baseline approval "${token}"; expected retailer_id:positive_count.`,
+      );
+    }
+    approvals.set(normalizeId(match[1]), normalizeCount(match[2]));
+  }
+  return approvals;
+}
+
 function compareCoverageEntries({
   scope,
   previousEntries,
@@ -242,6 +355,111 @@ function compareCoverageEntries({
   }
 }
 
+function coverageConfirmationState(coverageAssessment, anomalies) {
+  const previousProfile = coverageAssessment?.previousProfile || {};
+  const nextProfile = coverageAssessment?.nextProfile || {};
+  return {
+    previous_generated_at: String(previousProfile.generated_at || ""),
+    previous_product_count: normalizeCount(previousProfile.product_count),
+    candidate_product_count: normalizeCount(nextProfile.product_count),
+    candidate_category_count: normalizeCount(nextProfile.category_count),
+    candidate_total_offers: normalizeCount(nextProfile.total_offers),
+    anomalies: anomalies
+      .map((anomaly) => ({
+        scope: String(anomaly?.scope || ""),
+        id: normalizeId(anomaly?.id),
+        previous_count: normalizeCount(anomaly?.previous_count),
+        next_count: normalizeCount(anomaly?.next_count),
+      }))
+      .sort((left, right) => `${left.scope}:${left.id}`.localeCompare(`${right.scope}:${right.id}`)),
+  };
+}
+
+function matchesCoverageConfirmationState(pendingState, candidateState, tolerance) {
+  if (!pendingState || pendingState.previous_generated_at !== candidateState.previous_generated_at) {
+    return false;
+  }
+  if (
+    normalizeCount(pendingState.previous_product_count)
+    !== candidateState.previous_product_count
+  ) {
+    return false;
+  }
+  if (
+    normalizeCount(pendingState.candidate_category_count)
+    !== candidateState.candidate_category_count
+  ) {
+    return false;
+  }
+  if (
+    !countsWithinTolerance(
+      pendingState.candidate_product_count,
+      candidateState.candidate_product_count,
+      tolerance,
+    )
+    || !countsWithinTolerance(
+      pendingState.candidate_total_offers,
+      candidateState.candidate_total_offers,
+      tolerance,
+    )
+  ) {
+    return false;
+  }
+
+  const pendingAnomalies = Array.isArray(pendingState.anomalies)
+    ? pendingState.anomalies
+    : [];
+  if (pendingAnomalies.length !== candidateState.anomalies.length) return false;
+  return candidateState.anomalies.every((candidateAnomaly, index) => {
+    const pendingAnomaly = pendingAnomalies[index] || {};
+    return pendingAnomaly.scope === candidateAnomaly.scope
+      && normalizeId(pendingAnomaly.id) === candidateAnomaly.id
+      && normalizeCount(pendingAnomaly.previous_count) === candidateAnomaly.previous_count
+      && countsWithinTolerance(
+        pendingAnomaly.next_count,
+        candidateAnomaly.next_count,
+        tolerance,
+      );
+  });
+}
+
+function countsWithinTolerance(previousValue, nextValue, tolerance) {
+  const previous = normalizeCount(previousValue);
+  const next = normalizeCount(nextValue);
+  if (!previous || !next) return previous === next;
+  return Math.abs(next - previous) / previous <= tolerance;
+}
+
+function normalizeRetailerBaselineApprovals(value) {
+  if (value instanceof Map) return value;
+  return new Map(
+    Object.entries(value || {})
+      .map(([id, count]) => [normalizeId(id), normalizeCount(count)])
+      .filter(([id, count]) => id && count),
+  );
+}
+
+function coverageBaselineAllowed(reason) {
+  return {
+    allow: true,
+    reason,
+    confirmations: 0,
+    nextState: null,
+  };
+}
+
+function coverageBaselineBlocked(reason) {
+  return {
+    allow: false,
+    reason,
+    confirmations: 0,
+    requiredConfirmations: 0,
+    observedForMs: 0,
+    minimumAgeMs: 0,
+    nextState: null,
+  };
+}
+
 function publicationAllowed(reason, previousCount, nextCount, dropRatio) {
   return {
     allow: true,
@@ -266,4 +484,14 @@ function normalizeId(value) {
 function normalizeRatio(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 && number < 1 ? number : fallback;
+}
+
+function normalizeNonNegativeNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
+}
+
+function normalizeTimestamp(value, fallback = Date.now()) {
+  const timestamp = Date.parse(String(value || ""));
+  return Number.isFinite(timestamp) ? timestamp : fallback;
 }

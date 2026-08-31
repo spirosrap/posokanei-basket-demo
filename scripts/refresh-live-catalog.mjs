@@ -20,6 +20,8 @@ import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
 import {
   evaluateCatalogContraction,
   evaluateCatalogCoverage,
+  evaluateCoverageBaselineConfirmation,
+  parseRetailerBaselineApprovals,
 } from "./catalog-publication-guard.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -73,6 +75,18 @@ const maximumRetailerDropRatio = Number(
 const maximumOfferDropRatio = Number(
   process.env.POSOKANEI_MAX_OFFER_DROP_RATIO || 0.08,
 );
+const requiredCoverageConfirmations = Number(
+  process.env.POSOKANEI_COVERAGE_CONFIRMATIONS || 6,
+);
+const coverageConfirmationMinimumAgeMs = Number(
+  process.env.POSOKANEI_COVERAGE_MIN_AGE_SECONDS || 21600,
+) * 1000;
+const coverageConfirmationToleranceRatio = Number(
+  process.env.POSOKANEI_COVERAGE_TOLERANCE_RATIO || 0.01,
+);
+const approvedRetailerBaselines = parseRetailerBaselineApprovals(
+  process.env.POSOKANEI_APPROVE_RETAILER_BASELINE,
+);
 const publicCatalogUrl =
   process.env.POSOKANEI_PUBLIC_CATALOG_URL ||
   publicDataUrl(primaryTarget, "catalog.json");
@@ -90,6 +104,11 @@ const contractionStatePath = resolve(
   projectRoot,
   process.env.POSOKANEI_CATALOG_CONTRACTION_STATE
     || ".cache/catalog-contraction-state.json",
+);
+const coverageStatePath = resolve(
+  projectRoot,
+  process.env.POSOKANEI_CATALOG_COVERAGE_STATE
+    || ".cache/catalog-coverage-state.json",
 );
 const configuredPreviousSnapshotPath = process.env.POSOKANEI_PREVIOUS_SNAPSHOT
   ? resolve(projectRoot, process.env.POSOKANEI_PREVIOUS_SNAPSHOT)
@@ -304,6 +323,7 @@ async function refreshCatalog() {
 async function verifyCatalogPublication(previousSnapshotPath, snapshot) {
   if (process.env.POSOKANEI_ALLOW_CATALOG_CONTRACTION === "1") {
     await rm(contractionStatePath, { force: true });
+    await rm(coverageStatePath, { force: true });
     console.log("Catalogue publication guards bypassed by explicit configuration.");
     return;
   }
@@ -318,13 +338,38 @@ async function verifyCatalogPublication(previousSnapshotPath, snapshot) {
     maximumRetailerDropRatio,
     maximumOfferDropRatio,
   });
-  if (!coverageAssessment.allow) {
+  const pendingCoverageState = await readJsonIfPresent(coverageStatePath);
+  const coverageBaselineAssessment = evaluateCoverageBaselineConfirmation({
+    coverageAssessment,
+    pendingState: pendingCoverageState,
+    requiredConfirmations: requiredCoverageConfirmations,
+    minimumAgeMs: coverageConfirmationMinimumAgeMs,
+    toleranceRatio: coverageConfirmationToleranceRatio,
+    observedAt: new Date().toISOString(),
+    approvedRetailerBaselines,
+  });
+  await writeJsonState(coverageStatePath, coverageBaselineAssessment.nextState);
+
+  if (!coverageAssessment.allow && !coverageBaselineAssessment.allow) {
     throw publicationGuardError(
       "catalog_coverage_degraded",
-      coverageAssessment,
+      {
+        ...coverageAssessment,
+        baselineConfirmation: coverageBaselineAssessment,
+      },
       `Catalogue source coverage degraded: ${formatCoverageAnomalies(
         coverageAssessment.anomalies,
       )}. The current live catalogue was retained.`,
+    );
+  }
+  if (!coverageAssessment.allow) {
+    const confirmationLabel = coverageBaselineAssessment.reason === "approved-retailer-baseline"
+      ? "approved for this exact retailer count"
+      : `confirmed across ${coverageBaselineAssessment.confirmations} stable snapshots`;
+    console.log(
+      `Retailer coverage baseline ${confirmationLabel}: ${formatCoverageAnomalies(
+        coverageAssessment.anomalies,
+      )}.`,
     );
   }
 
@@ -400,6 +445,15 @@ async function readJsonIfPresent(filePath) {
   } catch {
     return null;
   }
+}
+
+async function writeJsonState(filePath, state) {
+  if (!state) {
+    await rm(filePath, { force: true });
+    return;
+  }
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
 }
 
 async function buildSnapshotOnRemoteHosts(hosts, previousSnapshotPath) {
@@ -684,6 +738,7 @@ async function recordRefreshFailure(error) {
 
 function compactRefreshDiagnostics(diagnostics) {
   if (Array.isArray(diagnostics?.anomalies)) {
+    const baseline = diagnostics?.baselineConfirmation;
     return {
       reason: diagnostics.reason || "coverage-degraded",
       anomalies: diagnostics.anomalies.map((anomaly) => ({
@@ -697,6 +752,17 @@ function compactRefreshDiagnostics(diagnostics) {
       })),
       previous_profile: diagnostics.previousProfile,
       candidate_profile: diagnostics.nextProfile,
+      ...(baseline
+        ? {
+            baseline_confirmation: {
+              reason: baseline.reason || "retailer-baseline-confirmation-required",
+              confirmations: baseline.confirmations || 0,
+              required_confirmations: baseline.requiredConfirmations || 0,
+              observed_for_seconds: Math.round(Number(baseline.observedForMs || 0) / 1000),
+              minimum_age_seconds: Math.round(Number(baseline.minimumAgeMs || 0) / 1000),
+            },
+          }
+        : {}),
     };
   }
   return {
