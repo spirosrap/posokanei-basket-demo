@@ -8,7 +8,11 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.37.2`
+**Τρέχουσα έκδοση:** `v0.38.0`
+
+Η έκδοση `v0.38.0` προσθέτει αναίρεση και επανάληψη έως 20 αλλαγών στα περιεχόμενα του καλαθιού: προσθήκες, ποσότητες, αφαιρέσεις, αντικαταστάσεις και καθαρισμό. Το νέο καλάθι διατηρεί τις προτιμήσεις στάσεων και μένει στην προβολή καλαθιού, ώστε ο καθαρισμός να αναιρείται άμεσα. Το ιστορικό ισχύει μόνο για την τρέχουσα συνεδρία και μηδενίζεται όταν ανοίγει άλλη αποθηκευμένη/εισαγόμενη λίστα ή το παράδειγμα. Η αναζήτηση μέσα στο καλάθι υποστηρίζει ονόματα, μάρκες και barcode χωρίς διάκριση τόνων/πεζών-κεφαλαίων. Το φίλτρο «Εκτός πλάνου» απομονώνει όσα προϊόντα δεν περιλαμβάνονται στο επιλεγμένο πλάνο, χωρίς να αλλάζει ποσότητες, σύνολα, εξαγωγές ή υπολογισμούς. Η βιβλιοθήκη αποθηκευμένων λιστών φορτώνεται πλέον μόνο όταν ανοίξει, με διατήρηση του ορίου αρχικής JavaScript στα 64 KiB Brotli. Οι έλεγχοι πληρότητας καταλόγου και τιμών παραμένουν αμετάβλητοι.
+
+Version `v0.38.0` adds session-only undo/redo for up to 20 basket-content edits, including additions, quantities, removals, replacements, and clearing. New basket preserves stop preferences and stays on the basket view for immediate undo. Loading another saved/imported list or the example starts fresh history; reloading retains the current basket but not its edit history. Basket search matches names, brands, and barcodes regardless of case or Greek accents. The outside-plan filter changes only visible rows, never totals, exports, quantities, or optimizer inputs. Saved lists now load on demand, keeping the existing 64 KiB Brotli startup budget. Catalogue completeness and pricing safeguards are unchanged.
 
 > Πρόκειται για ανεπίσημη εφαρμογή. Δεν συνδέεται επίσημα με το PosoKanei ή με κάποια αλυσίδα supermarket.
 
@@ -321,7 +325,7 @@
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.37.2`
+**Current version:** `v0.38.0`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 

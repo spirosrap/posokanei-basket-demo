@@ -2585,6 +2585,56 @@ select:focus-visible {
   padding-bottom: 10px;
 }
 
+.basket-history {
+  display: flex;
+  gap: 6px;
+}
+
+.basket-history .icon-button {
+  width: 34px;
+  height: 34px;
+}
+
+.basket-view-tools {
+  margin-bottom: 12px;
+}
+
+.basket-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.basket-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.basket-view-summary,
+.basket-view-summary label,
+.basket-no-results {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.basket-view-summary {
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.basket-view-summary input { accent-color: var(--green); }
+.basket-no-results { flex-wrap: wrap; padding: 12px 0; font-size: 13px; }
+
 .demo-hint {
   display: flex;
   align-items: flex-start;
@@ -7037,8 +7087,10 @@ select:focus-visible {
   }
 
   .basket-toolbar .danger-button {
-    grid-column: 1 / -1;
+    grid-column: span 4;
   }
+
+  .basket-history { grid-column: span 2; grid-row: 2; }
 
   .product-row {
     grid-template-columns: minmax(0, 1fr) 78px 34px;

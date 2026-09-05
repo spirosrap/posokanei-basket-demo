@@ -255,6 +255,13 @@ const messages = {
     savedBasketsPrivacy:
       "Οι λίστες μένουν μόνο σε αυτόν τον browser και περιέχουν κωδικούς προϊόντων, ποσότητες και ρυθμίσεις πλάνου. Δεν αποθηκεύουν τοποθεσία, τιμές ή πρόοδο αγορών.",
     newBasket: "Νέο καλάθι",
+    basketEdits: "Αλλαγές καλαθιού",
+    undoBasket: "Αναίρεση αλλαγής καλαθιού",
+    redoBasket: "Επανάληψη αλλαγής καλαθιού",
+    searchBasket: "Αναζήτηση στο καλάθι",
+    basketOutsidePlan: ({ count }) => `Εκτός πλάνου (${count})`,
+    basketNoMatches: "Δεν βρέθηκαν προϊόντα με αυτά τα φίλτρα.",
+    resetBasketFilters: "Καθαρισμός φίλτρων",
     newBasketLabel: "Καθαρισμός παραδείγματος και έναρξη νέου καλαθιού",
     demoHint:
       "Βλέπεις παράδειγμα. Πάτησε «Νέο καλάθι» για να το καθαρίσεις και να ξεκινήσεις τη δική σου λίστα.",
@@ -818,6 +825,13 @@ const messages = {
     savedBasketsPrivacy:
       "Lists remain only in this browser and contain product IDs, quantities, and planning settings. They do not store location, prices, or shopping progress.",
     newBasket: "New basket",
+    basketEdits: "Basket edits",
+    undoBasket: "Undo basket edit",
+    redoBasket: "Redo basket edit",
+    searchBasket: "Search basket",
+    basketOutsidePlan: ({ count }) => `Outside plan (${count})`,
+    basketNoMatches: "No products match these filters.",
+    resetBasketFilters: "Clear filters",
     newBasketLabel: "Clear the example and start a new basket",
     demoHint: "You are viewing the example. Select “New basket” to clear it and start your own list.",
     plan: "Plan",

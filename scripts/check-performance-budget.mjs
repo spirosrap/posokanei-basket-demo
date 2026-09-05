@@ -20,11 +20,16 @@ if (healthRouteAssets.length !== 1) {
   throw new Error(`Expected one lazy catalogue-health bundle, found ${healthRouteAssets.length}.`);
 }
 const vendorAssets = assetNames.filter((name) => /^ui-vendor-.*\.js$/u.test(name));
+const savedListAssets = assetNames.filter((name) => /^SavedBasketsDialog-.*\.js$/u.test(name));
+if (savedListAssets.length !== 1) {
+  throw new Error(`Expected one lazy saved-lists bundle, found ${savedListAssets.length}.`);
+}
 if (vendorAssets.length !== 1) {
   throw new Error(`Expected one stable UI vendor bundle, found ${vendorAssets.length}.`);
 }
 
 const budgets = [
+  { name: savedListAssets[0], maxRaw: 6 * 1024, maxBrotli: 3 * 1024 },
   { name: mainAsset, maxRaw: 225 * 1024, maxBrotli: 54 * 1024 },
   { name: vendorAssets[0], maxRaw: 40 * 1024, maxBrotli: 13 * 1024 },
   { name: routeAssets[0], maxRaw: 32 * 1024, maxBrotli: 11 * 1024 },

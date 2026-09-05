@@ -20,7 +20,6 @@ import {
   FileJson2,
   FileText,
   Github,
-  FolderOpen,
   Info,
   Languages,
   Link2,
@@ -47,6 +46,8 @@ import {
   Target,
   Trash2,
   Upload,
+  Undo2,
+  Redo2,
   Wifi,
   WifiOff,
   X,
@@ -60,6 +61,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useReducer,
   useState,
 } from "react";
 import {
@@ -167,6 +169,10 @@ import {
   persistShoppingBudget,
   shoppingBudgetStatus,
 } from "./shoppingBudget";
+import { basketHistoryReducer, createBasketHistory } from "./basketHistory";
+import { filterBasket } from "./basketView";
+
+const SavedBasketsDialog = lazy(() => import("./SavedBasketsDialog"));
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
@@ -593,11 +599,14 @@ function PriceChangesRouteFallback() {
 function AppContent({ route }) {
   const { t } = usePreferences();
   const isBargainsPage = route === APP_ROUTES.bargains;
-  const [basket, setBasket] = useState(() =>
-    INITIAL_SHARED_BASKET?.status === "valid"
+  const [basketHistory, dispatchBasket] = useReducer(basketHistoryReducer, null, () =>
+    createBasketHistory(INITIAL_SHARED_BASKET?.status === "valid"
       ? INITIAL_SHARED_BASKET.basket
-      : savedBasket(),
+      : savedBasket()),
   );
+  const basket = basketHistory.present;
+  const setBasket = useCallback((value) => dispatchBasket({ type: "reset", value }), []);
+  const editBasket = useCallback((value) => dispatchBasket({ type: "edit", value }), []);
   const [mobileView, setMobileView] = useState(() => (basket.length ? "plan" : "products"));
   const isCompactWorkspace = useMediaQuery("(max-width: 900px)");
   const [liveBasketProducts, setLiveBasketProducts] = useState(savedLiveBasketProducts);
@@ -815,7 +824,7 @@ function AppContent({ route }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setBasket]);
 
   useEffect(() => {
     if (isBargainsPage || !catalogBootstrapped || !allowsBackgroundPrefetch()) return undefined;
@@ -1084,7 +1093,7 @@ function AppContent({ route }) {
       const next = current.filter((entry) => productMap.has(entry.productId));
       return next.length === current.length ? current : next;
     });
-  }, [catalogBootstrapped, productMap, sharedBasketHydrating]);
+  }, [catalogBootstrapped, productMap, sharedBasketHydrating, setBasket]);
 
   const rankings = useMemo(
     () => calculateRankings(basket, allProducts, activeRetailers),
@@ -1136,7 +1145,7 @@ function AppContent({ route }) {
   const addToBasket = useCallback((product) => {
     setSavedBasketNotice(null);
     rememberCatalogProduct(product, setLiveBasketProducts);
-    setBasket((current) => {
+    editBasket((current) => {
       const found = current.find((entry) => entry.productId === product.id);
       if (found) {
         return current.map((entry) =>
@@ -1147,13 +1156,13 @@ function AppContent({ route }) {
       }
       return [...current, { productId: product.id, quantity: quantityStep() }];
     });
-  }, []);
+  }, [editBasket]);
 
   const replaceBasketProduct = (sourceProduct, replacementProduct) => {
     if (!sourceProduct || !replacementProduct || sourceProduct.id === replacementProduct.id) return;
     setSavedBasketNotice(null);
     rememberCatalogProduct(replacementProduct, setLiveBasketProducts);
-    setBasket((current) => {
+    editBasket((current) => {
       const sourceEntry = current.find((entry) => entry.productId === sourceProduct.id);
       if (!sourceEntry) return current;
       const replacementEntry = current.find(
@@ -1185,7 +1194,7 @@ function AppContent({ route }) {
   const updateQuantity = (product, nextQuantity) => {
     setSavedBasketNotice(null);
     const quantity = Math.max(0, roundQuantity(nextQuantity));
-    setBasket((current) =>
+    editBasket((current) =>
       quantity === 0
         ? current.filter((entry) => entry.productId !== product.id)
         : current.map((entry) =>
@@ -1196,16 +1205,15 @@ function AppContent({ route }) {
 
   const clearBasket = () => {
     setSavedBasketNotice(null);
-    setBasket([]);
-    setMaxChains(1);
+    editBasket([]);
     setSharedBasketStatus(null);
     setBasketExportOpen(false);
-    setMobileView("products");
+    setMobileView("basket");
   };
 
   const loadDemoBasket = () => {
     setSavedBasketNotice(null);
-    setBasket(DEFAULT_DEMO_BASKET);
+    dispatchBasket({ type: "reset", value: DEFAULT_DEMO_BASKET, clearHistory: true });
     setMaxChains(4);
     setSharedBasketStatus(null);
     setMobileView("plan");
@@ -1284,7 +1292,7 @@ function AppContent({ route }) {
     const missingCount = saved.basket.length - availableBasket.length;
 
     setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
-    setBasket(availableBasket);
+    dispatchBasket({ type: "reset", value: availableBasket, clearHistory: true });
     setMaxChains(saved.maxChains);
     setRetailerFilterIds(saved.retailerIds);
     setExtraStopCost(saved.extraStopCost);
@@ -1308,7 +1316,7 @@ function AppContent({ route }) {
     const missingCount = data.basket.length - availableBasket.length;
 
     setLiveBasketProducts((current) => mergeCatalogProducts(current, products));
-    setBasket(availableBasket);
+    dispatchBasket({ type: "reset", value: availableBasket, clearHistory: true });
     setMaxChains(data.maxChains);
     setRetailerFilterIds(data.retailerIds);
     setExtraStopCost(data.extraStopCost);
@@ -1557,6 +1565,13 @@ function AppContent({ route }) {
             isDemoBasket={isDemoBasket}
             onQuantity={updateQuantity}
             onClear={clearBasket}
+            canUndo={basketHistory.past.length > 0}
+            canRedo={basketHistory.future.length > 0}
+            onHistory={(type) => {
+              setSavedBasketNotice(null);
+              setSharedBasketStatus(null);
+              dispatchBasket({ type });
+            }}
             onExport={openBasketExport}
             onShare={openShareBasket}
             onOpenSavedBaskets={() => setSavedBasketsOpen(true)}
@@ -1653,14 +1668,16 @@ function AppContent({ route }) {
       ) : null}
 
       {savedBasketsOpen ? (
-        <SavedBasketsDialog
-          baskets={savedBaskets}
-          currentBasketCount={basket.length}
-          onSave={saveCurrentBasket}
-          onLoad={restoreSavedBasket}
-          onDelete={deleteSavedBasket}
-          onClose={() => setSavedBasketsOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <SavedBasketsDialog
+            baskets={savedBaskets}
+            currentBasketCount={basket.length}
+            onSave={saveCurrentBasket}
+            onLoad={restoreSavedBasket}
+            onDelete={deleteSavedBasket}
+            onClose={() => setSavedBasketsOpen(false)}
+          />
+        </Suspense>
       ) : null}
 
       {priceWatchOpen ? (
@@ -2459,6 +2476,9 @@ function BasketPanel({
   isDemoBasket,
   onQuantity,
   onClear,
+  canUndo,
+  canRedo,
+  onHistory,
   onExport,
   onShare,
   onOpenSavedBaskets,
@@ -2470,8 +2490,15 @@ function BasketPanel({
   onDismissSavedBasketNotice,
 }) {
   const { money, number, t } = usePreferences();
+  const [basketQuery, setBasketQuery] = useState("");
+  const [outsideOnly, setOutsideOnly] = useState(false);
   const availableStoreCount = rankings.filter((row) => row.isComplete).length;
   const planAssignments = useMemo(() => buildPlanAssignmentMap(visitPlan), [visitPlan]);
+  const visibleBasket = useMemo(
+    () => filterBasket(basket, productMap, planAssignments, basketQuery, outsideOnly),
+    [basket, productMap, planAssignments, basketQuery, outsideOnly],
+  );
+  const outsideCount = basket.filter((entry) => !planAssignments.has(entry.productId)).length;
   const bestAvailableByProduct = useMemo(() => {
     const retailersById = new Map(rankings.map((row) => [row.retailer.id, row.retailer]));
     const retailerIds = [...retailersById.keys()];
@@ -2508,6 +2535,14 @@ function BasketPanel({
       />
 
       <div className="basket-toolbar">
+        <div className="basket-history" role="group" aria-label={t("basketEdits")}>
+          <button type="button" className="icon-button" disabled={!canUndo}
+            title={t("undoBasket")} aria-label={t("undoBasket")}
+            onClick={() => onHistory("undo")}><Undo2 size={17} /></button>
+          <button type="button" className="icon-button" disabled={!canRedo}
+            title={t("redoBasket")} aria-label={t("redoBasket")}
+            onClick={() => onHistory("redo")}><Redo2 size={17} /></button>
+        </div>
         <button type="button" className="text-button demo-button" onClick={onLoadDemo}>
           <Sparkles size={16} />
           <span className="button-label">{t("example")}</span>
@@ -2547,6 +2582,7 @@ function BasketPanel({
           type="button"
           className="text-button danger-button"
           onClick={onClear}
+          disabled={!basket.length}
           aria-label={t("newBasketLabel")}
         >
           <Trash2 size={17} />
@@ -2567,11 +2603,35 @@ function BasketPanel({
         </div>
       ) : null}
 
+      {basket.length > 0 ? (
+        <div className="basket-view-tools">
+          <div className="basket-search">
+            <Search size={16} aria-hidden="true" />
+            <input type="search" value={basketQuery} onChange={(event) => setBasketQuery(event.target.value)}
+              placeholder={t("searchBasket")} aria-label={t("searchBasket")} />
+          </div>
+          <div className="basket-view-summary">
+            <label><input type="checkbox" checked={outsideOnly}
+              onChange={(event) => setOutsideOnly(event.target.checked)} />
+              {t("basketOutsidePlan", { count: number(outsideCount) })}</label>
+            <span role="status">{number(visibleBasket.length)}/{number(basket.length)}</span>
+          </div>
+        </div>
+      ) : null}
+
       <div className="basket-list">
         {basket.length === 0 ? (
           <EmptyBasket />
         ) : (
-          basket.map((entry) => {
+          !visibleBasket.length ? (
+            <div className="basket-no-results" role="status">
+              <span>{t("basketNoMatches")}</span>
+              <button type="button" className="text-button" onClick={() => {
+                setBasketQuery("");
+                setOutsideOnly(false);
+              }}>{t("resetBasketFilters")}</button>
+            </div>
+          ) : visibleBasket.map((entry) => {
             const product = productMap.get(entry.productId);
             if (!product) return null;
             return (
@@ -3115,220 +3175,6 @@ function ShortLinkStatus({ state }) {
   );
 }
 
-function SavedBasketsDialog({
-  baskets,
-  currentBasketCount,
-  onSave,
-  onLoad,
-  onDelete,
-  onClose,
-}) {
-  const { locale, number, t } = usePreferences();
-  const [name, setName] = useState("");
-  const [loadingId, setLoadingId] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState("");
-  const [actionStatus, setActionStatus] = useState(null);
-  const normalizedName = name.replace(/\s+/gu, " ").trim();
-  const updatesExisting = baskets.some(
-    (saved) =>
-      saved.name.toLocaleLowerCase("el-GR") === normalizedName.toLocaleLowerCase("el-GR"),
-  );
-
-  useEffect(() => {
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  const saveBasket = (event) => {
-    event.preventDefault();
-    try {
-      const saved = onSave(normalizedName);
-      setName("");
-      setActionStatus({ status: "saved", name: saved.name });
-    } catch {
-      setActionStatus({ status: "error" });
-    }
-  };
-
-  const loadBasket = async (saved) => {
-    setLoadingId(saved.id);
-    setActionStatus(null);
-    try {
-      await onLoad(saved);
-      onClose();
-    } catch {
-      setLoadingId("");
-      setActionStatus({ status: "load_error" });
-    }
-  };
-
-  const deleteBasket = (id) => {
-    try {
-      onDelete(id);
-      setConfirmDeleteId("");
-      setActionStatus(null);
-    } catch {
-      setActionStatus({ status: "delete_error" });
-    }
-  };
-
-  const dateFormatter = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
-  return (
-    <aside
-      className="drawer saved-baskets-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="saved-baskets-title"
-    >
-      <div className="drawer-backdrop" onClick={onClose} />
-      <div className="drawer-panel saved-baskets-panel">
-        <div className="drawer-head">
-          <span className="saved-baskets-dialog-icon" aria-hidden="true">
-            <Bookmark size={20} />
-          </span>
-          <button type="button" className="icon-button" onClick={onClose} aria-label={t("close")}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="drawer-title">
-          <small>{t("savedBaskets")}</small>
-          <h2 id="saved-baskets-title">{t("savedBasketsTitle")}</h2>
-          <p>{t("savedBasketsDescription")}</p>
-        </div>
-
-        <form className="save-basket-form" onSubmit={saveBasket}>
-          <label>
-            <span>{t("savedBasketName")}</span>
-            <input
-              type="text"
-              value={name}
-              maxLength={48}
-              placeholder={t("savedBasketNamePlaceholder")}
-              disabled={!currentBasketCount}
-              onChange={(event) => {
-                setName(event.target.value);
-                setActionStatus(null);
-              }}
-            />
-          </label>
-          <button
-            type="submit"
-            className="primary-action"
-            disabled={!currentBasketCount || !normalizedName}
-          >
-            <Save size={17} />
-            {updatesExisting ? t("updateSavedBasket") : t("saveCurrentBasket")}
-          </button>
-          <small>
-            {currentBasketCount ? t("savedBasketLimit") : t("addProductsBeforeSaving")}
-          </small>
-        </form>
-
-        {actionStatus ? (
-          <p
-            className={actionStatus.status === "saved" ? "saved-dialog-status success" : "saved-dialog-status error"}
-            role="status"
-          >
-            {actionStatus.status === "saved"
-              ? t("savedBasketSaved", { name: actionStatus.name })
-              : actionStatus.status === "load_error"
-                ? t("savedBasketLoadError")
-                : actionStatus.status === "delete_error"
-                  ? t("savedBasketDeleteError")
-                : t("savedBasketSaveError")}
-          </p>
-        ) : null}
-
-        <div className="saved-baskets-heading">
-          <strong>{t("savedBasketsLibrary")}</strong>
-          <span>{number(baskets.length)}/12</span>
-        </div>
-
-        <div className="saved-baskets-list">
-          {baskets.length ? (
-            baskets.map((saved) => (
-              <article key={saved.id} className="saved-basket-row">
-                <div className="saved-basket-copy">
-                  <strong>{saved.name}</strong>
-                  <small>
-                    {formatProductCount(saved.basket.length, t, number)} · {formatStopLimit(saved.maxChains, t)} · {dateFormatter.format(new Date(saved.updatedAt))}
-                  </small>
-                  <span>
-                    {saved.retailerIds
-                      ? t("savedBasketRetailers", { count: number(saved.retailerIds.length) })
-                      : t("allRetailers")}
-                  </span>
-                </div>
-                <div className="saved-basket-actions">
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={Boolean(loadingId)}
-                    onClick={() => loadBasket(saved)}
-                  >
-                    {loadingId === saved.id ? (
-                      <RefreshCw size={15} className="spin" />
-                    ) : (
-                      <FolderOpen size={15} />
-                    )}
-                    {t("openSavedBasket")}
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-button danger"
-                    onClick={() => setConfirmDeleteId(saved.id)}
-                    title={t("deleteSavedBasket", { name: saved.name })}
-                    aria-label={t("deleteSavedBasket", { name: saved.name })}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-                {confirmDeleteId === saved.id ? (
-                  <div className="saved-delete-confirm">
-                    <span>{t("deleteSavedBasketPrompt", { name: saved.name })}</span>
-                    <button
-                      type="button"
-                      className="text-button danger-button"
-                      onClick={() => deleteBasket(saved.id)}
-                    >
-                      {t("delete")}
-                    </button>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => setConfirmDeleteId("")}
-                    >
-                      {t("cancel")}
-                    </button>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <div className="saved-baskets-empty">
-              <Bookmark size={20} />
-              <strong>{t("noSavedBaskets")}</strong>
-              <span>{t("noSavedBasketsHelp")}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="saved-baskets-privacy">
-          <Info size={16} />
-          <span>{t("savedBasketsPrivacy")}</span>
-        </div>
-      </div>
-    </aside>
-  );
-}
 
 function BasketItem({
   product,
