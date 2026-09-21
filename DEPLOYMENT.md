@@ -130,6 +130,14 @@ Scheduled update check:
 npm run check:updates
 ```
 
+This check exits nonzero for failed refreshes, a catalogue older than three
+hours, a stopped scheduler, malformed metadata, or a success receipt newer than
+the deployed catalogue. HTTP 200 alone is not success. A fresh scheduled snapshot
+is healthy even when the Plesk request-time proxy is blocked. Configure the age
+limit with `POSOKANEI_MAX_AGE_SECONDS` (default `10800`). Its local JSON receipt
+includes `health.healthy`, reasons, catalogue age, and observation time; connection
+failures overwrite the old receipt instead of leaving a previous success behind.
+
 Snapshot refresh before deploying:
 
 ```bash
@@ -274,6 +282,30 @@ For resilience, set `POSOKANEI_REFRESH_HOSTS=runner-a,runner-b,runner-c` instead
 of a single host. The refresh script tries each SSH runner in order and uses the
 first one that successfully builds the snapshot. This avoids stale production
 data when one trusted runner is asleep, offline, or temporarily blocked.
+
+Each runner now probes `/meta/stats` with the same client as the crawl before
+transferring the previous catalogue. Failed runs keep diagnostics for every runner
+(public receipts use ordinal numbers) and do not replace catalogue prices or their
+timestamp. SSH keepalives bound disconnected sessions. The hourly scheduler retries
+normally after access returns; a 403 is not repeatedly retried within a crawl.
+
+Incident diagnosed 2026-09-21: the catalogue had stopped updating on 2026-09-19
+at 07:25 UTC. Identical stats and search requests on Dell and HP succeeded over
+HTTP/1.1 while stats over HTTP/2 returned 403. The snapshot curl client now explicitly
+uses `--http1.1`, with TLS verification unchanged. Other tested internet routes,
+including the Mac VPN route, still returned 403 over HTTP/1.1; this was not a
+universal PosoKanei outage. Verify the actual API, not just the homepage, and compare
+protocols on the same runner before attributing a denial solely to an exit node.
+
+The same incident exposed an independent hosting problem: Imunify360's
+informational rule `77138486` logged successful service-worker requests, and the
+`plesk-modsecurity` Fail2Ban jail counted those audit events toward its three-event
+ban threshold. In Plesk, the domains `kalathitimon.com` and `agenticspiros.com`
+exclude only rule `77138486` under Web Application Firewall > Security rule IDs.
+The WAF stays On, and Fail2Ban stays enabled. Preserve this domain setting when
+migrating hosting. Do not put `SecRuleRemoveById` in `.htaccess`: this host rejects
+it there with HTTP 500. Verify recovery using repeated `/sw.js` requests with a
+`Service-Worker: script` header, followed by a ban-list check and catalogue search.
 
 The snapshot builder sends a browser-like `User-Agent` by default because the
 upstream API can return `HTTP 403` to obvious automation client strings. Override

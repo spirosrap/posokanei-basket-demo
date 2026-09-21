@@ -17,6 +17,7 @@ import {
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 import { writeCatalogHealthSnapshot } from "./catalog-health.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
+import { buildRunnerFailure } from "./refresh-runner-failures.mjs";
 import {
   evaluateCatalogContraction,
   evaluateCatalogCoverage,
@@ -457,7 +458,7 @@ async function writeJsonState(filePath, state) {
 }
 
 async function buildSnapshotOnRemoteHosts(hosts, previousSnapshotPath) {
-  let lastError;
+  const failures = [];
 
   for (const host of hosts) {
     try {
@@ -466,12 +467,12 @@ async function buildSnapshotOnRemoteHosts(hosts, previousSnapshotPath) {
       console.log(`Catalogue snapshot built on ${host}.`);
       return;
     } catch (error) {
-      lastError = error;
+      failures.push({ error_code: refreshErrorCode(error), error: describeRefreshError(error) });
       console.error(`Refresh runner ${host} failed: ${describeRefreshError(error)}`);
     }
   }
 
-  throw lastError || new Error("All refresh runners failed.");
+  throw buildRunnerFailure(failures);
 }
 
 async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
@@ -497,7 +498,10 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remotePreviousSnapshot = `${remoteDir}/catalog-previous.json`;
   const remoteImageFallbackDir = `${remoteDir}/image-fallbacks`;
   const remoteImageFallbackSummary = `${remoteDir}/image-fallback-summary.json`;
-  const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15"];
+  const sshOptions = [
+    "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
+    "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=2",
+  ];
 
   await mkdir(dirname(snapshotPath), { recursive: true });
   await mkdir(dirname(metaPath), { recursive: true });
@@ -558,6 +562,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       resolve(projectRoot, "package.json"),
       `${host}:${remotePackage}`,
     ]);
+    // Check access before transferring the large previous catalogue. Use the
+    // exact same request client as the crawl, with no price or timestamp writes.
+    await run("ssh", [
+      ...sshOptions, host, `node ${shellQuote(remoteScript)} --probe-only`,
+    ], { quiet: true });
     if (previousSnapshotPath) {
       await run("scp", [
         ...sshOptions,
@@ -737,6 +746,7 @@ async function recordRefreshFailure(error) {
 }
 
 function compactRefreshDiagnostics(diagnostics) {
+  if (Array.isArray(diagnostics?.runners)) return diagnostics;
   if (Array.isArray(diagnostics?.anomalies)) {
     const baseline = diagnostics?.baselineConfirmation;
     return {
@@ -778,6 +788,7 @@ async function readPreviousSnapshotSummary() {
   try {
     const response = await fetch(`${publicMetaUrl}?v=${Date.now()}`, {
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(30000),
     });
     if (response.ok) {
       const meta = await response.json();
@@ -870,6 +881,8 @@ function formatBytes(value) {
 }
 
 function describeRefreshError(error) {
+  if (error?.code === "upstream_http_403") return "All refresh runners returned HTTP 403.";
+  if (error?.code === "refresh_runners_failed") return "All refresh runners failed; see runner diagnostics.";
   if (error?.code === "catalog_coverage_degraded") {
     return "The upstream catalogue lost category, retailer, or offer coverage; the previous catalogue was retained.";
   }
@@ -901,6 +914,7 @@ function describeRefreshError(error) {
 }
 
 function refreshErrorCode(error) {
+  if (["upstream_http_403", "refresh_runners_failed"].includes(error?.code)) return error.code;
   if (error?.code === "catalog_coverage_degraded") return error.code;
   if (error?.code === "catalog_contraction_blocked") return error.code;
   const message = String(error?.message || error || "");

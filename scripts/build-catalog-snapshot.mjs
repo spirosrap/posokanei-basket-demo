@@ -93,6 +93,9 @@ async function fetchJsonWithCurl(path, options = {}) {
   const args = [
     "--silent",
     "--show-error",
+    // PosoKanei's edge rejects HTTP/2 on otherwise working home connections.
+    // Keep the catalogue client on the verified HTTP/1.1 path (TLS stays enabled).
+    "--http1.1",
     "--location",
     "--compressed",
     "--max-time",
@@ -199,6 +202,13 @@ async function fetchProducts(categories) {
 // Keep the catalogue crawl serial. A 403 is not retried inside one run because
 // the same request will remain denied; the scheduled refresh is the retry boundary.
 const stats = await fetchJson("/meta/stats");
+if (process.argv.includes("--probe-only")) {
+  if (!(Number(stats?.active_products || stats?.total_products) > 0)) {
+    throw new Error("Upstream stats response has no active products.");
+  }
+  console.log("PosoKanei API preflight passed.");
+  process.exit(0);
+}
 const categoriesRaw = await fetchJson("/meta/categories");
 const retailersRaw = await fetchJson("/meta/retailers?countries=GR");
 const categories = categoriesRaw.categories || categoriesRaw;
