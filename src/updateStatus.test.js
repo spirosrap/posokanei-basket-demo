@@ -36,6 +36,23 @@ test("catalogue update time falls back through health and proxy snapshot data", 
   );
 });
 
+test("a published catalogue supersedes an older failed refresh receipt", () => {
+  const status = normalizeUpdateStatus({
+    snapshot_generated_at: "2026-09-22T14:19:51.270Z",
+    refresh_status: "failed",
+    refresh_checked_at: "2026-09-22T13:16:59.093Z",
+    refresh_error: "Catalogue refresh failed.",
+    refresh_error_code: "timeout",
+    last_successful_refresh_at: "2026-09-22T11:58:44.050Z",
+  });
+
+  assert.equal(status.refreshStatus, "ok");
+  assert.equal(status.refreshError, "");
+  assert.equal(status.refreshErrorCode, "");
+  assert.equal(status.lastSuccessfulRefreshAt, "2026-09-22T14:19:51.270Z");
+  assert.equal(resolveCatalogUpdatedAt({}, status), "2026-09-22T14:19:51.270Z");
+});
+
 test("catalogue coverage diagnostics survive status normalization", () => {
   const status = normalizeUpdateStatus({
     refresh_status: "failed",

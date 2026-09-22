@@ -8,9 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.38.1`
+**Τρέχουσα έκδοση:** `v0.38.2`
+
+Η έκδοση `v0.38.2` εμποδίζει ένα νέο μπλοκάρισμα της διεύθυνσης Tailscale από το Plesk να κολλήσει τον ωριαίο συγχρονισμό. Κάθε μεταφορά FTP έχει όριο σύνδεσης και συνολικού χρόνου, η απόδειξη επιτυχίας ανεβαίνει πριν από το μεγάλο αρχείο λεπτομερειών και μια παλιότερη αποτυχία δεν κρύβει νεότερο κατάλογο. Η μόνιμη ρύθμιση στον server είναι να επιτρέπονται τα εύρη `100.64.0.0/10` και `fd7a:115c:a1e0::/48` και στο Fail2Ban και στο Imunify360· μία διεύθυνση ξαναμπλοκάρεται.
 
 Η έκδοση `v0.38.1` αποκαθιστά τον συγχρονισμό με HTTP/1.1, ελέγχει την πρόσβαση κάθε εφεδρικού υπολογιστή πριν από τη μεταφορά του καταλόγου και διατηρεί διαγνωστικά για όλες τις αποτυχημένες προσπάθειες. Ο έλεγχος υγείας εντοπίζει αποτυχημένες ενημερώσεις, δεδομένα παλαιότερα των τριών ωρών και σταματημένο χρονοπρογραμματισμό, ακόμη κι όταν ο διακομιστής επιστρέφει HTTP 200.
+
+Version `v0.38.2` keeps the hourly catalogue refresh from stalling when Plesk blocks the Mac mini's Tailscale address again. Each FTP transfer has a connect and total time limit, the success receipt is published before the large detail file, and an older failure no longer hides a newer catalogue. The lasting server setting is to allow `100.64.0.0/10` and `fd7a:115c:a1e0::/48` in both Fail2Ban and Imunify360; a single address gets blocked again.
 
 Version `v0.38.1` restores catalogue synchronization with HTTP/1.1, checks each fallback runner before transferring the previous catalogue, and retains diagnostics for every failed runner. Health checks now detect failed refreshes, prices older than three hours, and a stalled scheduler even when the server returns HTTP 200.
 

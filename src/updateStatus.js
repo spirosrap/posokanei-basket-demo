@@ -1,4 +1,13 @@
 export function normalizeUpdateStatus(raw = {}) {
+  const snapshotGeneratedAt = raw.snapshot_generated_at || raw.snapshotGeneratedAt || "";
+  const refreshCheckedAt = raw.refresh_checked_at || raw.refreshCheckedAt || "";
+  const refreshStatus = raw.refresh_status || raw.refreshStatus || "";
+  const failureIsStale = catalogueSupersedesFailure(
+    refreshStatus,
+    refreshCheckedAt,
+    snapshotGeneratedAt,
+  );
+
   return {
     checkedAt: raw.checked_at || raw.checkedAt || "",
     changedSinceLastCheck: Boolean(raw.changed_since_last_check ?? raw.changedSinceLastCheck),
@@ -8,19 +17,28 @@ export function normalizeUpdateStatus(raw = {}) {
     status: raw.status || "ok",
     error: raw.error || "",
     detail: raw.detail || "",
-    snapshotGeneratedAt: raw.snapshot_generated_at || raw.snapshotGeneratedAt || "",
-    refreshStatus: raw.refresh_status || raw.refreshStatus || "",
-    refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
-    refreshError: raw.refresh_error || raw.refreshError || "",
-    refreshErrorCode: raw.refresh_error_code || raw.refreshErrorCode || "",
-    refreshDiagnostics: raw.refresh_diagnostics || raw.refreshDiagnostics || null,
-    lastSuccessfulRefreshAt:
-      raw.last_successful_refresh_at
-      || raw.lastSuccessfulRefreshAt
-      || raw.snapshot_generated_at
-      || raw.snapshotGeneratedAt
-      || "",
+    snapshotGeneratedAt,
+    refreshStatus: failureIsStale ? "ok" : refreshStatus,
+    refreshCheckedAt,
+    refreshError: failureIsStale ? "" : (raw.refresh_error || raw.refreshError || ""),
+    refreshErrorCode: failureIsStale ? "" : (raw.refresh_error_code || raw.refreshErrorCode || ""),
+    refreshDiagnostics: failureIsStale
+      ? null
+      : (raw.refresh_diagnostics || raw.refreshDiagnostics || null),
+    lastSuccessfulRefreshAt: failureIsStale
+      ? snapshotGeneratedAt
+      : raw.last_successful_refresh_at
+        || raw.lastSuccessfulRefreshAt
+        || snapshotGeneratedAt
+        || "",
   };
+}
+
+function catalogueSupersedesFailure(refreshStatus, refreshCheckedAt, snapshotGeneratedAt) {
+  if (refreshStatus !== "failed") return false;
+  const checkedAt = Date.parse(refreshCheckedAt || "");
+  const publishedAt = Date.parse(snapshotGeneratedAt || "");
+  return Number.isFinite(checkedAt) && Number.isFinite(publishedAt) && checkedAt < publishedAt;
 }
 
 export function resolveCatalogUpdatedAt(health, updateStatus) {

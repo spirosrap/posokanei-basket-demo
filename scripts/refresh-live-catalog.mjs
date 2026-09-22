@@ -904,7 +904,10 @@ function describeRefreshError(error) {
   if (/UND_ERR_CONNECT_TIMEOUT|Connect Timeout Error/i.test(message)) {
     return "Refresh runner could not connect to the upstream API.";
   }
-  if (/curl exited with 28|FTP response timeout|operation timed out/i.test(message)) {
+  if (/curl exited with 28|FTP response timeout|operation timed out|connect-timeout/i.test(message)) {
+    return "Catalogue publication timed out.";
+  }
+  if (/previous public catalogue/i.test(message) && /timed out|timeout/i.test(message)) {
     return "Catalogue publication timed out.";
   }
   if (/fetch failed/i.test(message)) {
@@ -993,16 +996,27 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await publishDataFile(priceChangesJsonPath, "price-changes.json", target, password);
   await publishDataFile(priceChangesPreviewPath, "price-changes-preview.json", target, password);
   await publishDataFile(catalogHealthPath, "catalog-health.json", target, password);
-  await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
   if (existsSync(dailyBargainPath)) {
     await publishDataFile(dailyBargainPath, "daily-bargain.json", target, password);
   }
   for (const file of compressedPublicationFiles) {
     await publishDataFile(file.filePath, file.remoteName, target, password);
   }
-  // Publish status last so it only announces a refresh after every data file is live.
+  // Announce the catalogue before the large detail sidecar. A hosting ban can
+  // stall that one transfer; the receipt must not stay on the previous failure.
   await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
-  await verifyPublicRefreshFiles(expectedGeneratedAt, target);
+  let detailsPublished = true;
+  try {
+    await publishDataFile(productDetailsPath, "catalog-details.jsonl", target, password);
+  } catch (error) {
+    detailsPublished = false;
+    console.error(
+      `Product-detail sidecar was not published to ${target.name}: ${describeRefreshError(error)}`,
+    );
+  }
+  await verifyPublicRefreshFiles(expectedGeneratedAt, target, {
+    requireDetails: detailsPublished,
+  });
   await verifyCompressedDataDelivery(target, expectedGeneratedAt);
 }
 
@@ -1136,7 +1150,11 @@ function sleep(milliseconds) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
 }
 
-async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
+async function verifyPublicRefreshFiles(
+  expectedGeneratedAt,
+  target,
+  { requireDetails = true } = {},
+) {
   const targetCatalogUrl = target.publicCatalogUrl || publicDataUrl(target, "catalog.json");
   const targetMetaUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-meta.json");
   const targetRuntimeUrl = targetCatalogUrl.replace(/catalog\.json$/, "catalog-runtime.json");
@@ -1182,7 +1200,7 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         fetchPublicJson(targetPriceChangesJsonUrl),
         fetchPublicJson(targetPriceChangesPreviewUrl),
         fetchPublicJson(targetPriceChangesApiUrl),
-        fetchPublicJson(targetProductDetailsUrl),
+        requireDetails ? fetchPublicJson(targetProductDetailsUrl) : Promise.resolve(null),
         fetchPublicJson(targetHealthUrl),
         fetchPublicJson(targetStatusUrl),
       ]);
@@ -1245,8 +1263,11 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
         ) &&
         priceChangesApi.rowCount === activePriceChanges &&
         priceChangesApi.generatedAt === observed.snapshot &&
-        observed.detailProductId === detailVerificationProductId &&
-        observed.detailGeneratedAt === observed.snapshot &&
+        (!requireDetails
+          || (
+            observed.detailProductId === detailVerificationProductId
+            && observed.detailGeneratedAt === observed.snapshot
+          )) &&
         observed.healthProducts === Number(publicSnapshot?.products?.length || 0)
       ) {
         if (observed.snapshot !== expectedGeneratedAt) {
@@ -1274,7 +1295,11 @@ async function verifyPublicRefreshFiles(expectedGeneratedAt, target) {
   console.log(`Verified price-change display data at ${targetPriceChangesJsonUrl}`);
   console.log(`Verified initial price-change preview at ${targetPriceChangesPreviewUrl}`);
   console.log(`Verified compressed price-change API at ${targetPriceChangesApiUrl}`);
-  console.log(`Verified product-detail sidecar through ${targetProductDetailsUrl}`);
+  if (requireDetails) {
+    console.log(`Verified product-detail sidecar through ${targetProductDetailsUrl}`);
+  } else {
+    console.log("Product-detail sidecar verification skipped after a publication timeout.");
+  }
   console.log(`Verified catalogue health at ${targetHealthUrl}`);
   console.log(`Verified public refresh status at ${targetStatusUrl}`);
   if (existsSync(dailyBargainPath)) {
