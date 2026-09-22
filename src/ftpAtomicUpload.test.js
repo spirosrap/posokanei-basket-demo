@@ -72,6 +72,28 @@ test("atomic FTP upload does not retry a local-file error", async () => {
   assert.equal(uploadAttempts, 1);
 });
 
+test("atomic FTP upload limits how long a blocked server can stall a transfer", async () => {
+  let input = "";
+  await uploadFileAtomic({
+    filePath: "/tmp/catalog-details.jsonl",
+    url: "ftp://example.com/data/catalog-details.jsonl",
+    user: "user",
+    password: "secret",
+    cwd: "/tmp",
+    attempts: 1,
+    connectTimeoutSeconds: 20,
+    maxTimeSeconds: 300,
+    curlRunner: async (args, options) => {
+      if (args.includes("-T")) input = options.input;
+      return { code: 0, stdout: "", stderr: "" };
+    },
+    logger: { log: () => {}, warn: () => {} },
+  });
+
+  assert.match(input, /connect-timeout = 20/);
+  assert.match(input, /max-time = 300/);
+});
+
 test("FTP retry classification covers network failures but not authentication or local files", () => {
   assert.equal(isRetryableFtpUploadError(new Error("curl exited with 28: timeout")), true);
   assert.equal(isRetryableFtpUploadError(new Error("curl exited with 56: reset")), true);

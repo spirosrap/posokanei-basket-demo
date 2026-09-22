@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 
 const DEFAULT_UPLOAD_ATTEMPTS = 4;
+const DEFAULT_CONNECT_TIMEOUT_SECONDS = 20;
+const DEFAULT_MAX_TIME_SECONDS = 300;
 
 export async function uploadFileAtomic({
   filePath,
@@ -10,6 +12,14 @@ export async function uploadFileAtomic({
   password,
   cwd,
   attempts = DEFAULT_UPLOAD_ATTEMPTS,
+  connectTimeoutSeconds = configuredSeconds(
+    "POSOKANEI_FTP_CONNECT_TIMEOUT_SECONDS",
+    DEFAULT_CONNECT_TIMEOUT_SECONDS,
+  ),
+  maxTimeSeconds = configuredSeconds(
+    "POSOKANEI_FTP_MAX_TIME_SECONDS",
+    DEFAULT_MAX_TIME_SECONDS,
+  ),
   retryBaseDelayMs = 1500,
   curlRunner = runCurl,
   wait = sleep,
@@ -22,6 +32,8 @@ export async function uploadFileAtomic({
     "silent",
     "show-error",
     "fail",
+    `connect-timeout = ${connectTimeoutSeconds}`,
+    `max-time = ${maxTimeSeconds}`,
   ].join("\n");
   const input = `${curlConfig}\n`;
   const maximumAttempts = Math.max(1, Number(attempts) || DEFAULT_UPLOAD_ATTEMPTS);
@@ -106,6 +118,11 @@ export function isRetryableFtpUploadError(error) {
   return /FTP response timeout|operation timed out|connection (?:reset|refused)|temporary failure/i.test(
     message,
   );
+}
+
+function configuredSeconds(name, fallback) {
+  const parsed = Number(process.env[name]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function sleep(milliseconds) {

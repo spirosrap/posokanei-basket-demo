@@ -307,6 +307,33 @@ migrating hosting. Do not put `SecRuleRemoveById` in `.htaccess`: this host reje
 it there with HTTP 500. Verify recovery using repeated `/sw.js` requests with a
 `Service-Worker: script` header, followed by a ban-list check and catalogue search.
 
+Adding one Mac mini Tailscale address does not stay fixed. That address is only
+the current node inside Tailscale's carrier ranges, and Plesk Fail2Ban plus
+Imunify360 each keep their own block list. Unbanning, or trusting, a single IP
+is cleared the next time either component counts three informational ModSecurity
+events. The permanent allow is the whole range, in both places:
+
+```text
+100.64.0.0/10
+fd7a:115c:a1e0::/48
+```
+
+In Plesk, add both under Tools & Settings > IP Address Banning (Fail2Ban) >
+Trusted IP Addresses. That writes Fail2Ban `ignoreip`; it is not the one-time
+Unban button. In Imunify360, whitelist the same two ranges
+(`imunify360-agent whitelist ip add 100.64.0.0/10` and the IPv6 range). Imunify
+does not read the Fail2Ban trusted list. Plesk documents that Imunify360 and
+Fail2Ban are incompatible and that leaving both enabled intermittently bans
+legitimate addresses. If a Tailscale address is banned again after both ranges
+are trusted, turn Fail2Ban intrusion detection off and leave Imunify360 plus the
+rule `77138486` exclusion in place.
+
+Each FTP transfer now stops after a connect timeout and a transfer limit, and
+the success receipt is published before `catalog-details.jsonl`. A ban can no
+longer leave the new catalogue on the site while the previous failure receipt
+stays up, and it cannot hold the hourly lock until the next run is skipped. A
+failure receipt older than the published catalogue is treated as historical.
+
 The snapshot builder sends a browser-like `User-Agent` by default because the
 upstream API can return `HTTP 403` to obvious automation client strings. Override
 it with `POSOKANEI_USER_AGENT` only when the upstream rules change.
