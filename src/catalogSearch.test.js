@@ -9,6 +9,13 @@ const PRODUCTS = [
   { id: "d", name: "Ρύζι", brand: "Delta", category_ids: ["pantry"], min_price: 2.7, min_unit_price: 1.2 },
 ];
 
+test("unpriced identities sort after actual prices instead of appearing free", () => {
+  const prepared = prepareCatalogSearch([{ id: "unpriced", name: "Unpriced", min_price: null, min_unit_price: null }, ...PRODUCTS]);
+  for (const sortMode of ["price", "unit_price"]) {
+    assert.equal(queryCatalogSearch(prepared, { sortMode }).products.at(-1).id, "unpriced");
+  }
+});
+
 test("catalog search filters locally and preserves price ordering", () => {
   const prepared = prepareCatalogSearch(PRODUCTS);
   const result = queryCatalogSearch(prepared, { query: "γάλα", sortMode: "price" });

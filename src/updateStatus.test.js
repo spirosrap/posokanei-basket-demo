@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeUpdateStatus, resolveCatalogUpdatedAt } from "./updateStatus.js";
 
+test("a successful partial refresh still exposes the missing chain", () => {
+  const unavailable = [{ id: "lidl", name: "Lidl" }];
+  assert.deepEqual(normalizeUpdateStatus({ refresh_status: "ok", catalog_availability: { unavailable_retailers: unavailable } }).unavailableRetailers, unavailable);
+  assert.deepEqual(normalizeUpdateStatus({}).unavailableRetailers, []);
+});
+
 test("successful catalogue refresh wins over an older blocked proxy snapshot", () => {
   const status = normalizeUpdateStatus({
     checked_at: "2026-07-12T09:43:13.275Z",

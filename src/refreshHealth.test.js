@@ -10,6 +10,12 @@ const status = {
   last_successful_refresh_at: meta.generated_at,
 };
 
+test("fresh partial publication reports the missing retailer rather than stale prices", () => {
+  const result = evaluateRefreshHealth(status, { ...meta, availability: { unavailable_retailers: [{ id: "lidl" }] } }, { now });
+  assert.equal(result.healthy, false);
+  assert.deepEqual(result.reasons, ["retailer_unavailable"]);
+});
+
 test("fresh scheduled data stays healthy despite the known Plesk live-proxy block", () => {
   assert.equal(evaluateRefreshHealth(status, meta, { now }).healthy, true);
 });

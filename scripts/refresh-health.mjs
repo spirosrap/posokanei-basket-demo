@@ -14,6 +14,7 @@ export function evaluateRefreshHealth(status, meta, {
   const checkedTime = Date.parse(refreshCheckedAt);
   const validTime = (value) => Number.isFinite(value) && value <= now + 5 * 60 * 1000;
   const reasons = [];
+  if (meta?.availability?.unavailable_retailers?.length) reasons.push("retailer_unavailable");
   if (!validTime(generatedTime)) reasons.push("catalog_timestamp_invalid");
   else if (now - generatedTime > maxAgeMs) reasons.push("catalog_stale");
   if (!validTime(checkedTime)) reasons.push("refresh_timestamp_invalid");

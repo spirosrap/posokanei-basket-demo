@@ -3,6 +3,15 @@ import assert from "node:assert/strict";
 import { createCatalogBootstrap } from "../scripts/catalog-bootstrap.mjs";
 import { DEFAULT_DEMO_PRODUCT_IDS } from "./demoBasket.js";
 
+test("bootstrap excludes unpriced products from the cheapest first page", () => {
+  const result = createCatalogBootstrap({ products: [
+    { id: "none", name: "None", min_price: null, min_unit_price: null },
+    { id: "priced", name: "Priced", min_price: 1, min_unit_price: 1 },
+  ] }, 1);
+  assert.deepEqual(result.pages.price, ["priced"]);
+  assert.deepEqual(result.pages.unit_price, ["priced"]);
+});
+
 test("static bootstrap keeps first pages and available demo products", () => {
   const products = [
     ...DEFAULT_DEMO_PRODUCT_IDS.slice(0, 2).map((id, index) => ({

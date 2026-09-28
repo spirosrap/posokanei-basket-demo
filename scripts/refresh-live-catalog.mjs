@@ -17,6 +17,9 @@ import {
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 import { writeCatalogHealthSnapshot } from "./catalog-health.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
+import { prepareRetailerOutage } from "./retailer-outage.mjs";
+import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
+import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
 import { buildRunnerFailure } from "./refresh-runner-failures.mjs";
 import {
   evaluateCatalogContraction,
@@ -260,15 +263,25 @@ async function refreshCatalog() {
     });
   }
 
-  const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
-  const productCount = Array.isArray(snapshot.products) ? snapshot.products.length : 0;
-  if (productCount < minimumProducts) {
-    throw new Error(
-      `Snapshot guard failed: expected at least ${minimumProducts} products, got ${productCount}.`,
-    );
+  const candidate = JSON.parse(await readFile(snapshotPath, "utf8"));
+  if (!Array.isArray(candidate.products) || candidate.products.length < minimumProducts) {
+    throw new Error(`Snapshot guard failed: expected at least ${minimumProducts} products.`);
   }
-  await verifyCatalogPublication(previousSnapshotPath, snapshot);
   const previousSnapshot = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  const { snapshot, comparisonPrevious } = prepareRetailerOutage(previousSnapshot, candidate);
+  await verifyCatalogPublication(previousSnapshotPath, candidate, comparisonPrevious);
+  const productCount = snapshot.products.length;
+  if (snapshot.availability) {
+    const metadata = JSON.parse(await readFile(metaPath, "utf8"));
+    metadata.availability = snapshot.availability;
+    metadata.stats.total_products = productCount;
+    metadata.stats.active_products = productCount;
+    snapshot.stats = { ...snapshot.stats, total_products: productCount, active_products: productCount };
+    await writeFile(snapshotPath, `${JSON.stringify(snapshot)}\n`);
+    await writeFile(metaPath, `${JSON.stringify(metadata)}\n`);
+    await writeCatalogBootstrap(await writeRuntimeCatalog(snapshot, runtimePath), bootstrapPath);
+    console.log(`Partial publication: ${snapshot.availability.unavailable_retailers.map((r) => r.name).join(", ")} has no current prices; ${snapshot.availability.retained_unpriced_products} product identities retained without prices.`);
+  }
   const catalogHealth = await writeCatalogHealthSnapshot(
     snapshot,
     previousSnapshot,
@@ -321,7 +334,7 @@ async function refreshCatalog() {
   }
 }
 
-async function verifyCatalogPublication(previousSnapshotPath, snapshot) {
+async function verifyCatalogPublication(previousSnapshotPath, snapshot, comparisonPrevious = null) {
   if (process.env.POSOKANEI_ALLOW_CATALOG_CONTRACTION === "1") {
     await rm(contractionStatePath, { force: true });
     await rm(coverageStatePath, { force: true });
@@ -329,7 +342,7 @@ async function verifyCatalogPublication(previousSnapshotPath, snapshot) {
     return;
   }
 
-  const previous = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  const previous = comparisonPrevious || JSON.parse(await readFile(previousSnapshotPath, "utf8"));
   const productCount = Array.isArray(snapshot?.products) ? snapshot.products.length : 0;
   const previousCount = Array.isArray(previous?.products) ? previous.products.length : 0;
   const coverageAssessment = evaluateCatalogCoverage({

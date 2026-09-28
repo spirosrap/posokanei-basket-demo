@@ -16,6 +16,7 @@ export function buildCatalogHealthSnapshot({ currentSnapshot, previousSnapshot =
     generated_at: current.generated_at,
     source: String(currentSnapshot?.source || ""),
     current,
+    availability: currentSnapshot.availability || null,
     previous: previous?.product_count ? previous : null,
   };
 }

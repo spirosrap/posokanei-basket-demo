@@ -76,7 +76,8 @@ export default function CatalogHealthPage({ appBasePath, ui }) {
   const updateFailed = state.updateStatus?.refreshStatus === "failed";
   const protectedCatalogue = updateFailed
     && PROTECTED_FAILURE_CODES.has(state.updateStatus?.refreshErrorCode);
-  const statusKind = protectedCatalogue ? "protected" : updateFailed ? "delayed" : "healthy";
+  const unavailable = (state.updateStatus?.unavailableRetailers || []).map((row) => row.name).join(", ");
+  const statusKind = protectedCatalogue ? "protected" : updateFailed ? "delayed" : unavailable ? "partial" : "healthy";
   const activeProducts = current?.productCount || 0;
   const headerHealth = activeProducts
     ? { state: "cached", source: "snapshot", activeProducts }
@@ -143,8 +144,8 @@ export default function CatalogHealthPage({ appBasePath, ui }) {
                   : <AlertCircle size={22} aria-hidden="true" />}
               </span>
               <div>
-                <strong>{t(`catalogHealthStatus${capitalize(statusKind)}`)}</strong>
-                <p>{t(`catalogHealthStatus${capitalize(statusKind)}Body`)}</p>
+                <strong>{unavailable ? appText("unavailablePrices", { chains: unavailable }) : t(`catalogHealthStatus${capitalize(statusKind)}`)}</strong>
+                <p>{unavailable ? appText("unavailablePricesBody") : t(`catalogHealthStatus${capitalize(statusKind)}Body`)}</p>
                 {updateFailed && state.updateStatus?.refreshCheckedAt ? (
                   <small>{t("catalogHealthLastAttempt", {
                     time: formatDataTime(state.updateStatus.refreshCheckedAt, locale, t),

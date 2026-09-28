@@ -137,6 +137,7 @@ function with_refresh_status(array $status): array
     }
 
     return array_merge($status, [
+        'catalog_availability' => read_cache(__DIR__ . '/../data/catalog-meta.json')['availability'] ?? null,
         'refresh_status' => (string) ($refreshStatus['status'] ?? ''),
         'refresh_checked_at' => (string) ($refreshStatus['checked_at'] ?? ''),
         'refresh_error' => (string) ($refreshStatus['error'] ?? ''),

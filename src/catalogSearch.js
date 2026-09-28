@@ -5,8 +5,8 @@ function normalizedText(value) {
 function compareNullableNumber(left, right, field) {
   const leftValue = Number(left.raw[field]);
   const rightValue = Number(right.raw[field]);
-  const leftValid = Number.isFinite(leftValue);
-  const rightValid = Number.isFinite(rightValue);
+  const leftValid = left.raw[field] != null && Number.isFinite(leftValue);
+  const rightValid = right.raw[field] != null && Number.isFinite(rightValue);
   if (!leftValid && rightValid) return 1;
   if (leftValid && !rightValid) return -1;
   if (leftValid && rightValid && leftValue !== rightValue) return leftValue - rightValue;

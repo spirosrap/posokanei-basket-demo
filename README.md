@@ -8,7 +8,11 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.38.1`
+**Τρέχουσα έκδοση:** `v0.38.2`
+
+Η έκδοση `v0.38.2` συνεχίζει την ενημέρωση των άλλων αλυσίδων όταν λείπει πλήρως μία μικρή πηγή τιμών. Τα προϊόντα της παραμένουν στο καλάθι χωρίς παλιές τιμές, με εμφανή προειδοποίηση μέχρι να αποκατασταθεί η πηγή. Οι υπόλοιποι έλεγχοι πληρότητας παραμένουν ενεργοί.
+
+Version `v0.38.2` keeps other chains updating when one small retailer feed disappears. Its product identities remain in saved baskets without stale prices, with a visible warning until source recovery. Unrelated coverage loss still blocks publication.
 
 Η έκδοση `v0.38.1` αποκαθιστά τον συγχρονισμό με HTTP/1.1, ελέγχει την πρόσβαση κάθε εφεδρικού υπολογιστή πριν από τη μεταφορά του καταλόγου και διατηρεί διαγνωστικά για όλες τις αποτυχημένες προσπάθειες. Ο έλεγχος υγείας εντοπίζει αποτυχημένες ενημερώσεις, δεδομένα παλαιότερα των τριών ωρών και σταματημένο χρονοπρογραμματισμό, ακόμη κι όταν ο διακομιστής επιστρέφει HTTP 200.
 

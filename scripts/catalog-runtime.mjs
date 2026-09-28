@@ -61,6 +61,7 @@ export function createRuntimeCatalog(snapshot) {
     stats: snapshot.stats,
     price_change_stats: snapshot.price_change_stats,
     coverage: snapshot.coverage,
+    availability: snapshot.availability || null,
     categories: snapshot.categories,
     retailers: snapshot.retailers,
     products: Array.isArray(snapshot.products) ? snapshot.products.map(compactProduct) : [],

@@ -353,3 +353,24 @@ curl -fsS -X POST 'https://kalathitimon.com/api/branches.php' \
 The same catalogue timestamps can be checked on the compatibility mirror after a
 refresh. Primary publishing is required; a mirror failure is reported but does not
 invalidate a successful primary update.
+
+## Partial retailer outages
+
+Since v0.38.2, one completely missing retailer feed can be isolated when it
+previously had at least 100 offers, represented no more than 20% of all offers,
+and at least two other chains remain. Only that feed is removed from the
+comparison baseline; all other category, retailer, offer and product-count
+publication guards still apply. Broader failures remain blocked.
+
+Products exclusive to the missing retailer retain their IDs and descriptions
+with empty prices, preserving saved baskets without treating stale prices as
+current. They cannot enter a shopping plan and sort after priced products.
+Metadata records the unavailable retailer, its last available timestamp and the
+number of retained unpriced products. The app displays the outage even after a
+successful refresh; check:updates reports retailer_unavailable until recovery.
+A returning feed must recover at least 80% of its previous offer count before the
+warning clears. A partial reappearance below that threshold remains guarded.
+
+The September 28 incident was a missing Lidl feed on independent runners, not a
+connection failure. Do not bypass coverage guards or change network settings to
+resolve this condition. The existing hourly refresh handles isolation and recovery.

@@ -1135,6 +1135,7 @@ select:focus-visible {
   padding: 13px 16px;
 }
 
+.health-status-banner.partial,
 .health-status-banner.protected,
 .health-status-banner.delayed {
   border-left-color: var(--amber);
@@ -1151,6 +1152,7 @@ select:focus-visible {
   color: var(--green-dark);
 }
 
+.health-status-banner.partial .health-status-icon,
 .health-status-banner.protected .health-status-icon,
 .health-status-banner.delayed .health-status-icon {
   color: var(--amber);

@@ -2075,6 +2075,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
     t,
   );
   const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt, locale, t);
+  const unavailable = (updateStatus?.unavailableRetailers || []).map((row) => row.name).join(", ");
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
   const isAutoSnapshot = updateStatus?.status === "snapshot";
@@ -2083,7 +2084,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
     <details
       className="data-warning"
       aria-label={t("freshnessWarning")}
-      open={refreshFailed || undefined}
+      open={refreshFailed || Boolean(unavailable) || undefined}
     >
       <summary>
         <span className="freshness-icon" aria-hidden="true">
@@ -2091,7 +2092,9 @@ function DataFreshnessNotice({ health, updateStatus }) {
         </span>
         <span className="freshness-summary">
           <strong>
-          {coverageDegraded
+          {unavailable
+            ? t("unavailablePrices", { chains: unavailable })
+            : coverageDegraded
             ? t("refreshCoverageDegradedTitle")
             : refreshFailed
             ? t("refreshFailedTitle")
@@ -2105,7 +2108,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
       </summary>
       <div className="freshness-details">
         <p>
-          {t("refreshSnapshotExplanation")}
+          {unavailable ? t("unavailablePricesBody") : t("refreshSnapshotExplanation")}
           {refreshFailed
             ? t("refreshAttempt", {
                 time: refreshAttemptTime,

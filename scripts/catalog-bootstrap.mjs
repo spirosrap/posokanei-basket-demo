@@ -9,8 +9,8 @@ const SORT_MODES = ["price", "unit_price", "name"];
 function compareNullableNumber(left, right, field) {
   const leftValue = Number(left[field]);
   const rightValue = Number(right[field]);
-  const leftValid = Number.isFinite(leftValue);
-  const rightValid = Number.isFinite(rightValue);
+  const leftValid = left[field] != null && Number.isFinite(leftValue);
+  const rightValid = right[field] != null && Number.isFinite(rightValue);
   if (!leftValid && rightValid) return 1;
   if (leftValid && !rightValid) return -1;
   if (leftValid && rightValid && leftValue !== rightValue) return leftValue - rightValue;
@@ -87,6 +87,7 @@ export function createCatalogBootstrap(runtimeCatalog, pageSize = PAGE_SIZE) {
   return {
     generated_at: runtimeCatalog.generated_at,
     source: runtimeCatalog.source,
+    availability: runtimeCatalog.availability || null,
     stats: compactStats(runtimeCatalog.stats, products.length),
     price_change_stats: runtimeCatalog.price_change_stats,
     categories: compactCategories(runtimeCatalog.categories),

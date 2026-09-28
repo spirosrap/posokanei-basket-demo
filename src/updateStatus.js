@@ -9,6 +9,7 @@ export function normalizeUpdateStatus(raw = {}) {
     error: raw.error || "",
     detail: raw.detail || "",
     snapshotGeneratedAt: raw.snapshot_generated_at || raw.snapshotGeneratedAt || "",
+    unavailableRetailers: raw.catalog_availability?.unavailable_retailers || [],
     refreshStatus: raw.refresh_status || raw.refreshStatus || "",
     refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
     refreshError: raw.refresh_error || raw.refreshError || "",
