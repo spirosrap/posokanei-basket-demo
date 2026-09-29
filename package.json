@@ -51,6 +51,7 @@
     "check:updates": "node scripts/check-posokanei-updates.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/commissioner": "^5.3.0",
     "lucide-react": "^0.468.0",
     "preact": "^10.29.7",
     "react": "^19.0.0",

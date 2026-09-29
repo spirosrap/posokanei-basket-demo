@@ -1,54 +1,81 @@
+@import "@fontsource-variable/commissioner";
+
 :root {
   color-scheme: light;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  --bg: #f3f7f5;
+    "Commissioner Variable", Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-variation-settings: "FLAR" 0, "VOLM" 0, "slnt" 0;
+  -webkit-font-smoothing: antialiased;
+  --bg: #f4f3ee;
   --surface: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.94);
-  --surface-strong: #f7faf8;
-  --text: #17251f;
-  --muted: #637169;
-  --faint: #e9efec;
-  --line: #d5dfda;
-  --blue: #2f6fce;
-  --blue-soft: #edf4ff;
-  --green: #079b68;
-  --green-dark: #08765d;
-  --green-soft: #eaf9f2;
-  --amber: #c9790d;
-  --amber-soft: #fff7e8;
-  --coral: #d55c4b;
-  --coral-soft: #fff1ee;
-  --red: #d83a4c;
-  --focus: rgba(47, 111, 206, 0.22);
-  --shadow: 0 16px 42px rgba(35, 65, 51, 0.1);
-  --radius: 8px;
+  --surface-glass: rgba(255, 255, 255, 0.9);
+  --surface-strong: #f6f5f0;
+  --surface-soft: #faf9f6;
+  --text: #1b201d;
+  --muted: #6a736e;
+  --faint: #edece6;
+  --line: #e2e0d8;
+  --line-strong: #cfcdc3;
+  --blue: #2f66b3;
+  --blue-soft: #eaf0f9;
+  --green: #178a5d;
+  --green-dark: #106b49;
+  --green-soft: #e4f3ea;
+  --amber: #b26d0b;
+  --amber-soft: #fbf1dc;
+  --coral: #cf5540;
+  --coral-soft: #fcede8;
+  --red: #cc3949;
+  --focus: rgba(23, 138, 93, 0.28);
+  --shadow:
+    0 1px 2px rgba(27, 32, 29, 0.05),
+    0 14px 36px rgba(27, 32, 29, 0.07);
+  --shadow-soft: 0 1px 2px rgba(27, 32, 29, 0.04), 0 6px 18px rgba(27, 32, 29, 0.05);
+  --radius: 12px;
+  --radius-sm: 9px;
+  --radius-lg: 18px;
   --asset-revision: safari-image-proxy-2026-06-25;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1412;
-  --surface: #171e1b;
-  --surface-glass: rgba(23, 30, 27, 0.94);
-  --surface-strong: #202823;
-  --text: #edf3ef;
-  --muted: #a1afa7;
-  --faint: #29352f;
-  --line: #35443c;
-  --blue: #79a9f2;
-  --blue-soft: #19283a;
-  --green: #2bc48d;
-  --green-dark: #62dbb2;
-  --green-soft: #163128;
+  --bg: #0e1210;
+  --surface: #161b18;
+  --surface-glass: rgba(22, 27, 24, 0.88);
+  --surface-strong: #1d2320;
+  --surface-soft: #1a1f1c;
+  --text: #e9ede9;
+  --muted: #97a29b;
+  --faint: #232a26;
+  --line: #2b332e;
+  --line-strong: #3a453f;
+  --blue: #86b0f0;
+  --blue-soft: #1a2636;
+  --green: #3cc590;
+  --green-dark: #8fe4c0;
+  --green-soft: #17302a;
   --amber: #f0bd62;
-  --amber-soft: #302719;
-  --coral: #ff8e7e;
-  --coral-soft: #34211f;
+  --amber-soft: #2f2618;
+  --coral: #ff927f;
+  --coral-soft: #33221f;
   --red: #fb7185;
-  --focus: rgba(121, 169, 242, 0.3);
-  --shadow: 0 20px 54px rgba(0, 0, 0, 0.38);
+  --focus: rgba(60, 197, 144, 0.35);
+  --shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 18px 44px rgba(0, 0, 0, 0.42);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+strong,
+b {
+  font-weight: 700;
 }
 
 * {
@@ -58,26 +85,14 @@
 body {
   margin: 0;
   min-width: 0;
-  background: linear-gradient(180deg, #f9fbfa 0, var(--bg) 260px);
+  background:
+    radial-gradient(900px 380px at 12% -10%, rgba(23, 138, 93, 0.09), transparent 70%),
+    radial-gradient(700px 320px at 92% -6%, rgba(178, 109, 11, 0.07), transparent 70%),
+    var(--bg);
+  background-attachment: scroll;
   color: var(--text);
-}
-
-body::before {
-  position: fixed;
-  z-index: 100;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--blue) 0 25%,
-    var(--green) 25% 55%,
-    var(--amber) 55% 80%,
-    var(--coral) 80% 100%
-  );
-  content: "";
-  pointer-events: none;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 button,
@@ -107,7 +122,7 @@ select:focus-visible {
 
 .app-shell {
   min-height: 100vh;
-  padding: 18px 18px 28px;
+  padding: 14px 22px 40px;
 }
 
 .topbar {
@@ -116,7 +131,8 @@ select:focus-visible {
   justify-content: space-between;
   gap: 16px;
   max-width: 1520px;
-  margin: 0 auto 14px;
+  min-height: 52px;
+  margin: 0 auto 22px;
 }
 
 .brand {
@@ -131,27 +147,25 @@ select:focus-visible {
 .brand-mark {
   position: relative;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  background: linear-gradient(145deg, var(--green), var(--green-dark));
+  border-radius: 13px;
+  background: linear-gradient(150deg, #23a06f, var(--green-dark));
   color: #ffffff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 8px 20px rgba(8, 118, 93, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 6px 16px rgba(16, 107, 73, 0.28);
 }
 
 .brand-mark::after {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 5px;
-  height: 5px;
-  border-radius: 2px;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: #ffd36c;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
   content: "";
 }
 
@@ -161,8 +175,9 @@ select:focus-visible {
 }
 
 .brand strong {
-  font-size: 19px;
-  letter-spacing: 0;
+  font-size: 18px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
@@ -170,6 +185,7 @@ select:focus-visible {
   margin-top: 3px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .topbar-actions {
@@ -186,16 +202,15 @@ select:focus-visible {
   align-items: center;
   gap: 2px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--surface);
   color: var(--muted);
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(35, 65, 51, 0.04);
+  padding: 3px;
 }
 
 .preference-switch > svg {
   flex: 0 0 auto;
-  margin: 0 4px 0 2px;
+  margin: 0 4px 0 6px;
 }
 
 .preference-switch button {
@@ -204,24 +219,23 @@ select:focus-visible {
   height: 28px;
   place-items: center;
   border: 0;
-  border-radius: 5px;
+  border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  padding: 0 5px;
+  padding: 0 7px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .preference-switch button:hover,
 .preference-switch button:focus-visible {
-  background: var(--surface-strong);
+  background: var(--faint);
   color: var(--text);
 }
 
 .preference-switch button.active {
-  background: var(--blue);
-  color: #ffffff;
-  box-shadow: 0 3px 8px rgba(47, 111, 206, 0.22);
+  background: var(--text);
+  color: var(--surface);
 }
 
 .theme-switch button {
@@ -238,69 +252,70 @@ select:focus-visible {
   align-items: center;
   height: 36px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--surface);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(35, 65, 51, 0.04);
+  font-size: 12.5px;
+  font-weight: 650;
 }
 
 .price-watch-pill {
   gap: 7px;
-  padding: 0 11px;
+  padding: 0 13px;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .price-watch-pill:hover,
 .price-watch-pill:focus-visible {
-  border-color: rgba(37, 99, 235, 0.35);
-  background: #eff6ff;
-  color: var(--blue);
+  border-color: var(--line-strong);
+  background: var(--surface-strong);
 }
 
 .repo-link {
   gap: 7px;
-  padding: 0 12px;
+  padding: 0 13px;
   color: var(--text);
   text-decoration: none;
 }
 
 .repo-link:hover,
 .repo-link:focus-visible {
-  border-color: rgba(37, 99, 235, 0.35);
-  color: var(--blue);
+  border-color: var(--line-strong);
+  background: var(--surface-strong);
 }
 
 .version-badge {
   gap: 6px;
-  padding: 0 10px;
-  color: #475569;
+  padding: 0 11px;
+  border-style: dashed;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 .source-status {
   gap: 7px;
-  padding: 0 12px;
+  padding: 0 13px;
   text-decoration: none;
 }
 
 .source-status:hover,
 .source-status:focus-visible {
   border-color: currentColor;
-  box-shadow: 0 4px 12px rgba(35, 65, 51, 0.1);
 }
 
 .source-status.online {
+  border-color: rgba(23, 138, 93, 0.3);
+  background: var(--green-soft);
   color: var(--green-dark);
 }
 
 .source-status.cached {
-  border-color: rgba(199, 121, 3, 0.28);
-  background: #fff7ed;
+  border-color: rgba(178, 109, 11, 0.3);
+  background: var(--amber-soft);
   color: var(--amber);
 }
 
@@ -310,46 +325,40 @@ select:focus-visible {
 
 .basket-pill {
   gap: 7px;
-  padding: 0 12px;
-  color: var(--text);
+  padding: 0 13px;
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+  font-weight: 700;
 }
 
 .app-intro {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
   max-width: 1520px;
-  margin: 0 auto 10px;
-  border-bottom: 1px solid var(--line);
-  padding: 10px 2px 15px 16px;
-}
-
-.app-intro::before {
-  position: absolute;
-  top: 11px;
-  bottom: 16px;
-  left: 0;
-  width: 3px;
-  border-radius: 3px;
-  background: var(--blue);
-  content: "";
+  margin: 0 auto 18px;
+  padding: 6px 2px 0;
 }
 
 .app-intro h1 {
   margin: 0;
-  font-size: 25px;
-  line-height: 1.15;
+  max-width: 820px;
+  font-size: 34px;
+  font-weight: 740;
+  letter-spacing: -0.028em;
+  line-height: 1.08;
 }
 
 .app-intro p {
-  max-width: 760px;
-  margin: 5px 0 0;
+  max-width: 700px;
+  margin: 10px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.45;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .intro-facts {
@@ -361,17 +370,29 @@ select:focus-visible {
 }
 
 .intro-facts span {
-  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--green-soft);
   color: var(--green-dark);
-  padding: 6px 10px;
+  padding: 6px 11px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
   white-space: nowrap;
 }
 
+.intro-facts span::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
 .intro-facts span + span {
+  border-color: var(--line);
   background: var(--surface);
   color: var(--muted);
 }
@@ -385,22 +406,33 @@ select:focus-visible {
 
 .price-changes-nav {
   display: inline-flex;
-  min-height: 42px;
-  max-width: 330px;
+  min-height: 48px;
+  max-width: 340px;
   align-items: center;
-  gap: 9px;
-  border: 1px solid rgba(37, 99, 235, 0.28);
+  gap: 10px;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--blue);
-  padding: 6px 9px;
+  padding: 8px 10px 8px 9px;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(35, 65, 51, 0.05);
+  box-shadow: var(--shadow-soft);
 }
 
 .price-changes-nav:hover,
 .price-changes-nav:focus-visible {
-  border-color: rgba(37, 99, 235, 0.55);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.price-changes-nav > svg:first-child {
+  display: grid;
+  box-sizing: content-box;
+  width: 17px;
+  height: 17px;
+  padding: 7px;
+  border-radius: 9px;
   background: var(--blue-soft);
 }
 
@@ -416,15 +448,15 @@ select:focus-visible {
 
 .price-changes-nav strong {
   color: var(--text);
-  font-size: 11px;
+  font-size: 12.5px;
   line-height: 1.3;
 }
 
 .price-changes-nav small {
   margin-top: 1px;
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 550;
   line-height: 1.3;
 }
 
@@ -438,11 +470,11 @@ select:focus-visible {
 
 .data-warning {
   max-width: 1520px;
-  margin: 0 auto 10px;
-  border: 1px solid rgba(199, 121, 3, 0.32);
+  margin: 0 auto 12px;
+  border: 1px solid rgba(178, 109, 11, 0.24);
   border-radius: var(--radius);
   background: var(--amber-soft);
-  color: #9a3412;
+  color: #7a4a0a;
   overflow: hidden;
 }
 
@@ -466,8 +498,9 @@ select:focus-visible {
   width: 28px;
   height: 28px;
   place-items: center;
-  border-radius: 7px;
-  background: rgba(199, 121, 3, 0.1);
+  border-radius: 9px;
+  background: rgba(178, 109, 11, 0.12);
+  color: var(--amber);
 }
 
 .freshness-summary {
@@ -480,16 +513,17 @@ select:focus-visible {
 }
 
 .freshness-summary strong {
-  color: #7c2d12;
-  font-size: 12px;
+  color: inherit;
+  font-size: 12.5px;
   line-height: 1.35;
 }
 
 .freshness-summary small {
   margin-top: 2px;
-  color: #9a5a2c;
-  font-size: 10px;
-  font-weight: 800;
+  color: inherit;
+  opacity: 0.8;
+  font-size: 11px;
+  font-weight: 550;
   line-height: 1.3;
 }
 
@@ -523,23 +557,14 @@ select:focus-visible {
   grid-template-columns: minmax(300px, 1.35fr) minmax(260px, 1.15fr) minmax(220px, 0.8fr) auto;
   align-items: center;
   gap: 18px;
-  padding: 14px;
+  padding: 16px 18px;
   overflow: hidden;
-  border: 1px solid #b8ded1;
-  border-top: 3px solid var(--green);
-  border-radius: 8px;
-  background: linear-gradient(105deg, #f1fbf7 0 62%, #fff8e8 100%);
-  box-shadow: 0 10px 28px rgba(22, 85, 61, 0.08);
-}
-
-.daily-bargain::after {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 42px;
-  height: 4px;
-  background: var(--amber);
-  content: "";
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(105deg, var(--green-soft) 0 40%, transparent 75%),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .daily-bargain-product {
@@ -559,8 +584,9 @@ select:focus-visible {
   width: 72px;
   height: 72px;
   flex: 0 0 72px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 8px 18px rgba(31, 71, 54, 0.1);
+  box-shadow: var(--shadow-soft);
 }
 
 .daily-bargain-copy {
@@ -570,14 +596,15 @@ select:focus-visible {
 }
 
 .daily-bargain-copy > strong {
-  color: #172033;
+  color: var(--text);
   font-size: 17px;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .daily-bargain-copy > span {
   overflow: hidden;
-  color: #526079;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -589,7 +616,10 @@ select:focus-visible {
   align-items: center;
   gap: 6px;
   color: var(--green-dark);
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .daily-bargain-label svg {
@@ -602,13 +632,13 @@ select:focus-visible {
 
 .daily-bargain-reason p {
   margin: 0 0 6px;
-  color: #28354b;
+  color: var(--text);
   font-size: 14px;
   line-height: 1.45;
 }
 
 .daily-bargain-reason small {
-  color: #68758b;
+  color: var(--muted);
   font-size: 11px;
 }
 
@@ -638,7 +668,7 @@ select:focus-visible {
 
 .daily-bargain-price small {
   overflow: hidden;
-  color: #526079;
+  color: var(--muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -648,16 +678,17 @@ select:focus-visible {
   grid-column: 1 / -1;
   display: grid;
   gap: 1px;
-  color: #a55408;
+  color: var(--amber);
 }
 
 .daily-saving b {
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .daily-bargain-price .daily-saving small {
-  color: #8b4a10;
+  color: var(--amber);
+  opacity: 0.85;
   font-size: 11px;
   white-space: normal;
 }
@@ -741,7 +772,7 @@ select:focus-visible {
   min-height: 36px;
   color: var(--blue);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -766,7 +797,7 @@ select:focus-visible {
   gap: 7px;
   color: var(--green-dark);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .bargains-heading h1 {
@@ -788,7 +819,7 @@ select:focus-visible {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
   white-space: nowrap;
 }
 
@@ -800,7 +831,7 @@ select:focus-visible {
   min-height: 180px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .bargains-status.error {
@@ -869,7 +900,7 @@ select:focus-visible {
 .bargain-card-copy small {
   color: var(--green-dark);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
   text-transform: uppercase;
 }
 
@@ -945,7 +976,7 @@ select:focus-visible {
 .bargain-card-saving small {
   color: #8b4a10;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .bargain-card-reason {
@@ -965,7 +996,7 @@ select:focus-visible {
   padding-top: 12px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .bargain-card-meta span:last-child {
@@ -1011,7 +1042,7 @@ select:focus-visible {
   gap: 7px;
   color: var(--blue);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .changes-heading h1 {
@@ -1040,7 +1071,7 @@ select:focus-visible {
 .changes-updated {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
   white-space: nowrap;
 }
 
@@ -1061,7 +1092,7 @@ select:focus-visible {
   gap: 10px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .changes-status.error {
@@ -1121,7 +1152,7 @@ select:focus-visible {
 
 .health-heading-time small {
   margin-top: 3px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .health-status-banner {
@@ -1180,7 +1211,7 @@ select:focus-visible {
   margin-top: 4px;
   color: var(--amber);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .health-summary {
@@ -1229,7 +1260,7 @@ select:focus-visible {
   margin-top: 3px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.25;
 }
 
@@ -1239,7 +1270,7 @@ select:focus-visible {
   gap: 2px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1312,7 +1343,7 @@ select:focus-visible {
 .health-coverage-row-head > span {
   flex: 0 0 auto;
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1339,7 +1370,7 @@ select:focus-visible {
 .health-coverage-row-meta > span:first-child {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .health-anomalies {
@@ -1459,7 +1490,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1482,7 +1513,7 @@ select:focus-visible {
 .changes-field > span:first-child {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
   text-transform: uppercase;
 }
 
@@ -1500,7 +1531,7 @@ select:focus-visible {
 .changes-field select {
   padding: 0 32px 0 10px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .changes-input {
@@ -1555,7 +1586,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 0 8px;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1578,7 +1609,7 @@ select:focus-visible {
   padding: 13px 2px 9px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .changes-results-summary strong {
@@ -1610,7 +1641,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 0 13px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
   text-transform: uppercase;
 }
 
@@ -1706,7 +1737,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1718,7 +1749,7 @@ select:focus-visible {
   gap: 4px;
   color: var(--blue);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -1790,7 +1821,7 @@ select:focus-visible {
   color: var(--green-dark);
   padding: 2px 5px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1831,13 +1862,14 @@ select:focus-visible {
 }
 
 .primary-button {
-  border-color: #0f766e;
-  background: #0f766e;
+  border-color: var(--green);
+  background: var(--green);
   color: #fff;
 }
 
 .primary-button:hover {
-  background: #0b625c;
+  border-color: var(--green-dark);
+  background: var(--green-dark);
 }
 
 .mobile-workspace-nav {
@@ -1859,36 +1891,24 @@ select:focus-visible {
   min-width: 0;
   min-height: calc(100vh - 94px);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  box-shadow: 0 10px 28px rgba(35, 65, 51, 0.055);
-  padding: 14px;
-}
-
-.search-panel {
-  border-top: 4px solid var(--blue);
+  box-shadow: var(--shadow-soft);
+  padding: 16px;
 }
 
 .search-panel.is-refreshing::before {
   position: absolute;
   z-index: 6;
-  top: -4px;
-  left: 0;
+  top: 0;
+  left: 18px;
   width: 34%;
-  height: 4px;
-  border-radius: 8px 0 0;
-  background: #79a9f2;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--green);
   content: "";
   transform-origin: left;
   animation: catalogue-progress 900ms ease-in-out infinite alternate;
-}
-
-.basket-panel {
-  border-top: 4px solid var(--green);
-}
-
-.rankings-panel {
-  border-top: 4px solid var(--amber);
 }
 
 .panel-title {
@@ -1899,10 +1919,10 @@ select:focus-visible {
   position: sticky;
   z-index: 4;
   top: 8px;
-  margin: -2px 0 12px;
+  margin: -4px -4px 12px;
   border-bottom: 1px solid var(--faint);
   background: var(--surface-glass);
-  padding: 2px 0 10px;
+  padding: 4px 4px 10px;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
@@ -1915,14 +1935,17 @@ select:focus-visible {
 
 .panel-title h1 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .panel-title > span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .title-icon {
@@ -1930,7 +1953,7 @@ select:focus-visible {
   width: 32px;
   height: 32px;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 10px;
   background: var(--blue-soft);
   color: var(--blue);
 }
@@ -1942,25 +1965,29 @@ select:focus-visible {
 
 .rankings-panel .title-icon {
   background: var(--amber-soft);
-  color: #b86800;
+  color: var(--amber);
 }
 
 .search-box {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 44px;
+  height: 46px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  padding: 0 14px 0 16px;
   color: var(--muted);
-  box-shadow: inset 0 1px 2px rgba(35, 65, 51, 0.03);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .search-box:focus-within {
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  border-color: var(--green);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .search-box input {
@@ -1971,7 +1998,12 @@ select:focus-visible {
   background: transparent;
   color: var(--text);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 550;
+}
+
+.search-box input::placeholder {
+  color: var(--muted);
+  opacity: 0.9;
 }
 
 .search-box input::-webkit-search-cancel-button {
@@ -2005,7 +2037,7 @@ select:focus-visible {
   margin: 5px 0 -5px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .recent-search-chips {
@@ -2063,15 +2095,15 @@ select:focus-visible {
   align-items: center;
   margin: -2px 0 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--surface-strong);
   color: var(--muted);
-  padding: 5px 8px;
+  padding: 5px 10px;
 }
 
 .sort-control > span {
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -2085,12 +2117,12 @@ select:focus-visible {
   color: var(--text);
   font: inherit;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .sort-control:focus-within {
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .chip {
@@ -2100,15 +2132,20 @@ select:focus-visible {
   border-radius: 999px;
   background: var(--surface);
   color: var(--muted);
-  padding: 0 12px;
+  padding: 0 13px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
+}
+
+.chip:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
 }
 
 .chip.active {
-  border-color: rgba(15, 159, 110, 0.35);
-  background: var(--green-soft);
-  color: var(--green-dark);
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--surface);
 }
 
 .inline-status {
@@ -2122,14 +2159,14 @@ select:focus-visible {
   color: var(--muted);
   padding: 8px 10px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .inline-status small {
   margin-left: auto;
   color: inherit;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -2165,6 +2202,12 @@ select:focus-visible {
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
+}
+
+.product-row:hover,
+.basket-item:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
 }
 
 .product-row,
@@ -2303,6 +2346,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--text);
   font-size: 13px;
+  font-weight: 650;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2342,14 +2386,13 @@ select:focus-visible {
   width: 48px;
   height: 48px;
   place-items: center;
-  border: 1px solid rgba(23, 37, 31, 0.1);
-  border-radius: 7px;
+  border: 1px solid rgba(23, 37, 31, 0.08);
+  border-radius: 11px;
   background: var(--thumb, #e0f2fe);
   color: rgba(23, 32, 51, 0.75);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   overflow: hidden;
-  box-shadow: 0 3px 9px rgba(35, 65, 51, 0.06);
   text-transform: uppercase;
 }
 
@@ -2410,9 +2453,11 @@ select:focus-visible {
 
 .product-price > span:first-child {
   display: block;
-  color: var(--green-dark);
-  font-size: 13px;
-  font-weight: 900;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .price-change {
@@ -2423,7 +2468,7 @@ select:focus-visible {
   max-width: 100%;
   margin-top: 2px;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -2450,14 +2495,19 @@ select:focus-visible {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 40px;
+  min-height: 42px;
   margin-top: 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--surface-strong);
-  color: var(--blue);
+  color: var(--text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 650;
+}
+
+.load-more:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--faint);
 }
 
 .load-more:disabled {
@@ -2473,11 +2523,11 @@ select:focus-visible {
   justify-content: center;
   gap: 7px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 650;
 }
 
 .icon-button {
@@ -2491,12 +2541,12 @@ select:focus-visible {
   border-color: transparent;
   background: var(--green);
   color: #ffffff;
-  box-shadow: 0 5px 12px rgba(7, 155, 104, 0.2);
+  box-shadow: 0 4px 10px rgba(23, 138, 93, 0.22);
 }
 
 .icon-button:hover,
 .text-button:hover {
-  border-color: #b9c4d1;
+  border-color: var(--line-strong);
   background: var(--surface-strong);
 }
 
@@ -2521,7 +2571,7 @@ select:focus-visible {
 
 .add-count {
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2541,20 +2591,20 @@ select:focus-visible {
 }
 
 .text-button.demo-button {
-  border-color: rgba(37, 99, 235, 0.22);
-  background: #eff6ff;
+  border-color: transparent;
+  background: var(--blue-soft);
   color: var(--blue);
 }
 
 .text-button.share-button {
-  border-color: rgba(15, 118, 110, 0.24);
-  background: #f0fdfa;
-  color: #0f766e;
+  border-color: transparent;
+  background: var(--green-soft);
+  color: var(--green-dark);
 }
 
 .text-button.saved-baskets-button {
-  border-color: rgba(37, 99, 235, 0.22);
-  background: #f8fbff;
+  border-color: transparent;
+  background: var(--blue-soft);
   color: var(--blue);
 }
 
@@ -2568,7 +2618,7 @@ select:focus-visible {
   color: #ffffff;
   padding: 0 4px;
   font-size: 10px;
-  font-weight: 950;
+  font-weight: 650;
 }
 
 .text-button.danger-button {
@@ -2648,7 +2698,7 @@ select:focus-visible {
   color: #1d4ed8;
   padding: 9px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.4;
 }
 
@@ -2668,7 +2718,7 @@ select:focus-visible {
   color: #047857;
   padding: 9px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.4;
 }
 
@@ -2684,7 +2734,7 @@ select:focus-visible {
   color: var(--blue);
   padding: 8px 9px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.4;
 }
 
@@ -2745,7 +2795,7 @@ select:focus-visible {
   border-radius: 6px;
   color: var(--text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 650;
   text-align: center;
 }
 
@@ -2767,7 +2817,7 @@ select:focus-visible {
 .line-total.outside-plan small {
   max-width: 150px;
   color: var(--amber);
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .line-total .price-change {
@@ -2805,8 +2855,8 @@ select:focus-visible {
   margin-bottom: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #f8faf9, #f5f8f6);
-  padding: 10px;
+  background: var(--surface-strong);
+  padding: 12px;
 }
 
 .stop-comparison-heading {
@@ -2835,7 +2885,7 @@ select:focus-visible {
 .extra-stop-copy small {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.35;
 }
 
@@ -2903,7 +2953,7 @@ select:focus-visible {
 .stop-option-top > span:first-child {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
   line-height: 1.2;
 }
 
@@ -2919,7 +2969,7 @@ select:focus-visible {
 .stop-option > small {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.25;
 }
 
@@ -2933,7 +2983,7 @@ select:focus-visible {
   color: var(--green-dark);
   padding: 3px 5px;
   font-size: 9px;
-  font-weight: 950;
+  font-weight: 650;
   line-height: 1;
 }
 
@@ -2978,7 +3028,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2988,7 +3038,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--muted);
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3044,7 +3094,7 @@ select:focus-visible {
 .practical-recommendation small {
   color: var(--muted);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 760;
   text-transform: uppercase;
 }
 
@@ -3059,7 +3109,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.35;
 }
 
@@ -3068,7 +3118,7 @@ select:focus-visible {
   border-top: 1px solid rgba(15, 118, 110, 0.18);
   color: var(--green-dark);
   padding-top: 6px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .recommendation-action,
@@ -3084,7 +3134,7 @@ select:focus-visible {
   border-radius: 6px;
   padding: 0 8px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .recommendation-action {
@@ -3120,7 +3170,7 @@ select:focus-visible {
   list-style: none;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .retailer-filter-box summary::-webkit-details-marker {
@@ -3193,7 +3243,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 5px 7px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.2;
 }
 
@@ -3244,7 +3294,7 @@ select:focus-visible {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.4;
 }
 
@@ -3259,7 +3309,7 @@ select:focus-visible {
   color: #047857;
   padding: 8px;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.4;
 }
 
@@ -3285,7 +3335,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 0;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .radius-buttons {
@@ -3301,7 +3351,7 @@ select:focus-visible {
   background: var(--surface);
   color: var(--muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .radius-buttons button.active {
@@ -3320,19 +3370,19 @@ select:focus-visible {
 }
 
 .rank-card.recommended {
-  border-color: rgba(15, 159, 110, 0.4);
-  background: linear-gradient(145deg, #ffffff 0 76%, var(--green-soft) 100%);
+  border-color: rgba(23, 138, 93, 0.4);
+  background: linear-gradient(145deg, var(--surface) 0 70%, var(--green-soft) 100%);
   box-shadow:
     inset 3px 0 0 var(--green),
-    0 8px 20px rgba(7, 155, 104, 0.08);
+    0 8px 20px rgba(23, 138, 93, 0.08);
 }
 
 .rank-card.incomplete {
-  background: #f8fafc;
+  background: var(--surface-strong);
 }
 
 .rank-card.incomplete .coverage-track span {
-  background: #cbd5e1;
+  background: var(--line-strong);
 }
 
 .rank-card.incomplete .rank-money strong {
@@ -3354,7 +3404,7 @@ select:focus-visible {
   gap: 7px;
   color: var(--green-dark);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .rank-group-title.muted {
@@ -3378,7 +3428,7 @@ select:focus-visible {
   border: 1px solid transparent;
   color: #ffffff;
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 650;
   overflow: hidden;
   flex: 0 0 auto;
 }
@@ -3456,7 +3506,7 @@ select:focus-visible {
   color: var(--green-dark);
   padding: 0 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .rank-money {
@@ -3479,7 +3529,7 @@ select:focus-visible {
   color: #9a3412;
   padding: 7px 9px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.35;
 }
 
@@ -3505,33 +3555,19 @@ select:focus-visible {
   align-items: flex-start;
   gap: 14px;
   overflow: hidden;
-  border: 1px solid #b9dfcf;
+  border: 1px solid rgba(23, 138, 93, 0.3);
   border-radius: var(--radius);
-  background: linear-gradient(135deg, #eafaf3 0 68%, #fff7e8 100%);
+  background: linear-gradient(135deg, var(--green-soft) 0 68%, var(--amber-soft) 100%);
   color: var(--text);
   padding: 14px;
-  box-shadow: 0 12px 26px rgba(7, 118, 82, 0.09);
-}
-
-.recommendation-card::after {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 56px;
-  height: 4px;
-  background: var(--amber);
-  content: "";
-}
-
-.recommendation-card.empty::after,
-.recommendation-card.warning::after {
-  display: none;
+  box-shadow: 0 12px 26px rgba(23, 138, 93, 0.09);
 }
 
 .recommendation-card.empty {
   grid-template-columns: minmax(0, 1fr);
   justify-content: flex-start;
-  background: #f8fafc;
+  border-color: var(--line);
+  background: var(--surface-strong);
   box-shadow: none;
 }
 
@@ -3578,13 +3614,16 @@ select:focus-visible {
 .recommendation-total strong {
   color: var(--green-dark);
   font-size: 30px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .recommendation-total span {
   margin-top: 5px;
   color: var(--green-dark);
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .shopping-budget {
@@ -3615,7 +3654,7 @@ select:focus-visible {
 .shopping-budget-head label {
   color: var(--text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .shopping-budget-input-wrap {
@@ -3634,7 +3673,7 @@ select:focus-visible {
   color: var(--text);
   padding: 5px 7px;
   font: inherit;
-  font-weight: 800;
+  font-weight: 650;
   text-align: right;
 }
 
@@ -3726,7 +3765,7 @@ select:focus-visible {
 .stop-reduction-heading small {
   color: var(--blue);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 760;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -3776,7 +3815,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.3;
 }
 
@@ -3844,14 +3883,14 @@ select:focus-visible {
   gap: 4px;
   color: var(--blue);
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 760;
   white-space: nowrap;
 }
 
 .stop-reduction-more {
   color: var(--muted);
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .stop-reduction > p {
@@ -3901,7 +3940,7 @@ select:focus-visible {
 .savings-breakdown-heading small {
   color: var(--green-dark);
   font-size: 9px;
-  font-weight: 950;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
@@ -3954,7 +3993,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3973,7 +4012,7 @@ select:focus-visible {
   padding-top: 8px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.35;
 }
 
@@ -4062,7 +4101,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 4px 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4081,7 +4120,7 @@ select:focus-visible {
   color: var(--blue);
   padding: 4px 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4103,7 +4142,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 3px 8px;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .shopping-view-control button.active {
@@ -4155,7 +4194,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4169,7 +4208,7 @@ select:focus-visible {
   padding: 5px 8px;
   text-decoration: none;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
   white-space: nowrap;
 }
 
@@ -4196,7 +4235,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .route-list {
@@ -4245,7 +4284,7 @@ select:focus-visible {
 .route-store-top small {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .branch-select {
@@ -4255,7 +4294,7 @@ select:focus-visible {
   color: var(--blue);
   padding: 5px 8px;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .store-check-button {
@@ -4299,7 +4338,7 @@ select:focus-visible {
 .route-store-progress small {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -4371,7 +4410,7 @@ select:focus-visible {
 .branch-empty {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.4;
 }
 
@@ -4394,7 +4433,7 @@ select:focus-visible {
 .branch-distance {
   color: var(--green-dark);
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 650;
   white-space: nowrap;
 }
 
@@ -4424,7 +4463,7 @@ select:focus-visible {
   padding: 5px 8px;
   text-decoration: none;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .nearby-note {
@@ -4438,7 +4477,7 @@ select:focus-visible {
   color: var(--green-dark);
   padding: 7px 8px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.35;
 }
 
@@ -4455,7 +4494,7 @@ select:focus-visible {
 .nearby-note small {
   overflow: hidden;
   color: var(--muted);
-  font-weight: 750;
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -4609,7 +4648,7 @@ select:focus-visible {
 .price-history-product-description strong {
   color: var(--text);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .price-history-product-description p {
@@ -4642,13 +4681,13 @@ select:focus-visible {
 .price-history-chart-head strong {
   color: var(--text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .price-history-chart-head time {
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   text-align: right;
 }
 
@@ -4670,7 +4709,7 @@ select:focus-visible {
 .history-axis-label {
   fill: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4700,7 +4739,7 @@ select:focus-visible {
   margin: 16px 0 8px;
   color: var(--text);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .price-history-series {
@@ -4912,7 +4951,7 @@ select:focus-visible {
   color: var(--muted);
   font: inherit;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -4939,7 +4978,7 @@ select:focus-visible {
   color: #047857;
   padding: 9px 10px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.45;
 }
 
@@ -5001,7 +5040,7 @@ select:focus-visible {
 .price-watch-summary small {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .price-watch-summary .target-met svg,
@@ -5021,7 +5060,7 @@ select:focus-visible {
   padding: 7px 10px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .price-watch-loading .spin {
@@ -5140,7 +5179,7 @@ select:focus-visible {
 .price-watch-current > small {
   color: var(--muted);
   font-size: 9px;
-  font-weight: 850;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -5158,7 +5197,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5190,7 +5229,7 @@ select:focus-visible {
   color: var(--muted);
   padding: 4px 7px;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.25;
 }
 
@@ -5220,7 +5259,7 @@ select:focus-visible {
 .price-watch-target label > span {
   color: var(--muted);
   font-size: 9px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .price-watch-target input,
@@ -5236,7 +5275,7 @@ select:focus-visible {
   font: inherit;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .price-watch-target input:focus,
@@ -5248,7 +5287,7 @@ select:focus-visible {
 .price-watch-target > small {
   color: var(--green-dark);
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .price-watch-target > small.price-watch-action-error,
@@ -5321,7 +5360,7 @@ select:focus-visible {
 
 .drawer-watch-target label > span {
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .drawer-watch-target input {
@@ -5332,7 +5371,7 @@ select:focus-visible {
   margin: 5px 0;
   color: var(--green-dark);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .drawer-product-actions {
@@ -5369,7 +5408,7 @@ select:focus-visible {
   gap: 6px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .save-basket-form input {
@@ -5400,7 +5439,7 @@ select:focus-visible {
   grid-column: 1 / -1;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.4;
 }
 
@@ -5409,7 +5448,7 @@ select:focus-visible {
   border-radius: 7px;
   padding: 8px 10px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .saved-dialog-status.success {
@@ -5437,7 +5476,7 @@ select:focus-visible {
 .saved-baskets-heading span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -5476,7 +5515,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.35;
 }
 
@@ -5503,7 +5542,7 @@ select:focus-visible {
 .saved-delete-confirm span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .saved-baskets-empty {
@@ -5548,7 +5587,7 @@ select:focus-visible {
   margin: 22px 0 14px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .share-link-field input {
@@ -5576,7 +5615,7 @@ select:focus-visible {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.4;
 }
 
@@ -5602,7 +5641,7 @@ select:focus-visible {
   margin: 18px 0 14px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .text-export-preview textarea {
@@ -5644,7 +5683,7 @@ select:focus-visible {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 620;
 }
 
 .share-feedback.success {
@@ -5725,7 +5764,7 @@ select:focus-visible {
 
 .alternative-discovery-button strong {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .alternative-discovery-button small {
@@ -5782,7 +5821,7 @@ select:focus-visible {
   margin-top: 2px;
   color: var(--muted);
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.4;
 }
 
@@ -5802,7 +5841,7 @@ select:focus-visible {
 .product-alternatives-heading strong {
   color: var(--text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .product-alternatives-heading small {
@@ -5819,7 +5858,7 @@ select:focus-visible {
   color: var(--green-dark);
   padding: 3px 7px;
   font-size: 9px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .alternative-list {
@@ -5873,7 +5912,7 @@ select:focus-visible {
   -webkit-line-clamp: 2;
   color: var(--text);
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1.25;
 }
 
@@ -5899,7 +5938,7 @@ select:focus-visible {
   padding: 2px 5px;
   font-size: 8px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5916,14 +5955,14 @@ select:focus-visible {
 .alternative-price strong {
   color: var(--green-dark);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .alternative-price small,
 .alternative-price > span {
   color: var(--muted);
   font-size: 8px;
-  font-weight: 750;
+  font-weight: 620;
   line-height: 1.25;
 }
 
@@ -6036,7 +6075,7 @@ select:focus-visible {
   background: var(--thumb, #e0f2fe);
   color: rgba(23, 32, 51, 0.75);
   font-size: 32px;
-  font-weight: 900;
+  font-weight: 760;
   text-transform: uppercase;
 }
 
@@ -6096,12 +6135,19 @@ select:focus-visible {
 }
 
 [data-theme="dark"] body {
-  background: linear-gradient(180deg, #141b18 0, var(--bg) 280px);
+  background:
+    radial-gradient(900px 380px at 12% -10%, rgba(60, 197, 144, 0.08), transparent 70%),
+    radial-gradient(700px 320px at 92% -6%, rgba(240, 189, 98, 0.05), transparent 70%),
+    var(--bg);
 }
 
 [data-theme="dark"] .panel {
   background: var(--surface);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-soft);
+}
+
+[data-theme="dark"] .data-warning {
+  color: #f3d7a4;
 }
 
 [data-theme="dark"] .app-intro {
@@ -6121,10 +6167,6 @@ select:focus-visible {
 [data-theme="dark"] .rankings-panel .title-icon {
   background: var(--amber-soft);
   color: var(--amber);
-}
-
-[data-theme="dark"] .mobile-workspace-nav button.active {
-  background: var(--blue-soft);
 }
 
 [data-theme="dark"] .version-badge {
@@ -6153,10 +6195,11 @@ select:focus-visible {
 }
 
 [data-theme="dark"] .daily-bargain {
-  border-color: #2d6653;
-  border-top-color: var(--green);
-  background: linear-gradient(105deg, #173027 0 65%, #302719 100%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  border-color: var(--line);
+  background:
+    linear-gradient(105deg, var(--green-soft) 0 40%, transparent 75%),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 [data-theme="dark"] .skeleton-block::after {
@@ -6628,7 +6671,7 @@ select:focus-visible {
     display: block;
     color: var(--muted);
     font-size: 9px;
-    font-weight: 900;
+    font-weight: 760;
     text-transform: uppercase;
   }
 }
@@ -6710,14 +6753,17 @@ select:focus-visible {
     height: 34px;
   }
 
-  .repo-link {
-    width: 34px;
-    justify-content: center;
-    padding: 0;
+  .repo-link,
+  .version-badge {
+    display: none;
   }
 
-  .repo-link span {
-    display: none;
+  .app-intro h1 {
+    font-size: 26px;
+  }
+
+  .app-intro p {
+    font-size: 14px;
   }
 
   .basket-pill {
@@ -6906,35 +6952,35 @@ select:focus-visible {
     width: 100%;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
-    margin: 0 auto 8px;
+    margin: 0 auto 10px;
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 999px;
     background: var(--surface-glass);
     padding: 4px;
-    box-shadow: 0 10px 26px rgba(35, 65, 51, 0.14);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     scroll-margin-top: 6px;
   }
 
   .mobile-workspace-nav button {
     display: grid;
     min-width: 0;
-    height: 46px;
+    height: 44px;
     grid-template-columns: 18px minmax(0, 1fr) auto;
-    gap: 3px;
+    gap: 4px;
     align-items: center;
     border: 0;
-    border-radius: 6px;
+    border-radius: 999px;
     background: transparent;
     color: var(--muted);
-    padding: 0 4px;
+    padding: 0 8px 0 10px;
   }
 
   .mobile-workspace-nav button span {
     overflow: hidden;
-    font-size: 10px;
-    font-weight: 850;
+    font-size: 11px;
+    font-weight: 650;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -6942,52 +6988,29 @@ select:focus-visible {
 
   .mobile-workspace-nav button small {
     display: grid;
-    min-width: 19px;
-    height: 19px;
+    min-width: 20px;
+    height: 20px;
     place-items: center;
-    border-radius: 5px;
+    border-radius: 999px;
     background: var(--faint);
-    padding: 0 4px;
-    font-size: 9px;
-    font-weight: 900;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
 
   .mobile-workspace-nav button.active {
-    background: var(--blue-soft);
-    color: var(--blue);
+    background: var(--text);
+    color: var(--surface);
   }
 
   .mobile-workspace-nav button.active small {
-    background: var(--blue);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.18);
+    color: inherit;
   }
 
-  .mobile-workspace-nav button:nth-child(2).active {
-    background: var(--green-soft);
-    color: var(--green-dark);
-  }
-
-  .mobile-workspace-nav button:nth-child(2).active small {
-    background: var(--green-dark);
-  }
-
-  .mobile-workspace-nav button:nth-child(3).active {
-    background: var(--amber-soft);
-    color: #a85f00;
-  }
-
-  .mobile-workspace-nav button:nth-child(3).active small {
-    background: #c87908;
-  }
-
-  [data-theme="dark"] .mobile-workspace-nav button:nth-child(2).active {
-    background: var(--green-soft);
-  }
-
-  [data-theme="dark"] .mobile-workspace-nav button:nth-child(3).active {
-    background: var(--amber-soft);
-    color: var(--amber);
+  [data-theme="dark"] .mobile-workspace-nav button.active small {
+    background: rgba(0, 0, 0, 0.18);
   }
 
   .workspace > .panel {

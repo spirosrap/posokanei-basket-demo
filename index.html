@@ -36,32 +36,32 @@
     </script>
     <style>
       :root {
-        --boot-bg: #f4f7fb;
+        --boot-bg: #f4f3ee;
         --boot-panel: #ffffff;
-        --boot-border: #d8e0eb;
-        --boot-ink: #172033;
-        --boot-muted: #e7edf5;
-        --boot-accent: #0f8376;
-        --boot-blue: #3578e5;
-        --boot-amber: #cb7a0a;
+        --boot-border: #e2e0d8;
+        --boot-ink: #1b201d;
+        --boot-muted: #edece6;
+        --boot-accent: #178a5d;
+        --boot-blue: #2f66b3;
+        --boot-amber: #b26d0b;
       }
       :root[data-theme="dark"] {
-        --boot-bg: #11151b;
-        --boot-panel: #191f28;
-        --boot-border: #303946;
-        --boot-ink: #edf2f7;
-        --boot-muted: #29323e;
+        --boot-bg: #0e1210;
+        --boot-panel: #161b18;
+        --boot-border: #2b332e;
+        --boot-ink: #e9ede9;
+        --boot-muted: #232a26;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background: var(--boot-bg);
         color: var(--boot-ink);
-        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Commissioner Variable", Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       .boot-shell { width: min(100% - 28px, 1510px); margin: 0 auto; padding: 10px 0 24px; }
       .boot-header { height: 46px; display: flex; align-items: center; gap: 10px; }
-      .boot-mark { width: 40px; height: 40px; border-radius: 8px; background: var(--boot-accent); }
+      .boot-mark { width: 40px; height: 40px; border-radius: 13px; background: var(--boot-accent); }
       .boot-brand { display: grid; gap: 6px; }
       .boot-brand strong { font-size: 17px; line-height: 1; }
       .boot-brand small { color: #687487; font-size: 11px; }
@@ -71,13 +71,11 @@
       :root[data-boot-language="en"] .boot-copy-en { display: inline; }
       .boot-line { display: block; height: 10px; border-radius: 4px; background: var(--boot-muted); }
       .boot-grid { display: grid; grid-template-columns: minmax(280px, .95fr) minmax(360px, 1.35fr) minmax(300px, 1fr); gap: 12px; margin-top: 10px; }
-      .boot-panel { min-height: 510px; padding: 15px; border: 1px solid var(--boot-border); border-top: 3px solid var(--boot-blue); border-radius: 7px; background: var(--boot-panel); }
-      .boot-panel:nth-child(2) { border-top-color: var(--boot-accent); }
-      .boot-panel:nth-child(3) { border-top-color: var(--boot-amber); }
+      .boot-panel { min-height: 510px; padding: 15px; border: 1px solid var(--boot-border); border-radius: 18px; background: var(--boot-panel); }
       .boot-panel-head { display: flex; align-items: center; gap: 9px; padding-bottom: 14px; border-bottom: 1px solid var(--boot-border); }
       .boot-square { width: 30px; height: 30px; border-radius: 6px; background: var(--boot-muted); }
       .boot-panel-head .boot-line { width: 92px; height: 13px; }
-      .boot-bar { height: 42px; margin: 12px 0; border: 1px solid var(--boot-border); border-radius: 7px; background: var(--boot-bg); }
+      .boot-bar { height: 46px; margin: 12px 0; border: 1px solid var(--boot-border); border-radius: 999px; background: var(--boot-bg); }
       .boot-row { display: grid; grid-template-columns: 42px 1fr 66px; gap: 10px; align-items: center; min-height: 66px; margin-top: 8px; padding: 8px; border: 1px solid var(--boot-border); border-radius: 7px; }
       .boot-row .boot-square { width: 42px; height: 42px; }
       .boot-copy { display: grid; gap: 7px; }

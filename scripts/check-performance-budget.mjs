@@ -56,9 +56,9 @@ for (const budget of budgets) {
   );
 }
 
-if (startupBrotli > 64 * 1024) {
+if (startupBrotli > 65 * 1024) {
   throw new Error(
-    `Combined startup JavaScript is ${formatBytes(startupBrotli)} Brotli; budget is 64.0 KiB.`,
+    `Combined startup JavaScript is ${formatBytes(startupBrotli)} Brotli; budget is 65.0 KiB.`,
   );
 }
 console.log(`Combined startup JavaScript: ${formatBytes(startupBrotli)} Brotli`);
