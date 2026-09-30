@@ -9,6 +9,7 @@ import { collectReportedImageIds } from "./catalog-image-fallbacks.mjs";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 import { writeCompressedVariants } from "./precompress-assets.mjs";
 import { acquireRefreshLock } from "./refresh-lock.mjs";
+import { publishRefreshTargets } from "./refresh-publication.mjs";
 import {
   inspectPriceChangesCsv,
   inspectPriceChangesJson,
@@ -321,14 +322,20 @@ async function refreshCatalog() {
   });
 
   if (uploadEnabled) {
-    for (const target of ftpTargets) {
-      try {
-        await publishRefreshToTarget(target, snapshot.generated_at);
-      } catch (error) {
-        if (target.required) throw error;
+    await publishRefreshTargets({
+      targets: ftpTargets,
+      publishCatalog: (target) => publishRefreshToTarget(target, snapshot.generated_at),
+      publishImages: async (target) => {
+        const password = await readTargetPassword(target);
+        await publishImageFallbackFiles(target, password, { budgetMs: 120000 });
+      },
+      onMirrorError: (target, error) => {
         console.error(`Optional catalogue mirror ${target.name} failed: ${describeRefreshError(error)}`);
-      }
-    }
+      },
+      onImageError: (target, error) => {
+        console.error(`Optional image maintenance ${target.name} failed: ${describeRefreshError(error)}`);
+      },
+    });
   } else {
     console.log("Upload skipped because --no-upload was passed.");
   }
@@ -997,7 +1004,6 @@ async function readTargetPassword(target) {
 
 async function publishRefreshToTarget(target, expectedGeneratedAt) {
   const password = await readTargetPassword(target);
-  await publishImageFallbackFiles(target, password);
   await publishDataFile(snapshotPath, "catalog.json", target, password);
   await publishDataFile(metaPath, "catalog-meta.json", target, password);
   await publishDataFile(runtimePath, "catalog-runtime.json", target, password);
@@ -1019,7 +1025,8 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   await verifyCompressedDataDelivery(target, expectedGeneratedAt);
 }
 
-async function publishImageFallbackFiles(target, password, { strict = false } = {}) {
+async function publishImageFallbackFiles(target, password, { strict = false, budgetMs = Infinity } = {}) {
+  const deadline = performance.now() + budgetMs;
   let published = 0;
   const failures = [];
   let nextIndex = 0;
@@ -1029,6 +1036,7 @@ async function publishImageFallbackFiles(target, password, { strict = false } = 
   const workerCount = Math.max(
     1,
     Math.min(
+      4,
       Number.isInteger(requestedConcurrency) ? requestedConcurrency : 1,
       imageFallbackPublicationFiles.length,
     ),
@@ -1036,6 +1044,7 @@ async function publishImageFallbackFiles(target, password, { strict = false } = 
 
   async function worker() {
     while (nextIndex < imageFallbackPublicationFiles.length) {
+      if (performance.now() >= deadline) break;
       const file = imageFallbackPublicationFiles[nextIndex];
       nextIndex += 1;
       try {
@@ -1044,6 +1053,7 @@ async function publishImageFallbackFiles(target, password, { strict = false } = 
           `image-fallbacks/${file.fileName}`,
           target,
           password,
+          { attempts: 1, maxTimeSeconds: 30 },
         );
         await verifyPublishedImageFallback(file, target);
         if (strict) await verifyImageProxyFallback(file, target);
@@ -1062,6 +1072,9 @@ async function publishImageFallbackFiles(target, password, { strict = false } = 
   if (published) {
     console.log(`Verified ${published} new image fallback(s) on ${target.name}.`);
   }
+  if (nextIndex < imageFallbackPublicationFiles.length) {
+    console.log(`Image maintenance budget reached on ${target.name}; ${imageFallbackPublicationFiles.length - nextIndex} image(s) deferred to future scans.`);
+  }
   if (strict && failures.length) {
     throw new Error(
       `${failures.length} of ${imageFallbackPublicationFiles.length} image fallbacks failed on ${target.name}.`,
@@ -1074,7 +1087,7 @@ async function verifyPublishedImageFallback(file, target) {
   const url = publicDataUrl(target, `image-fallbacks/${file.fileName}`);
   const response = await fetch(cacheBustUrl(url), {
     headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" },
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(15000),
   });
   if (!response.ok || !String(response.headers.get("content-type") || "").startsWith("image/")) {
     throw new Error(`${url} verification returned HTTP ${response.status}.`);
@@ -1106,7 +1119,7 @@ async function verifyImageProxyFallback(file, target) {
   if (bytes < 100) throw new Error(`${url} proxy verification returned an empty image.`);
 }
 
-async function publishDataFile(filePath, remoteName, target, password) {
+async function publishDataFile(filePath, remoteName, target, password, uploadOptions = {}) {
   const remoteRoot = target.remoteDir === "." ? "" : `${target.remoteDir}/`;
   await uploadFileAtomic({
     filePath,
@@ -1114,6 +1127,7 @@ async function publishDataFile(filePath, remoteName, target, password) {
     user: target.user,
     password,
     cwd: projectRoot,
+    ...uploadOptions,
   });
 }
 

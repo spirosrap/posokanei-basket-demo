@@ -354,6 +354,15 @@ The same catalogue timestamps can be checked on the compatibility mirror after a
 refresh. Primary publishing is required; a mirror failure is reported but does not
 invalidate a successful primary update.
 
+Catalogue files and their verification now finish on both targets before image
+fallback uploads begin. Scheduled image publication has a two-minute work budget
+per target (an in-flight transfer may finish after the budget), with remaining
+images left for future scans. Image failures do not invalidate published prices.
+Explicit `live:publish-images` runs still process the full staged batch. FTP
+operations have connection, stall, and total timeouts; image uploads use one
+attempt with a shorter timeout. A live refresh keeps its lock regardless of age;
+only an abandoned lock can be recovered by another run.
+
 ## Partial retailer outages
 
 Since v0.38.2, one completely missing retailer feed can be isolated when it

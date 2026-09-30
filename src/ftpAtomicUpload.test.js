@@ -42,6 +42,28 @@ test("atomic FTP upload retries a transient timeout with a fresh temporary file"
   assert.deepEqual(waits, [1500]);
   assert.ok(calls.some(({ args }) => args.some((arg) => arg.startsWith("DELE "))));
   assert.ok(messages.some((message) => message.includes("recovered on attempt 2")));
+  assert.ok(calls.every(({ options }) => options.input.includes("connect-timeout = 15")));
+  assert.ok(calls.every(({ options }) => options.input.includes("max-time = 180")));
+  assert.ok(calls.every(({ options }) => options.input.includes("speed-time = 30")));
+});
+
+test("image transfers can use a shorter deadline without retries", async () => {
+  const calls = [];
+  await assert.rejects(uploadFileAtomic({
+    filePath: "/tmp/image.jpg",
+    url: "ftp://example.com/data/image.jpg",
+    user: "user",
+    password: "secret",
+    attempts: 1,
+    maxTimeSeconds: 30,
+    curlRunner: async (args, options) => {
+      calls.push({ args, options });
+      if (args.includes("-T")) throw new Error("curl exited with 28: timeout");
+    },
+    wait: async () => assert.fail("images must not retry"),
+  }), /timeout/);
+  assert.equal(calls.filter(({ args }) => args.includes("-T")).length, 1);
+  assert.ok(calls.every(({ options }) => options.input.includes("max-time = 30")));
 });
 
 test("atomic FTP upload does not retry a local-file error", async () => {

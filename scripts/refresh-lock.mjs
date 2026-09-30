@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, stat, unlink } from "node:fs/promises";
+import { mkdir, open, readFile, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
-
-const DEFAULT_STALE_AFTER_MS = 50 * 60 * 1000;
 
 export async function acquireRefreshLock(
   lockPath,
-  { retried = false, staleAfterMs = DEFAULT_STALE_AFTER_MS } = {},
+  { retried = false } = {},
 ) {
   await mkdir(dirname(lockPath), { recursive: true });
   try {
@@ -35,14 +33,10 @@ export async function acquireRefreshLock(
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
     if (!retried) {
-      const details = await stat(lockPath).catch(() => null);
       const ownerRunning = await refreshLockOwnerIsRunning(lockPath);
-      if (
-        !ownerRunning
-        || (details && Date.now() - details.mtimeMs > staleAfterMs)
-      ) {
+      if (!ownerRunning) {
         await unlink(lockPath).catch(() => {});
-        return acquireRefreshLock(lockPath, { retried: true, staleAfterMs });
+        return acquireRefreshLock(lockPath, { retried: true });
       }
     }
     return null;

@@ -10,6 +10,7 @@ export async function uploadFileAtomic({
   password,
   cwd,
   attempts = DEFAULT_UPLOAD_ATTEMPTS,
+  maxTimeSeconds = 180,
   retryBaseDelayMs = 1500,
   curlRunner = runCurl,
   wait = sleep,
@@ -22,6 +23,10 @@ export async function uploadFileAtomic({
     "silent",
     "show-error",
     "fail",
+    "connect-timeout = 15",
+    `max-time = ${Math.max(1, Number(maxTimeSeconds) || 180)}`,
+    "speed-limit = 1",
+    "speed-time = 30",
   ].join("\n");
   const input = `${curlConfig}\n`;
   const maximumAttempts = Math.max(1, Number(attempts) || DEFAULT_UPLOAD_ATTEMPTS);
