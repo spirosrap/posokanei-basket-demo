@@ -18,7 +18,7 @@ const COPY = {
     health: "Κατάσταση καταλόγου",
     source: "Ανοιχτός κώδικας στο GitHub",
     disclaimer:
-      "Ανεπίσημη εφαρμογή. Δεν συνδέεται με το PosoKanei ή με κάποια αλυσίδα supermarket. Οι τιμές προέρχονται από τον δημόσιο κατάλογο PosoKanei, είναι ενδεικτικές και μπορεί να διαφέρουν από την τιμή στο ράφι.",
+      "Ανεξάρτητη εφαρμογή, δεν συνδέεται με το PosoKanei ή με κάποια αλυσίδα supermarket. Οι τιμές προέρχονται από τον επίσημο κυβερνητικό κατάλογο PosoKanei και ενημερώνονται κάθε ώρα.",
     version: "Έκδοση",
   },
   en: {
@@ -34,7 +34,7 @@ const COPY = {
     health: "Catalogue status",
     source: "Open source on GitHub",
     disclaimer:
-      "Unofficial app. Not affiliated with PosoKanei or any supermarket chain. Prices come from the public PosoKanei catalogue, are indicative and may differ from the shelf price.",
+      "Independent app, not affiliated with PosoKanei or any supermarket chain. Prices come from the official government PosoKanei catalogue and are updated every hour.",
     version: "Version",
   },
 };
