@@ -19,7 +19,6 @@ import {
   Download,
   FileJson2,
   FileText,
-  Github,
   Info,
   Languages,
   Link2,
@@ -42,12 +41,12 @@ import {
   Sparkles,
   Store,
   Sun,
-  Tag,
   Target,
   Trash2,
   Upload,
   Undo2,
   Redo2,
+  CircleHelp,
   Wifi,
   WifiOff,
   X,
@@ -173,12 +172,15 @@ import { basketHistoryReducer, createBasketHistory } from "./basketHistory";
 import { filterBasket } from "./basketView";
 
 const SavedBasketsDialog = lazy(() => import("./SavedBasketsDialog"));
+const GuideDialog = lazy(() => import("./GuideDialog"));
+const SiteFooter = lazy(() => import("./SiteFooter"));
 
 const BASKET_KEY = "posokanei-basket";
 const LIVE_BASKET_PRODUCTS_KEY = "posokanei-live-basket-products";
 const RETAILER_FILTER_KEY = "posokanei-retailer-filter";
 const MAX_CHAINS_KEY = "posokanei-max-chains";
-const REPOSITORY_URL = "https://github.com/spirosrap/posokanei-basket-demo";
+const STEPS_DISMISSED_KEY = "posokanei-steps-dismissed";
+const OPEN_GUIDE_EVENT = "posokanei-open-guide";
 const APP_VERSION = import.meta.env.PACKAGE_VERSION || "dev";
 const APP_BASE_PATH = import.meta.env.BASE_URL;
 const BARGAINS_PATH = `${APP_BASE_PATH}bargains/`;
@@ -572,9 +574,25 @@ function App() {
             />
           </Suspense>
         ) : <AppContent route={route} />}
+        <Suspense fallback={null}>
+          <SiteFooter
+            version={APP_VERSION}
+            links={{
+              home: APP_BASE_PATH,
+              bargains: BARGAINS_PATH,
+              changes: PRICE_CHANGES_PATH,
+              health: CATALOG_HEALTH_PATH,
+            }}
+            onOpenGuide={openGuide}
+          />
+        </Suspense>
       </PreferencesContext.Provider>
     </NavigationContext.Provider>
   );
+}
+
+function openGuide() {
+  window.dispatchEvent(new Event(OPEN_GUIDE_EVENT));
 }
 
 function PriceChangesRouteFallback() {
@@ -1494,6 +1512,17 @@ function AppContent({ route }) {
 
       <AppIntro health={health} updateStatus={updateStatus} />
       <DataFreshnessNotice health={health} updateStatus={updateStatus} />
+      <HowItWorks
+        onStep={(view) => {
+          if (isCompactWorkspace) {
+            changeMobileView(view);
+            return;
+          }
+          document
+            .getElementById(`${view}-panel`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
 
       {displayedDailyBargain ? (
         <DailyBargain
@@ -1920,6 +1949,13 @@ function Header({
   onOpenPriceWatch = null,
 }) {
   const { language, number, setLanguage, setTheme, t, theme } = usePreferences();
+  const { route } = useAppNavigation();
+  const [guideOpen, setGuideOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setGuideOpen(true);
+    window.addEventListener(OPEN_GUIDE_EVENT, open);
+    return () => window.removeEventListener(OPEN_GUIDE_EVENT, open);
+  }, []);
   const isOnline = health.state === "online";
   const isCached = health.state === "cached";
   const healthLabel = healthStatusLabel(health, t, number);
@@ -1944,6 +1980,28 @@ function Header({
           <small>{t("brandTagline")}</small>
         </span>
       </AppLink>
+
+      <nav className="topbar-nav" aria-label={t("siteNavigation")}>
+        <AppLink
+          href={BARGAINS_PATH}
+          className={route === APP_ROUTES.bargains ? "active" : ""}
+        >
+          <Sparkles size={15} aria-hidden="true" />
+          {t("navBargains")}
+        </AppLink>
+        <AppLink
+          href={PRICE_CHANGES_PATH}
+          preload={preloadPriceChangesRoute}
+          className={route === APP_ROUTES.changes && !window.location.pathname.includes("/health") ? "active" : ""}
+        >
+          <ArrowDownUp size={15} aria-hidden="true" />
+          {t("navChanges")}
+        </AppLink>
+        <button type="button" onClick={() => setGuideOpen(true)}>
+          <CircleHelp size={15} aria-hidden="true" />
+          {t("navGuide")}
+        </button>
+      </nav>
 
       <div className="topbar-actions">
         <div className="preference-switch language-switch" role="group" aria-label={t("languageSelector")}>
@@ -1977,27 +2035,12 @@ function Header({
           ))}
         </div>
         <a
-          className="repo-link"
-          href={REPOSITORY_URL}
-          target="_blank"
-          rel="noreferrer"
-          title={t("openGithub")}
-          aria-label={t("openGithub")}
-        >
-          <Github size={16} aria-hidden="true" />
-          <span>GitHub</span>
-        </a>
-        <span className="version-badge" title={t("appVersion")}>
-          <Tag size={14} aria-hidden="true" />
-          v{APP_VERSION}
-        </span>
-        <a
           className={`source-status ${isOnline ? "online" : isCached ? "cached" : "offline"}`}
           href={CATALOG_HEALTH_PATH}
           title={t("openCatalogHealth")}
           aria-label={`${healthLabel}. ${t("openCatalogHealth")}`}
         >
-          {isOnline ? <Wifi size={16} /> : isCached ? <AlertCircle size={16} /> : <WifiOff size={16} />}
+          {isOnline ? <Wifi size={16} /> : isCached ? <PackageSearch size={16} /> : <WifiOff size={16} />}
           <span>{healthLabel}</span>
         </a>
         {onOpenPriceWatch ? (
@@ -2019,6 +2062,11 @@ function Header({
           </div>
         ) : null}
       </div>
+      {guideOpen ? (
+        <Suspense fallback={null}>
+          <GuideDialog onClose={() => setGuideOpen(false)} />
+        </Suspense>
+      ) : null}
     </header>
   );
 }
@@ -2027,40 +2075,90 @@ function AppIntro({ health, updateStatus }) {
   const { locale, t } = usePreferences();
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
-  const showIntroTimestamp = health.source !== "snapshot";
+  const isSnapshot = health.source === "snapshot";
+  const snapshotTime = isSnapshot
+    ? formatDataTime(resolveCatalogUpdatedAt(health, updateStatus), locale, t)
+    : "";
   return (
     <section className="app-intro" aria-label={t("appPurpose")}>
       <div>
         <h1>{t("introTitle")}</h1>
         <p>{t("introDescription")}</p>
       </div>
-      <div className="intro-side">
-        <AppLink
-          className="price-changes-nav"
-          href={PRICE_CHANGES_PATH}
-          preload={preloadPriceChangesRoute}
+      <a className="intro-facts" href={CATALOG_HEALTH_PATH} aria-label={t("dataStatus")}>
+        <span className={coverageDegraded || refreshFailed ? "warn" : ""}>
+          {coverageDegraded
+            ? t("catalogueProtected")
+            : refreshFailed
+            ? t("lastAttemptFailed")
+            : isSnapshot
+            ? t("hourlyUpdates")
+            : health.state === "online"
+              ? t("liveProductPrices")
+              : t("waitingLivePrices")}
+        </span>
+        <span>
+          {isSnapshot
+            ? t("lastCatalogueUpdate", { time: snapshotTime })
+            : formatUpdateStatus(updateStatus, t, locale)}
+        </span>
+      </a>
+    </section>
+  );
+}
+
+function HowItWorks({ onStep }) {
+  const { t } = usePreferences();
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(STEPS_DISMISSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  if (dismissed) return null;
+  const dismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem(STEPS_DISMISSED_KEY, "1");
+    } catch {
+      // The strip stays hidden for this visit.
+    }
+  };
+  const steps = [
+    { id: "products", title: t("stepProducts"), text: t("stepProductsText") },
+    { id: "basket", title: t("stepBasket"), text: t("stepBasketText") },
+    { id: "plan", title: t("stepPlan"), text: t("stepPlanText") },
+  ];
+  return (
+    <section className="how-it-works" aria-label={t("navGuide")}>
+      <ol>
+        {steps.map((step, index) => (
+          <li key={step.id}>
+            <button type="button" onClick={() => onStep(step.id)}>
+              <b aria-hidden="true">{index + 1}</b>
+              <span>
+                <strong>{step.title}</strong>
+                <small>{step.text}</small>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div className="how-it-works-actions">
+        <button type="button" className="how-it-works-more" onClick={openGuide}>
+          <CircleHelp size={14} aria-hidden="true" />
+          {t("fullGuide")}
+        </button>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={dismiss}
+          aria-label={t("hideSteps")}
+          title={t("hideSteps")}
         >
-          <ArrowDownUp size={17} aria-hidden="true" />
-          <span>
-            <strong>{t("priceChangesTitle")}</strong>
-            <small>{t("priceChangesPageDescription")}</small>
-          </span>
-          <ChevronRight size={16} aria-hidden="true" />
-        </AppLink>
-        <div className="intro-facts" aria-label={t("dataStatus")}>
-          <span>
-            {coverageDegraded
-              ? t("catalogueProtected")
-              : refreshFailed
-              ? t("lastAttemptFailed")
-              : health.source === "snapshot"
-              ? t("hourlyUpdates")
-              : health.state === "online"
-                ? t("liveProductPrices")
-                : t("waitingLivePrices")}
-          </span>
-          {showIntroTimestamp ? <span>{formatUpdateStatus(updateStatus, t, locale)}</span> : null}
-        </div>
+          <X size={16} />
+        </button>
       </div>
     </section>
   );
@@ -2078,7 +2176,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
   const unavailable = (updateStatus?.unavailableRetailers || []).map((row) => row.name).join(", ");
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
-  const isAutoSnapshot = updateStatus?.status === "snapshot";
+  if (!unavailable && !coverageDegraded && !refreshFailed) return null;
 
   return (
     <details
@@ -2096,11 +2194,7 @@ function DataFreshnessNotice({ health, updateStatus }) {
             ? t("unavailablePrices", { chains: unavailable })
             : coverageDegraded
             ? t("refreshCoverageDegradedTitle")
-            : refreshFailed
-            ? t("refreshFailedTitle")
-            : isAutoSnapshot
-            ? t("refreshAutomaticTitle")
-            : t("refreshLatestTitle")}
+            : t("refreshFailedTitle")}
           </strong>
           <small>{t("lastCatalogueUpdate", { time: snapshotTime })}</small>
         </span>

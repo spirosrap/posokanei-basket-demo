@@ -11,6 +11,7 @@ DirectoryIndex index.html
   AddType image/svg+xml .svg
   AddType text/css .css
   AddType text/csv .csv
+  AddType application/manifest+json .webmanifest
   AddEncoding br .br
   AddEncoding gzip .gz
 </IfModule>
@@ -59,9 +60,9 @@ DirectoryIndex index.html
     Header set Service-Worker-Allowed "/"
   </FilesMatch>
 
-  <Files "favicon.svg">
+  <FilesMatch "^(favicon\.svg|icon-(192|512)\.png|apple-touch-icon\.png|og-image\.png|manifest\.webmanifest)$">
     Header set Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
-  </Files>
+  </FilesMatch>
 </IfModule>
 
 <IfModule mod_rewrite.c>

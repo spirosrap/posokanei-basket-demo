@@ -8,7 +8,11 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.38.2`
+**Τρέχουσα έκδοση:** `v0.39.0`
+
+Η έκδοση `v0.39.0` κάνει την εφαρμογή πιο κατανοητή για νέους επισκέπτες. Η κεφαλίδα αποκτά πλοήγηση προς τις Ευκαιρίες, τις Αλλαγές τιμών και τον νέο οδηγό «Πώς λειτουργεί». Τρία αριθμημένα βήματα πάνω από τις στήλες Προϊόντα, Καλάθι και Πλάνο εξηγούν τη ροή και κρύβονται με ένα πάτημα. Η κίτρινη ειδοποίηση καταλόγου εμφανίζεται πλέον μόνο όταν υπάρχει πραγματικό πρόβλημα ενημέρωσης· σε κανονική λειτουργία η ώρα της τελευταίας ενημέρωσης φαίνεται διακριτικά δίπλα στον τίτλο. Νέο υποσέλιδο συγκεντρώνει συνδέσμους, την αποποίηση για την ανεπίσημη φύση της εφαρμογής, τον κώδικα και την έκδοση. Προστέθηκαν web app manifest και εικονίδια για εγκατάσταση στην αρχική οθόνη, καθώς και εικόνα προεπισκόπησης για κοινοποιήσεις. Ο οδηγός και το υποσέλιδο φορτώνονται ξεχωριστά, ώστε το αρχικό JavaScript να μένει εντός ορίου.
+
+Version `v0.39.0` makes the app easier to understand for first-time visitors. The header gains navigation to Bargains, Price changes and a new “How it works” guide. Three numbered steps above the Products, Basket and Plan columns explain the flow and can be dismissed. The amber catalogue notice now appears only for a real refresh problem; in normal operation the last update time sits quietly next to the heading. A new footer collects links, the unofficial-app disclaimer, the source code and the version. A web app manifest and icons allow installing to the home screen, and shared links get a preview image. The guide and footer are lazy chunks, keeping startup JavaScript within budget.
 
 Η έκδοση `v0.38.2` συνεχίζει την ενημέρωση των άλλων αλυσίδων όταν λείπει πλήρως μία μικρή πηγή τιμών. Τα προϊόντα της παραμένουν στο καλάθι χωρίς παλιές τιμές, με εμφανή προειδοποίηση μέχρι να αποκατασταθεί η πηγή. Οι υπόλοιποι έλεγχοι πληρότητας παραμένουν ενεργοί.
 

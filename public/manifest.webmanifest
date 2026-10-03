@@ -1,0 +1,20 @@
+{
+  "name": "Καλάθι Τιμών Supermarket",
+  "short_name": "Καλάθι Τιμών",
+  "description": "Βρες το φθηνότερο πλάνο supermarket για το καλάθι σου.",
+  "lang": "el",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f3ee",
+  "theme_color": "#178a5d",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Ευκαιρίες της ημέρας", "url": "./bargains/" },
+    { "name": "Αλλαγές τιμών", "url": "./changes/" }
+  ]
+}
