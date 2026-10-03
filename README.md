@@ -34,9 +34,11 @@ Version `v0.38.0` adds session-only undo/redo for up to 20 basket-content edits,
 
 Το **Καλάθι Τιμών Supermarket** σε βοηθά να φτιάξεις μια λίστα με προϊόντα supermarket και να δεις πού συμφέρει να τα αγοράσεις συνολικά.
 
-![Πρόσφατες αναζητήσεις και προσωπικό όριο αγορών στην έκδοση 0.36.0](screenshots/performance-v0.36.0.png)
+![Η αρχική σελίδα στην έκδοση 0.39.2: πλοήγηση, τρία βήματα και οι στήλες Προϊόντα, Καλάθι, Πλάνο](screenshots/home-v0.39.2.png)
 
-![Η mobile προβολή της έκδοσης 0.36.0](screenshots/performance-mobile-v0.36.0.png)
+![Η mobile προβολή της έκδοσης 0.39.2](screenshots/home-mobile-v0.39.2.png)
+
+![Ο οδηγός «Πώς λειτουργεί» με τα βήματα, τις λειτουργίες και τις συχνές ερωτήσεις](screenshots/guide-v0.39.2.png)
 
 Η βασική ιδέα είναι απλή:
 
@@ -341,9 +343,15 @@ Version `v0.38.0` adds session-only undo/redo for up to 20 basket-content edits,
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.38.0`
+**Current version:** `v0.39.2`
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
+
+Version `v0.39` adds header navigation to Bargains, Price changes and a “How it works” guide, three dismissible numbered steps above the Products, Basket and Plan columns, a footer, and a web app manifest with icons and a link-preview image. The catalogue notice appears only for a real refresh problem; otherwise the last update time sits next to the heading.
+
+![The home page in version 0.39.2: navigation, three steps and the Products, Basket and Plan columns](screenshots/home-v0.39.2.png)
+
+![The “How it works” guide with steps, features and common questions](screenshots/guide-v0.39.2.png)
 
 This web app lets users build a supermarket basket from the PosoKanei catalogue and ranks Greek supermarket chains by the total price of the selected groceries.
 
