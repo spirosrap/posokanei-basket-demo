@@ -87,11 +87,11 @@ const COPY = {
     faq: [
       [
         "Από πού προέρχονται οι τιμές;",
-        "Από τον επίσημο κυβερνητικό κατάλογο PosoKanei. Η εφαρμογή συγχρονίζει τον κατάλογο αυτόματα κάθε ώρα και δείχνει πάντα την ώρα της τελευταίας ενημέρωσης.",
+        "Από τον δημόσιο κατάλογο PosoKanei. Η εφαρμογή συγχρονίζει τον κατάλογο αυτόματα κάθε ώρα και δείχνει πάντα την ώρα της τελευταίας ενημέρωσης.",
       ],
       [
         "Είναι επίσημη εφαρμογή;",
-        "Η εφαρμογή είναι ανεξάρτητη και δεν συνδέεται με το PosoKanei ή με κάποια αλυσίδα. Οι τιμές όμως είναι οι επίσημες: προέρχονται από τον κυβερνητικό κατάλογο PosoKanei και ενημερώνονται κάθε ώρα.",
+        "Η εφαρμογή είναι ανεξάρτητη και δεν συνδέεται με το PosoKanei ή με κάποια αλυσίδα. Οι τιμές προέρχονται από τον δημόσιο κατάλογο PosoKanei, που ακολουθεί τις τρέχουσες τιμές των supermarket, και συγχρονίζονται κάθε ώρα.",
       ],
       [
         "Τι σημαίνει «πλήρες πλάνο»;",
@@ -176,11 +176,11 @@ const COPY = {
     faq: [
       [
         "Where do the prices come from?",
-        "From the official government PosoKanei catalogue. The app syncs the catalogue automatically every hour and always shows the time of the last update.",
+        "From the public PosoKanei catalogue. The app syncs the catalogue automatically every hour and always shows the time of the last update.",
       ],
       [
         "Is this an official app?",
-        "The app is independent and not affiliated with PosoKanei or any chain. The prices, however, are the official ones: they come from the government’s PosoKanei catalogue and are updated every hour.",
+        "The app is independent and not affiliated with PosoKanei or any chain. Prices come from the public PosoKanei catalogue, which tracks current supermarket prices, and are synced every hour.",
       ],
       [
         "What does “complete plan” mean?",
