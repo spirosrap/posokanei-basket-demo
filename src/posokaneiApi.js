@@ -698,6 +698,7 @@ function normalizeStaticBootstrap(raw, ids, sortMode) {
     basketProducts: basketProducts.map((product) => normalizeProduct(product, "snapshot")),
     missingBasketProductIds: ids.filter((id) => !foundBasketIds.has(id)),
     bootstrapMode: "static",
+    kritikosPrices: raw.has_kritikos_prices ?? (raw.availability?.unavailable_retailers?.some(row => row.id === "kritikos") ? false : null),
   };
 }
 

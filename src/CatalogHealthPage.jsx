@@ -15,6 +15,9 @@ import { runtimeAppUrl } from "./appConfig";
 import { coverageDelta, coverageRows, normalizeCatalogHealth } from "./catalogHealth";
 import { catalogHealthText } from "./catalogHealthMessages";
 import { fetchUpdateStatus } from "./posokaneiApi";
+import { otherUnavailableChains } from "./kritikosTransition";
+import KritikosTransition from "./KritikosTransition.jsx";
+import { coverageCopy } from "./catalogAvailabilityCopy";
 
 const CATALOG_HEALTH_URL = runtimeAppUrl("data/catalog-health.json");
 const PROTECTED_FAILURE_CODES = new Set([
@@ -76,7 +79,8 @@ export default function CatalogHealthPage({ appBasePath, ui }) {
   const updateFailed = state.updateStatus?.refreshStatus === "failed";
   const protectedCatalogue = updateFailed
     && PROTECTED_FAILURE_CODES.has(state.updateStatus?.refreshErrorCode);
-  const unavailable = (state.updateStatus?.unavailableRetailers || []).map((row) => row.name).join(", ");
+  const unavailable = otherUnavailableChains(state.updateStatus?.unavailableRetailers);
+  const transition = current?.retailers?.length > 0 && !current.retailers.some(row => row.id === "kritikos" && row.productCount > 0);
   const statusKind = protectedCatalogue ? "protected" : updateFailed ? "delayed" : unavailable ? "partial" : "healthy";
   const activeProducts = current?.productCount || 0;
   const headerHealth = activeProducts
@@ -145,7 +149,8 @@ export default function CatalogHealthPage({ appBasePath, ui }) {
               </span>
               <div>
                 <strong>{unavailable ? appText("unavailablePrices", { chains: unavailable }) : t(`catalogHealthStatus${capitalize(statusKind)}`)}</strong>
-                <p>{unavailable ? appText("unavailablePricesBody") : t(`catalogHealthStatus${capitalize(statusKind)}Body`)}</p>
+                <p>{unavailable ? coverageCopy[language].unavailablePricesBody : t(`catalogHealthStatus${capitalize(statusKind)}Body`)}</p>
+                {!transition && <a href={`${appBasePath}history/kritikos.json`} download="kritikos-history.json">{coverageCopy[language].kritikosHistory}</a>}
                 {updateFailed && state.updateStatus?.refreshCheckedAt ? (
                   <small>{t("catalogHealthLastAttempt", {
                     time: formatDataTime(state.updateStatus.refreshCheckedAt, locale, t),
@@ -153,6 +158,8 @@ export default function CatalogHealthPage({ appBasePath, ui }) {
                 ) : null}
               </div>
             </section>
+
+            {transition && <KritikosTransition />}
 
             <section className="health-summary" aria-label={t("catalogHealthSummary")}>
               <HealthMetric

@@ -157,6 +157,7 @@ import {
   usePreferences,
 } from "./appContexts";
 import { resolveCatalogUpdatedAt } from "./updateStatus";
+import { hasKritikosPrices, shoppingRetailers, eligibleSelection } from "./kritikosTransition";
 import {
   addRecentSearch,
   loadRecentSearches,
@@ -173,6 +174,7 @@ import { filterBasket } from "./basketView";
 
 const SavedBasketsDialog = lazy(() => import("./SavedBasketsDialog"));
 const GuideDialog = lazy(() => import("./GuideDialog"));
+const DataFreshnessNotice = lazy(() => import("./DataFreshnessNotice"));
 const SiteFooter = lazy(() => import("./SiteFooter"));
 
 const BASKET_KEY = "posokanei-basket";
@@ -637,7 +639,10 @@ function AppContent({ route }) {
   const [dailyBargain, setDailyBargain] = useState(null);
   const [dailyBargainState, setDailyBargainState] = useState("loading");
   const [liveProducts, setLiveProducts] = useState([]);
-  const [liveRetailers, setLiveRetailers] = useState([]);
+  const [retailerDirectory, setRetailerDirectory] = useState([]);
+  const [bootstrapKritikosPrices, setBootstrapKritikosPrices] = useState(null);
+  const kritikosPrices = hasKritikosPrices(updateStatus?.unavailableRetailers, updateStatus?.hasKritikosPrices) ?? bootstrapKritikosPrices;
+  const liveRetailers = useMemo(() => shoppingRetailers(retailerDirectory, kritikosPrices), [retailerDirectory, kritikosPrices]);
   const [liveCategories, setLiveCategories] = useState([]);
   const [liveMeta, setLiveMeta] = useState({
     total: 0,
@@ -763,6 +768,7 @@ function AppContent({ route }) {
         productResult,
         basketProducts,
         missingBasketProductIds = [],
+        kritikosPrices: bootstrapPrices = null,
       }) => {
         if (cancelled) return;
         skipSeededCatalogFetch.current = true;
@@ -805,7 +811,8 @@ function AppContent({ route }) {
           removeSharedBasketParam();
         }
         startTransition(() => {
-          setLiveRetailers(retailers);
+          setRetailerDirectory(retailers);
+          setBootstrapKritikosPrices(bootstrapPrices);
           setLiveCategories(categories);
           setLiveProducts(productResult.products);
           setLiveMeta({
@@ -859,7 +866,7 @@ function AppContent({ route }) {
   }, [catalogBootstrapped, isBargainsPage]);
 
   useEffect(() => {
-    if (isBargainsPage || !catalogBootstrapped) return undefined;
+    if (!catalogBootstrapped) return undefined;
     let cancelled = false;
     const refreshUpdateStatus = () => {
       fetchUpdateStatus()
@@ -1073,15 +1080,15 @@ function AppContent({ route }) {
   }, [priceWatchOpen, priceWatchProductIdsKey, priceWatchRefreshVersion]);
 
   useEffect(() => {
-    if (!liveRetailers.length || retailerFilterIds === null) return;
-    const availableIds = new Set(liveRetailers.map((retailer) => retailer.id));
+    if (!retailerDirectory.length || retailerFilterIds === null) return;
+    const availableIds = new Set(retailerDirectory.map((retailer) => retailer.id));
     const validIds = retailerFilterIds.filter((id) => availableIds.has(id));
-    if (!validIds.length || validIds.length === liveRetailers.length) {
+    if (!validIds.length || validIds.length === retailerDirectory.length) {
       setRetailerFilterIds(null);
     } else if (validIds.length !== retailerFilterIds.length) {
       setRetailerFilterIds(validIds);
     }
-  }, [liveRetailers, retailerFilterIds]);
+  }, [retailerDirectory, retailerFilterIds]);
 
   useEffect(() => {
     if (!catalogBootstrapped) return undefined;
@@ -1429,7 +1436,7 @@ function AppContent({ route }) {
   const toggleRetailerFilter = (retailerId) => {
     setRetailerFilterIds((current) => {
       const allIds = locationEligibleRetailers.map((retailer) => retailer.id);
-      const selectedIds = new Set(current === null ? allIds : current);
+      const selectedIds = eligibleSelection(locationEligibleRetailers, current);
       if (selectedIds.has(retailerId)) {
         if (selectedIds.size === 1) return current;
         selectedIds.delete(retailerId);
@@ -1511,7 +1518,12 @@ function AppContent({ route }) {
       />
 
       <AppIntro health={health} updateStatus={updateStatus} />
-      <DataFreshnessNotice health={health} updateStatus={updateStatus} />
+      {(kritikosPrices === false || updateStatus?.unavailableRetailers?.length > 0 || updateStatus?.refreshStatus === "failed") && (
+        <Suspense fallback={null}>
+          <DataFreshnessNotice health={health} updateStatus={updateStatus} transition={kritikosPrices === false}
+            formatDataTime={formatDataTime} coverageDegraded={isCatalogCoverageDegraded(updateStatus)} />
+        </Suspense>
+      )}
       <HowItWorks
         onStep={(view) => {
           if (isCompactWorkspace) {
@@ -2073,6 +2085,11 @@ function Header({
 
 function AppIntro({ health, updateStatus }) {
   const { locale, t } = usePreferences();
+  const collectedAt = resolveCatalogUpdatedAt(health, updateStatus);
+  const collectedMs = Date.parse(collectedAt);
+  const collectedLabel = Number.isFinite(collectedMs) ? new Intl.DateTimeFormat(locale, {
+    timeZone: "Europe/Athens", dateStyle: "medium", timeStyle: "medium", hour12: false,
+  }).format(collectedMs) : "";
   const refreshFailed = updateStatus?.refreshStatus === "failed";
   const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
   const isSnapshot = health.source === "snapshot";
@@ -2084,6 +2101,12 @@ function AppIntro({ health, updateStatus }) {
       <div>
         <h1>{t("introTitle")}</h1>
         <p>{t("introDescription")}</p>
+        <div className="catalog-download">
+          <a href={`${APP_BASE_PATH}data/catalog.json`} download="posokanei-catalog.json">
+            <Download size={17} aria-hidden="true" />{t("downloadFullCatalogue")}
+          </a>
+          {collectedLabel && <time dateTime={collectedAt}>{t("catalogueCollectedAt", { time: collectedLabel })}</time>}
+        </div>
       </div>
       <a className="intro-facts" href={CATALOG_HEALTH_PATH} aria-label={t("dataStatus")}>
         <span className={coverageDegraded || refreshFailed ? "warn" : ""}>
@@ -2164,60 +2187,6 @@ function HowItWorks({ onStep }) {
   );
 }
 
-function DataFreshnessNotice({ health, updateStatus }) {
-  const { locale, t } = usePreferences();
-  if (health.source !== "snapshot") return null;
-  const snapshotTime = formatDataTime(
-    resolveCatalogUpdatedAt(health, updateStatus),
-    locale,
-    t,
-  );
-  const refreshAttemptTime = formatDataTime(updateStatus?.refreshCheckedAt, locale, t);
-  const unavailable = (updateStatus?.unavailableRetailers || []).map((row) => row.name).join(", ");
-  const refreshFailed = updateStatus?.refreshStatus === "failed";
-  const coverageDegraded = isCatalogCoverageDegraded(updateStatus);
-  if (!unavailable && !coverageDegraded && !refreshFailed) return null;
-
-  return (
-    <details
-      className="data-warning"
-      aria-label={t("freshnessWarning")}
-      open={refreshFailed || Boolean(unavailable) || undefined}
-    >
-      <summary>
-        <span className="freshness-icon" aria-hidden="true">
-          <AlertCircle size={17} />
-        </span>
-        <span className="freshness-summary">
-          <strong>
-          {unavailable
-            ? t("unavailablePrices", { chains: unavailable })
-            : coverageDegraded
-            ? t("refreshCoverageDegradedTitle")
-            : t("refreshFailedTitle")}
-          </strong>
-          <small>{t("lastCatalogueUpdate", { time: snapshotTime })}</small>
-        </span>
-        <ChevronRight size={17} className="freshness-chevron" aria-hidden="true" />
-      </summary>
-      <div className="freshness-details">
-        <p>
-          {unavailable ? t("unavailablePricesBody") : t("refreshSnapshotExplanation")}
-          {refreshFailed
-            ? t("refreshAttempt", {
-                time: refreshAttemptTime,
-                error: friendlyRefreshError(
-                  updateStatus?.refreshError,
-                  t,
-                  updateStatus?.refreshErrorCode,
-                ),
-              })
-            : ""}
-        </p>
-      </div>
-    </details>
-  );
-}
 
 function MobileWorkspaceNav({
   navRef,
@@ -3908,7 +3877,7 @@ function RetailerFilterControl({
   onSelectAll,
 }) {
   const { t } = usePreferences();
-  const selectedSet = new Set(selectedIds === null ? retailers.map((retailer) => retailer.id) : selectedIds);
+  const selectedSet = eligibleSelection(retailers, selectedIds);
   const selectedCount = selectedSet.size;
   const hasFilter = selectedIds !== null;
 
@@ -5763,21 +5732,6 @@ function formatDateTime(date, locale) {
       return date.toISOString().slice(0, 16).replace("T", " ");
     }
   }
-}
-
-function friendlyRefreshError(error, t, errorCode = "") {
-  if (
-    errorCode === "catalog_coverage_degraded"
-    || errorCode === "catalog_contraction_blocked"
-  ) {
-    return t("catalogueCoverageDegraded");
-  }
-  if (!error) return t("checkIncomplete");
-  if (String(error).includes("HTTP 403")) return t("upstreamBlocked");
-  if (String(error).includes("Catalogue publication timed out")) {
-    return t("publicationTimedOut");
-  }
-  return t("checkIncomplete");
 }
 
 function isCatalogCoverageDegraded(updateStatus) {

@@ -10,6 +10,7 @@ export function normalizeUpdateStatus(raw = {}) {
     detail: raw.detail || "",
     snapshotGeneratedAt: raw.snapshot_generated_at || raw.snapshotGeneratedAt || "",
     unavailableRetailers: raw.catalog_availability?.unavailable_retailers || [],
+    hasKritikosPrices: raw.has_kritikos_prices ?? null,
     refreshStatus: raw.refresh_status || raw.refreshStatus || "",
     refreshCheckedAt: raw.refresh_checked_at || raw.refreshCheckedAt || "",
     refreshError: raw.refresh_error || raw.refreshError || "",
@@ -29,4 +30,26 @@ export function resolveCatalogUpdatedAt(health, updateStatus) {
     || health?.snapshotGeneratedAt
     || updateStatus?.snapshotGeneratedAt
     || "";
+}
+
+export function friendlyRefreshError(error, t, errorCode = "") {
+  const keys = {
+    catalog_coverage_degraded: "catalogueCoverageDegraded",
+    catalog_contraction_blocked: "catalogueCoverageDegraded",
+    upstream_http_403: "upstreamBlocked",
+    upstream_timeout: "upstreamTimedOut",
+    upstream_connection_failed: "upstreamConnectionFailed",
+    publication_timeout: "publicationTimedOut",
+    publication_failed: "publicationFailed",
+    catalog_verification_failed: "catalogVerificationFailed",
+    refresh_runners_failed: "refreshRunnersFailed",
+    runner_ssh_failed: "refreshRunnerFailed",
+    runner_ssh_auth_failed: "refreshRunnerFailed",
+    runner_runtime_failed: "refreshRunnerFailed",
+    runner_operation_failed: "refreshRunnerFailed",
+  };
+  if (keys[errorCode]) return t(keys[errorCode]);
+  if (String(error || "").includes("HTTP 403")) return t("upstreamBlocked");
+  // Older receipts did not distinguish source timeouts from publication timeouts.
+  return t("checkIncomplete");
 }

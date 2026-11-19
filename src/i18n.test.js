@@ -11,6 +11,9 @@ test("Greek and English expose the same translation keys", () => {
 });
 
 test("core interface text and dynamic values are translated", () => {
+  for (const language of ["el", "en"]) {
+    assert.match(translate(language, "catalogueCollectedAt", { time: "15:10:57" }), /15:10:57/);
+  }
   assert.equal(translate("el", "themeSelector"), "Θέμα εμφάνισης");
   assert.equal(translate("en", "themeSelector"), "Appearance theme");
   assert.equal(translate("el", "mobileWorkspaceNavigation"), "Προβολή εφαρμογής");

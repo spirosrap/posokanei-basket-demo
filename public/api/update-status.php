@@ -123,6 +123,17 @@ function snapshot_status(array $snapshot, string $detail): array
 
 function with_refresh_status(array $status): array
 {
+    $health = read_cache(__DIR__ . '/../data/catalog-health.json');
+    $coverage = $health['current']['retailers'] ?? null;
+    if (is_array($coverage) && count($coverage) > 0) {
+        $status['has_kritikos_prices'] = false;
+        foreach ($coverage as $row) {
+            if (($row['id'] ?? '') === 'kritikos' && ($row['product_count'] ?? 0) > 0) {
+                $status['has_kritikos_prices'] = true;
+                break;
+            }
+        }
+    }
     $refreshStatus = read_cache(__DIR__ . '/../data/refresh-status.json');
     $snapshotGeneratedAt = (string) ($status['snapshot_generated_at'] ?? $status['snapshotGeneratedAt'] ?? '');
     if (!is_array($refreshStatus)) {

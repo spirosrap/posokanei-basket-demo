@@ -369,6 +369,28 @@ select:focus-visible {
   gap: 6px;
 }
 
+.catalog-download {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 12px;
+}
+
+.catalog-download a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.catalog-download time { color: var(--muted); font-size: 13px; }
+
 .intro-facts span {
   display: inline-flex;
   align-items: center;
@@ -466,6 +488,35 @@ select:focus-visible {
 
 .price-changes-nav > svg:last-child {
   color: var(--muted);
+}
+
+.retailer-transition {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: 1520px;
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.retailer-transition svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+
+.retailer-transition p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.retailer-transition a {
+  color: var(--blue);
 }
 
 .data-warning {

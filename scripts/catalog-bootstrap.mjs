@@ -88,6 +88,8 @@ export function createCatalogBootstrap(runtimeCatalog, pageSize = PAGE_SIZE) {
     generated_at: runtimeCatalog.generated_at,
     source: runtimeCatalog.source,
     availability: runtimeCatalog.availability || null,
+    has_kritikos_prices: products.some(p => p.retailer_prices?.some(o =>
+      o.retailer === "kritikos" && (o.country || "GR") === "GR" && Number(o.price) > 0)),
     stats: compactStats(runtimeCatalog.stats, products.length),
     price_change_stats: runtimeCatalog.price_change_stats,
     categories: compactCategories(runtimeCatalog.categories),

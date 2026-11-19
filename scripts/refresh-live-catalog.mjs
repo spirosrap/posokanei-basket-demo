@@ -4,7 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { execFile } from "node:child_process";
+import { gunzipSync } from "node:zlib";
+import { writeSnapshotFiles } from "./write-snapshot-files.mjs";
+import { runRefreshCommand } from "./refresh-command.mjs";
 import { collectReportedImageIds } from "./catalog-image-fallbacks.mjs";
 import { uploadFileAtomic } from "./ftp-atomic-upload.mjs";
 import { writeCompressedVariants } from "./precompress-assets.mjs";
@@ -18,10 +21,13 @@ import {
 import { writeProductDetailsJsonl } from "./catalog-details.mjs";
 import { writeCatalogHealthSnapshot } from "./catalog-health.mjs";
 import { resolveRefreshOutputPaths } from "./refresh-output-paths.mjs";
+import { buildArchiveFallback } from "./archive-fallback.mjs";
 import { prepareRetailerOutage } from "./retailer-outage.mjs";
 import { writeRuntimeCatalog } from "./catalog-runtime.mjs";
 import { writeCatalogBootstrap } from "./catalog-bootstrap.mjs";
-import { buildRunnerFailure } from "./refresh-runner-failures.mjs";
+import {
+  appendRunnerDiagnostic, describeRefreshError, refreshErrorCode, runnerFailureRecord, tryRefreshHosts,
+} from "./refresh-runner-failures.mjs";
 import {
   evaluateCatalogContraction,
   evaluateCatalogCoverage,
@@ -61,6 +67,7 @@ const remoteRefreshHost = process.env.POSOKANEI_REFRESH_HOST || "";
 const remoteRefreshHosts = parseRefreshHosts(
   process.env.POSOKANEI_REFRESH_HOSTS || remoteRefreshHost,
 );
+const downloadOnlyHosts = new Set(parseRefreshHosts(process.env.POSOKANEI_DOWNLOAD_ONLY_HOSTS || ""));
 const minimumProducts = Number(process.env.POSOKANEI_MIN_PRODUCTS || 1000);
 const maximumCatalogDropRatio = Number(
   process.env.POSOKANEI_MAX_CATALOG_DROP_RATIO || 0.03,
@@ -134,10 +141,13 @@ const imageFallbackStatePath = resolve(
     || ".cache/catalog-image-fallback-state.json",
 );
 const maximumPublishedImageFallbackBytes = 6 * 1024 * 1024;
+const runnerDiagnosticsPath = resolve(projectRoot, ".cache/refresh-runner-diagnostics.jsonl");
 let detailVerificationProductId = "";
 let compressedPublicationFiles = [];
 let imageFallbackPublicationFiles = [];
 let reportedImageIds = [];
+let prepareDownloadHostImages = false;
+let imagePreparation;
 
 const releaseRefreshLock = await acquireRefreshLock(refreshLockPath);
 if (!releaseRefreshLock) {
@@ -248,7 +258,22 @@ async function refreshCatalog() {
   reportedImageIds = await fetchReportedImageIds();
   const previousSnapshotPath = await preparePreviousSnapshot();
   if (remoteRefreshHosts.length) {
-    await buildSnapshotOnRemoteHosts(remoteRefreshHosts, previousSnapshotPath);
+    try {
+      await buildSnapshotOnRemoteHosts(remoteRefreshHosts, previousSnapshotPath);
+    } catch (error) {
+      if (!["upstream_http_403", "refresh_runners_failed"].includes(refreshErrorCode(error))) throw error;
+      try {
+        await buildArchiveFallback(previousSnapshotPath, {
+          outputPath: snapshotPath, metaOutputPath: metaPath, runtimeOutputPath: runtimePath,
+          bootstrapOutputPath: bootstrapPath, priceChangesOutputPath: priceChangesPath,
+          priceChangesJsonOutputPath: priceChangesJsonPath, priceChangesPreviewOutputPath: priceChangesPreviewPath,
+        });
+        imageFallbackPublicationFiles = [];
+      } catch (archiveError) {
+        console.error(`Daily archive unavailable: ${archiveError.message}`);
+        throw error;
+      }
+    }
   } else {
     await runNodeScript("scripts/build-catalog-snapshot.mjs", {
       POSOKANEI_SNAPSHOT_OUT: snapshotPath,
@@ -261,6 +286,9 @@ async function refreshCatalog() {
       ...(previousSnapshotPath
         ? { POSOKANEI_PREVIOUS_SNAPSHOT: previousSnapshotPath }
         : {}),
+    }).catch((error) => {
+      error.refreshStage = "source_fetch";
+      throw error;
     });
   }
 
@@ -326,6 +354,10 @@ async function refreshCatalog() {
       targets: ftpTargets,
       publishCatalog: (target) => publishRefreshToTarget(target, snapshot.generated_at),
       publishImages: async (target) => {
+        if (prepareDownloadHostImages) {
+          imagePreparation ??= prepareLocalImages();
+          await imagePreparation;
+        }
         const password = await readTargetPassword(target);
         await publishImageFallbackFiles(target, password, { budgetMs: 120000 });
       },
@@ -478,21 +510,71 @@ async function writeJsonState(filePath, state) {
 }
 
 async function buildSnapshotOnRemoteHosts(hosts, previousSnapshotPath) {
-  const failures = [];
+  const runId = `${new Date().toISOString()}-${process.pid}`;
+  return tryRefreshHosts(hosts, async (host, index) => {
+    console.log(`Building catalogue snapshot on ${host}...`);
+    if (downloadOnlyHosts.has("*") || downloadOnlyHosts.has(host)) await buildOnDownloadOnlyHost(host, previousSnapshotPath);
+    else await buildSnapshotOnRemoteHost(host, previousSnapshotPath);
+    await saveRunnerDiagnostic({ run_id: runId, runner: index + 1, host, status: "ok", observed_at: new Date().toISOString() });
+    console.log(`Catalogue snapshot built on ${host}.`);
+  }, async (host, index, error) => {
+    await saveRunnerDiagnostic(runnerFailureRecord(host, error, { runId, runner: index + 1 }));
+    console.error(`Refresh runner ${host} failed: ${describeRefreshError(error)}`);
+  });
+}
 
-  for (const host of hosts) {
-    try {
-      console.log(`Building catalogue snapshot on ${host}...`);
-      await buildSnapshotOnRemoteHost(host, previousSnapshotPath);
-      console.log(`Catalogue snapshot built on ${host}.`);
-      return;
-    } catch (error) {
-      failures.push({ error_code: refreshErrorCode(error), error: describeRefreshError(error) });
-      console.error(`Refresh runner ${host} failed: ${describeRefreshError(error)}`);
-    }
+async function buildOnDownloadOnlyHost(host, previousSnapshotPath) {
+  const script = await readFile(resolve(projectRoot, "scripts/download-public-catalog.py"));
+  const local = host === "local";
+  const args = local ? ["-"] : ["-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+    "-o", "ConnectTimeout=8", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=2",
+    "--", host, "python3 -"];
+  const packed = await new Promise((accept, reject) => {
+    const child = execFile(local ? "python3" : "ssh", args, {
+      cwd: projectRoot, encoding: "buffer", maxBuffer: 64 * 1024 * 1024, timeout: 600000,
+    }, (err, stdout, stderr) => {
+      if (!err) return accept(stdout);
+      const error = new Error(stderr.toString().slice(-2048) || "Catalogue downloader failed.");
+      error.refreshStage = "source_fetch";
+      error.exitCode = err.code;
+      reject(error);
+    });
+    child.stdin.on("error", () => {}); // execFile reports an unreachable runner on close.
+    child.stdin.end(script);
+  });
+  const raw = JSON.parse(gunzipSync(packed, { maxOutputLength: 256 * 1024 * 1024 }));
+  const previous = JSON.parse(await readFile(previousSnapshotPath, "utf8"));
+  await writeSnapshotFiles(raw, previous, {
+    outputPath: snapshotPath, metaOutputPath: metaPath, runtimeOutputPath: runtimePath,
+    bootstrapOutputPath: bootstrapPath, priceChangesOutputPath: priceChangesPath,
+    priceChangesJsonOutputPath: priceChangesJsonPath, priceChangesPreviewOutputPath: priceChangesPreviewPath,
+  });
+  prepareDownloadHostImages = true;
+}
+
+async function prepareLocalImages() {
+  const state = await readImageFallbackState();
+  await runNodeScript("scripts/catalog-image-fallbacks.mjs", {
+    POSOKANEI_IMAGE_SNAPSHOT: snapshotPath, POSOKANEI_IMAGE_PREVIEW: priceChangesPreviewPath,
+    POSOKANEI_IMAGE_CHANGES: priceChangesJsonPath, POSOKANEI_IMAGE_BOOTSTRAP: bootstrapPath,
+    POSOKANEI_IMAGE_FALLBACK_OUT: imageFallbackOutputDir, POSOKANEI_IMAGE_FALLBACK_SUMMARY: imageFallbackSummaryPath,
+    POSOKANEI_IMAGE_PROXY_URLS: imageProxyUrlsForTargets().join(","),
+    POSOKANEI_IMAGE_FORCE_IDS: [process.env.POSOKANEI_IMAGE_FORCE_IDS, ...reportedImageIds].filter(Boolean).join(","),
+    POSOKANEI_IMAGE_FALLBACK_CURSOR: String(state.catalogCursor),
+    POSOKANEI_IMAGE_RECENT_CURSOR: String(state.recentCursor),
+  });
+  const summary = JSON.parse(await readFile(imageFallbackSummaryPath, "utf8"));
+  imageFallbackPublicationFiles = await optimizeLargeImageFallbacks(normalizeImageFallbackFiles(summary.files, imageFallbackOutputDir));
+  await writeImageFallbackState({ catalogCursor: summary.next_cursor, recentCursor: summary.next_recent_cursor });
+}
+
+async function saveRunnerDiagnostic(record) {
+  try {
+    await appendRunnerDiagnostic(runnerDiagnosticsPath, record);
+  } catch {
+    // Preserve the diagnostic in the private launchd log if the journal is unwritable.
+    console.error(`Could not append runner diagnostic; local log fallback: ${JSON.stringify(record)}`);
   }
-
-  throw buildRunnerFailure(failures);
 }
 
 async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
@@ -500,7 +582,6 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   const remoteScriptsDir = `${remoteDir}/scripts`;
   const remoteSrcDir = `${remoteDir}/src`;
   const remoteScript = `${remoteScriptsDir}/build-catalog-snapshot.mjs`;
-  const remoteCoverageModule = `${remoteScriptsDir}/catalog-snapshot-coverage.mjs`;
   const remoteRuntimeModule = `${remoteScriptsDir}/catalog-runtime.mjs`;
   const remoteBootstrapModule = `${remoteScriptsDir}/catalog-bootstrap.mjs`;
   const remotePriceExportModule = `${remoteScriptsDir}/price-change-export.mjs`;
@@ -531,12 +612,14 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
   await mkdir(dirname(priceChangesJsonPath), { recursive: true });
   await mkdir(dirname(priceChangesPreviewPath), { recursive: true });
 
+  let stage = "runner_setup";
   try {
     await run("ssh", [
       ...sshOptions,
       host,
       `rm -rf ${shellQuote(remoteDir)} && mkdir -p ${shellQuote(remoteScriptsDir)} ${shellQuote(remoteSrcDir)}`,
     ]);
+    stage = "runner_upload";
     await run("scp", [
       ...sshOptions,
       resolve(projectRoot, "scripts/build-catalog-snapshot.mjs"),
@@ -544,8 +627,9 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
     ]);
     await run("scp", [
       ...sshOptions,
+      resolve(projectRoot, "scripts/write-snapshot-files.mjs"),
       resolve(projectRoot, "scripts/catalog-snapshot-coverage.mjs"),
-      `${host}:${remoteCoverageModule}`,
+      `${host}:${remoteScriptsDir}/`,
     ]);
     await run("scp", [
       ...sshOptions,
@@ -584,9 +668,11 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
     ]);
     // Check access before transferring the large previous catalogue. Use the
     // exact same request client as the crawl, with no price or timestamp writes.
+    stage = "source_probe";
     await run("ssh", [
       ...sshOptions, host, `node ${shellQuote(remoteScript)} --probe-only`,
     ], { quiet: true });
+    stage = "runner_upload";
     if (previousSnapshotPath) {
       await run("scp", [
         ...sshOptions,
@@ -594,6 +680,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
         `${host}:${remotePreviousSnapshot}`,
       ]);
     }
+    stage = "source_fetch";
     await run("ssh", [
       ...sshOptions,
       host,
@@ -663,6 +750,7 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       imageFallbackPublicationFiles = [];
       console.error(`Image fallback scan skipped: ${describeRefreshError(error)}`);
     }
+    stage = "runner_download";
     await run("scp", [...sshOptions, `${host}:${remoteSnapshot}`, snapshotPath]);
     await run("scp", [...sshOptions, `${host}:${remoteMeta}`, metaPath]);
     await run("scp", [...sshOptions, `${host}:${remoteRuntime}`, runtimePath]);
@@ -674,6 +762,9 @@ async function buildSnapshotOnRemoteHost(host, previousSnapshotPath) {
       `${host}:${remotePriceChangesPreview}`,
       priceChangesPreviewPath,
     ]);
+  } catch (error) {
+    error.refreshStage = stage;
+    throw error;
   } finally {
     await run("ssh", [...sshOptions, host, `rm -rf ${shellQuote(remoteDir)}`], {
       allowFailure: true,
@@ -710,9 +801,12 @@ async function preparePreviousSnapshot() {
     console.log(`Downloaded public catalogue ${snapshot.generated_at} for price comparison.`);
     return previousSnapshotCachePath;
   } catch (error) {
-    throw new Error(
+    const failure = new Error(
       `Could not verify the previous public catalogue; refresh stopped before publication: ${error.message}`,
+      { cause: error },
     );
+    failure.refreshStage = "catalog_preflight";
+    throw failure;
   }
 }
 
@@ -900,49 +994,6 @@ function formatBytes(value) {
   return `${(value / 1024 / 1024).toFixed(2)} MiB`;
 }
 
-function describeRefreshError(error) {
-  if (error?.code === "upstream_http_403") return "All refresh runners returned HTTP 403.";
-  if (error?.code === "refresh_runners_failed") return "All refresh runners failed; see runner diagnostics.";
-  if (error?.code === "catalog_coverage_degraded") {
-    return "The upstream catalogue lost category, retailer, or offer coverage; the previous catalogue was retained.";
-  }
-  if (error?.code === "catalog_contraction_blocked") {
-    return "The upstream catalogue contracted beyond the safety limit; the previous catalogue was retained.";
-  }
-  const message = String(error?.message || error || "Catalogue refresh failed.");
-  const httpMatch = message.match(/returned HTTP (\d+)/);
-  const endpointMatch = message.match(/Error: (\/[^\\s]+) returned HTTP \d+/);
-  if (httpMatch && endpointMatch) {
-    return `${endpointMatch[1]} returned HTTP ${httpMatch[1]}`;
-  }
-  if (httpMatch) {
-    return `Upstream returned HTTP ${httpMatch[1]}`;
-  }
-  if (/Connection timed out during banner exchange|UNKNOWN port 65535|ssh exited with 255/i.test(message)) {
-    return "Refresh runner SSH connection timed out.";
-  }
-  if (/UND_ERR_CONNECT_TIMEOUT|Connect Timeout Error/i.test(message)) {
-    return "Refresh runner could not connect to the upstream API.";
-  }
-  if (/curl exited with 28|FTP response timeout|operation timed out/i.test(message)) {
-    return "Catalogue publication timed out.";
-  }
-  if (/fetch failed/i.test(message)) {
-    return "Refresh runner fetch failed.";
-  }
-  return "Catalogue refresh failed.";
-}
-
-function refreshErrorCode(error) {
-  if (["upstream_http_403", "refresh_runners_failed"].includes(error?.code)) return error.code;
-  if (error?.code === "catalog_coverage_degraded") return error.code;
-  if (error?.code === "catalog_contraction_blocked") return error.code;
-  const message = String(error?.message || error || "");
-  if (/HTTP 403/u.test(message)) return "upstream_http_403";
-  if (/timed out|timeout/u.test(message)) return "timeout";
-  return "refresh_failed";
-}
-
 function loadLocalEnv(envPath) {
   if (!existsSync(envPath)) return;
   const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
@@ -1021,8 +1072,13 @@ async function publishRefreshToTarget(target, expectedGeneratedAt) {
   }
   // Publish status last so it only announces a refresh after every data file is live.
   await publishDataFile(refreshStatusPath, "refresh-status.json", target, password);
-  await verifyPublicRefreshFiles(expectedGeneratedAt, target);
-  await verifyCompressedDataDelivery(target, expectedGeneratedAt);
+  try {
+    await verifyPublicRefreshFiles(expectedGeneratedAt, target);
+    await verifyCompressedDataDelivery(target, expectedGeneratedAt);
+  } catch (error) {
+    error.refreshStage = "catalog_verification";
+    throw error;
+  }
 }
 
 async function publishImageFallbackFiles(target, password, { strict = false, budgetMs = Infinity } = {}) {
@@ -1121,14 +1177,19 @@ async function verifyImageProxyFallback(file, target) {
 
 async function publishDataFile(filePath, remoteName, target, password, uploadOptions = {}) {
   const remoteRoot = target.remoteDir === "." ? "" : `${target.remoteDir}/`;
-  await uploadFileAtomic({
-    filePath,
-    url: `ftp://${target.host}/${remoteRoot}data/${remoteName}`,
-    user: target.user,
-    password,
-    cwd: projectRoot,
-    ...uploadOptions,
-  });
+  try {
+    await uploadFileAtomic({
+      filePath,
+      url: `ftp://${target.host}/${remoteRoot}data/${remoteName}`,
+      user: target.user,
+      password,
+      cwd: projectRoot,
+      ...uploadOptions,
+    });
+  } catch (error) {
+    error.refreshStage = "publication";
+    throw error;
+  }
 }
 
 async function fetchPublicJson(url) {
@@ -1551,40 +1612,7 @@ async function optimizeLargeImageFallbacks(files) {
 }
 
 function run(command, args, options = {}) {
-  return new Promise((resolveRun, rejectRun) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd || projectRoot,
-      env: options.env || process.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-      if (!options.quiet) process.stdout.write(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-      if (!options.quiet) process.stderr.write(chunk);
-    });
-    child.on("error", rejectRun);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolveRun({ stdout, stderr });
-        return;
-      }
-      if (options.allowFailure) {
-        resolveRun({ stdout, stderr });
-        return;
-      }
-      rejectRun(new Error(`${command} exited with ${code}: ${stderr || stdout}`));
-    });
-    if (options.input) {
-      child.stdin.end(options.input);
-    } else {
-      child.stdin.end();
-    }
-  });
+  return runRefreshCommand(command, args, { cwd: projectRoot, ...options });
 }
 
 function trimSlashes(value) {

@@ -106,6 +106,7 @@ export function buildCatalogCoverageProfile(snapshot = {}) {
     for (const offer of Array.isArray(product?.retailer_prices) ? product.retailer_prices : []) {
       if (String(offer?.country || "GR").toUpperCase() !== "GR") continue;
       const id = normalizeId(offer?.retailer || offer?.retailer_id);
+      if (id === "kritikos" && !(Number.isFinite(Number(offer.price)) && Number(offer.price) > 0)) continue;
       if (!id || productRetailers.has(id)) continue;
       productRetailers.add(id);
       retailerCounts.set(id, (retailerCounts.get(id) || 0) + 1);

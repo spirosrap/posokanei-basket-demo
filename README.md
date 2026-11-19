@@ -8,7 +8,13 @@
 
 **Κώδικας:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Τρέχουσα έκδοση:** `v0.39.2`
+**Τρέχουσα έκδοση:** `v0.39.5`
+
+Η μετάβαση του Κρητικού στο δίκτυο Μασούτης εμφανίζεται ως απλή πληροφορία. Το ιστορικό τιμών παραμένει διαθέσιμο για λήψη. Ο Κρητικός συμμετέχει στη σύγκριση καλαθιού μόνο όταν το PosoKanei δημοσιεύει ξεχωριστές τιμές για την αλυσίδα.
+
+Η έκδοση `v0.39.3` ξεχωρίζει τις αποτυχίες της πηγής, των μηχανημάτων συγχρονισμού και της δημοσίευσης. Οι πραγματικές αιτίες κάθε αποτυχημένης προσπάθειας διατηρούνται σε ιδιωτικό τοπικό αρχείο, ακόμη και αν ακολουθήσει επιτυχής ενημέρωση. Η γενική προειδοποίηση δεν αποδίδει πλέον κάθε σφάλμα στο PosoKanei.
+
+Version `v0.39.3` distinguishes source, refresh-runner and publication failures. Actual runner errors are retained in a private local journal, including when a later attempt succeeds. The generic warning no longer attributes every failure to PosoKanei.
 
 Η έκδοση `v0.39.2` διορθώνει τη διατύπωση στον οδηγό και στο υποσέλιδο: οι τιμές προέρχονται από τον δημόσιο κατάλογο PosoKanei, που ακολουθεί τις τρέχουσες τιμές των supermarket, και συγχρονίζονται κάθε ώρα.
 
@@ -343,7 +349,9 @@ Version `v0.38.0` adds session-only undo/redo for up to 20 basket-content edits,
 
 **Source code:** [github.com/spirosrap/posokanei-basket-demo](https://github.com/spirosrap/posokanei-basket-demo)
 
-**Current version:** `v0.39.2`
+**Current version:** `v0.39.5`
+
+The site shows the Kritikos transition to Masoutis as an informational notice. Historical Kritikos prices are available to download. Basket comparisons include Kritikos only when PosoKanei lists separate prices for the chain.
 
 > This is an unofficial app. It is not affiliated with PosoKanei or any supermarket chain.
 

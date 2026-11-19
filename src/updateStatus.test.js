@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeUpdateStatus, resolveCatalogUpdatedAt } from "./updateStatus.js";
+import { friendlyRefreshError, normalizeUpdateStatus, resolveCatalogUpdatedAt } from "./updateStatus.js";
+import { translate } from "./i18n.js";
 
 test("a successful partial refresh still exposes the missing chain", () => {
   const unavailable = [{ id: "lidl", name: "Lidl" }];
@@ -54,4 +55,18 @@ test("catalogue coverage diagnostics survive status normalization", () => {
 
   assert.equal(status.refreshErrorCode, "catalog_coverage_degraded");
   assert.equal(status.refreshDiagnostics.anomalies[0].name, "Τρόφιμα");
+});
+
+test("refresh warnings distinguish source failures, runner failures, and publication", () => {
+  const t = (key) => key;
+  assert.equal(friendlyRefreshError("request timed out", t, "upstream_timeout"), "upstreamTimedOut");
+  assert.equal(friendlyRefreshError("FTP timed out", t, "publication_timeout"), "publicationTimedOut");
+  assert.equal(friendlyRefreshError("fetch failed", t, "catalog_verification_failed"), "catalogVerificationFailed");
+  assert.equal(friendlyRefreshError("mixed failures including HTTP 403", t, "refresh_runners_failed"), "refreshRunnersFailed");
+  assert.equal(friendlyRefreshError("node not found", t, "runner_runtime_failed"), "refreshRunnerFailed");
+  assert.equal(friendlyRefreshError("Catalogue publication timed out.", t, "timeout"), "checkIncomplete");
+  for (const language of ["el", "en"]) {
+    assert.doesNotMatch(translate(language, "refreshFailedTitle"), /PosoKanei/);
+    assert.doesNotMatch(translate(language, "lastAttemptFailed"), /PosoKanei/);
+  }
 });

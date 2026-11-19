@@ -20,6 +20,14 @@ test("fresh scheduled data stays healthy despite the known Plesk live-proxy bloc
   assert.equal(evaluateRefreshHealth(status, meta, { now }).healthy, true);
 });
 
+test("the Kritikos transition alone is not an outage, but a second missing chain is", () => {
+  const check = (...ids) => evaluateRefreshHealth(status, {
+    ...meta, availability: { unavailable_retailers: ids.map(id => ({ id })) },
+  }, { now });
+  assert.equal(check("kritikos").healthy, true);
+  assert.deepEqual(check("kritikos", "masoutis").reasons, ["retailer_unavailable"]);
+});
+
 test("HTTP 200 with the September 19 snapshot and current 403 failures is unhealthy", () => {
   const result = evaluateRefreshHealth({ ...status, refresh_status: "failed", refresh_error_code: "upstream_http_403" },
     { ...meta, generated_at: "2026-09-19T07:25:27.685Z" }, { now });

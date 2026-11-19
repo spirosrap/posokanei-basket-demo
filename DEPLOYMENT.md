@@ -280,14 +280,40 @@ FTP credentials are not copied to the remote host.
 
 For resilience, set `POSOKANEI_REFRESH_HOSTS=runner-a,runner-b,runner-c` instead
 of a single host. The refresh script tries each SSH runner in order and uses the
-first one that successfully builds the snapshot. This avoids stale production
-data when one trusted runner is asleep, offline, or temporarily blocked.
+first one that successfully builds the snapshot. An offline or unreachable
+runner does not prevent a later runner from completing the refresh. An explicit
+upstream 401, 403 or rate limit ends the fleet attempt for this cycle.
 
-Each runner now probes `/meta/stats` with the same client as the crawl before
-transferring the previous catalogue. Failed runs keep diagnostics for every runner
+List lightweight runners in both `POSOKANEI_REFRESH_HOSTS` and
+`POSOKANEI_DOWNLOAD_ONLY_HOSTS` (use `local` for the scheduler machine).
+Set `POSOKANEI_DOWNLOAD_ONLY_HOSTS=*` to use this mode for the entire configured list.
+These runners need Python 3, not Node or a project checkout. They use the
+public catalogue pages with wget when installed, otherwise Python's HTTP
+client. Each category's distinct product count must match its reported total.
+Only the compressed raw data returns to the scheduler. It builds and checks
+the price history, publishes to the configured sites and verifies the public
+files. The homepage download links to this same catalogue, not a separate copy.
+
+Each runner starts at `/meta/stats` with the same client as the crawl.
+Only full build runners need a copy of the previous catalogue. Failed runs keep diagnostics for every attempted runner
 (public receipts use ordinal numbers) and do not replace catalogue prices or their
 timestamp. SSH keepalives bound disconnected sessions. The hourly scheduler retries
 normally after access returns; a 403 is not repeatedly retried within a crawl.
+
+Runner diagnostics are appended to `.cache/refresh-runner-diagnostics.jsonl`
+on the scheduler machine (owner-only permissions, never uploaded). Each attempt
+records the run ID, host, stage, exit code/signal, and credential-redacted error,
+stderr, stdout, stack and cause. Output fields above 64 KiB retain their beginning
+and end with an explicit truncation marker. Failed attempts remain in this journal
+even when a later runner succeeds or a subsequent refresh replaces the public
+status. If the journal cannot be written, the same record goes to the private
+launchd error log. Existing historical generic errors cannot be reconstructed.
+
+Public failure receipts contain only runner ordinals, stages, safe error codes
+and summaries, known API endpoints, and exit codes/signals. Source request timeouts
+are `upstream_timeout`; FTP publication timeouts are `publication_timeout`.
+Unclassified errors retain their real details locally without leaking SSH hosts,
+paths, command output, or credentials into public diagnostics.
 
 Incident diagnosed 2026-09-21: the catalogue had stopped updating on 2026-09-19
 at 07:25 UTC. Identical stats and search requests on Dell and HP succeeded over
@@ -333,7 +359,13 @@ That Plesk task only works when Plesk can reach `api.posokanei.gov.gr`. While
 Plesk is blocked, run `npm run live:refresh` from a separate environment that can
 reach the upstream API.
 
-Verification:
+Run headless browser tests against the local preview. For a production smoke
+test, open the homepage in a regular browser, switch languages, check the chain
+selector, and open the catalogue health page. On 19 November 2026, the hosting
+firewall flagged headless browser requests under Imunify360 rule 77350396 and
+Fail2Ban blocked the tester’s entire public connection.
+
+Use these HTTP checks for the published files and endpoints:
 
 ```bash
 curl -L https://kalathitimon.com/
